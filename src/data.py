@@ -14,36 +14,9 @@ def fetch_dataset(data_name):
     dataset = {}
     print('fetching data {}...'.format(data_name))
     root = './data/{}'.format(data_name)
-    if data_name in ['MNIST']:
-        dataset['train'] = eval('datasets.{}(root=root, split=\'train\', '
-                                'transform=datasets.Compose([transforms.ToTensor()]))'.format(data_name))
-        dataset['test'] = eval('datasets.{}(root=root, split=\'test\', '
-                               'transform=datasets.Compose([transforms.ToTensor()]))'.format(data_name))
-        dataset['train'].transform = datasets.Compose([
-            transforms.ToTensor()])
-        dataset['test'].transform = datasets.Compose([
-            transforms.ToTensor()])
-    elif data_name in ['SVHN']:
-        dataset['train'] = eval('datasets.{}(root=root, split=\'train\', '
-                                'transform=datasets.Compose([transforms.ToTensor()]))'.format(data_name))
-        dataset['test'] = eval('datasets.{}(root=root, split=\'test\', '
-                               'transform=datasets.Compose([transforms.ToTensor()]))'.format(data_name))
-        dataset['train'].transform = datasets.Compose([
-            transforms.RandomCrop(32, padding=4, padding_mode='reflect'),
-            transforms.ToTensor()])
-        dataset['test'].transform = datasets.Compose([
-            transforms.ToTensor()])
-    elif data_name in ['CIFAR10']:
-        dataset['train'] = eval('datasets.{}(root=root, split=\'train\', '
-                                'transform=datasets.Compose([transforms.ToTensor()]))'.format(data_name))
-        dataset['test'] = eval('datasets.{}(root=root, split=\'test\', '
-                               'transform=datasets.Compose([transforms.ToTensor()]))'.format(data_name))
-        dataset['train'].transform = datasets.Compose([
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomCrop(32, padding=4, padding_mode='reflect'),
-            transforms.ToTensor()])
-        dataset['test'].transform = datasets.Compose([
-            transforms.ToTensor()])
+    if data_name in ['MovieLens100K']:
+        dataset['train'] = eval('datasets.{}(root=root, split=\'train\')'.format(data_name))
+        dataset['test'] = eval('datasets.{}(root=root, split=\'test\')'.format(data_name))
     else:
         raise ValueError('Not valid dataset name')
     print('data ready')
