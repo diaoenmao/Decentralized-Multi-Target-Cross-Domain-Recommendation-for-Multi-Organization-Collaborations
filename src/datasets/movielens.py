@@ -1,9 +1,11 @@
 import numpy as np
+import scipy
 import os
 import torch
 from torch.utils.data import Dataset
 from utils import check_exists, makedir_exist_ok, save, load
 from .utils import download_url, extract_file
+from scipy.sparse import coo_matrix
 
 
 class ML100K(Dataset):
@@ -15,7 +17,7 @@ class ML100K(Dataset):
         self.split = split
         if not check_exists(self.processed_folder):
             self.process()
-        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle')
+        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle').todense()
 
     def __getitem__(self, index):
         data = torch.tensor(self.data[index])
@@ -57,18 +59,20 @@ class ML100K(Dataset):
     def make_data(self):
         data = np.genfromtxt(os.path.join(self.raw_folder, 'ml-100k', 'u.data'), delimiter='\t')
         user, item, rating = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(np.float32)
+        user_id, user_inv = np.unique(user, return_inverse=True)
+        item_id, item_inv = np.unique(item, return_inverse=True)
+        M, N = len(user_id), len(item_id)
+        user_id_map = {user_id[i]: i for i in range(len(user_id))}
+        item_id_map = {item_id[i]: i for i in range(len(item_id))}
+        user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
+        item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
         idx = np.random.permutation(data.shape[0])
         num_train = int(data.shape[0] * 0.9)
         train_idx, test_idx = idx[:num_train], idx[num_train:]
-        user_id, item_id = np.unique(user), np.unique(item)
-        m, n = len(user_id), len(item_id)
-        user_id_map = {user_id[i]: i for i in range(len(user_id))}
-        item_id_map = {item_id[i]: i for i in range(len(item_id))}
-        train_data, test_data = np.zeros((m, n), dtype=np.float32), np.zeros((m, n), dtype=np.float32)
-        for i in range(len(train_idx)):
-            train_data[user_id_map[user[train_idx[i]]], item_id_map[item[train_idx[i]]]] = rating[train_idx[i]]
-        for i in range(len(test_idx)):
-            test_data[user_id_map[user[test_idx[i]]], item_id_map[item[test_idx[i]]]] = rating[test_idx[i]]
+        train_user, train_item, train_rating = user[train_idx], item[train_idx], rating[train_idx]
+        test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
+        train_data = coo_matrix((train_rating, (train_user, train_item)), shape=(M, N))
+        test_data = coo_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
 
 
@@ -81,7 +85,7 @@ class ML1M(Dataset):
         self.split = split
         if not check_exists(self.processed_folder):
             self.process()
-        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle')
+        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle').todense()
 
     def __getitem__(self, index):
         data = torch.tensor(self.data[index])
@@ -123,18 +127,20 @@ class ML1M(Dataset):
     def make_data(self):
         data = np.genfromtxt(os.path.join(self.raw_folder, 'ml-1m', 'ratings.dat'), delimiter='::')
         user, item, rating = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(np.float32)
+        user_id, user_inv = np.unique(user, return_inverse=True)
+        item_id, item_inv = np.unique(item, return_inverse=True)
+        M, N = len(user_id), len(item_id)
+        user_id_map = {user_id[i]: i for i in range(len(user_id))}
+        item_id_map = {item_id[i]: i for i in range(len(item_id))}
+        user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
+        item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
         idx = np.random.permutation(data.shape[0])
         num_train = int(data.shape[0] * 0.9)
         train_idx, test_idx = idx[:num_train], idx[num_train:]
-        user_id, item_id = np.unique(user), np.unique(item)
-        m, n = len(user_id), len(item_id)
-        user_id_map = {user_id[i]: i for i in range(len(user_id))}
-        item_id_map = {item_id[i]: i for i in range(len(item_id))}
-        train_data, test_data = -np.ones((m, n), dtype=np.float32), -np.ones((m, n), dtype=np.float32)
-        for i in range(len(train_idx)):
-            train_data[user_id_map[user[train_idx[i]]], item_id_map[item[train_idx[i]]]] = rating[train_idx[i]]
-        for i in range(len(test_idx)):
-            test_data[user_id_map[user[test_idx[i]]], item_id_map[item[test_idx[i]]]] = rating[test_idx[i]]
+        train_user, train_item, train_rating = user[train_idx], item[train_idx], rating[train_idx]
+        test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
+        train_data = coo_matrix((train_rating, (train_user, train_item)), shape=(M, N))
+        test_data = coo_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
 
 
@@ -147,7 +153,7 @@ class ML10M(Dataset):
         self.split = split
         if not check_exists(self.processed_folder):
             self.process()
-        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle')
+        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle').todense()
 
     def __getitem__(self, index):
         data = torch.tensor(self.data[index])
@@ -189,18 +195,20 @@ class ML10M(Dataset):
     def make_data(self):
         data = np.genfromtxt(os.path.join(self.raw_folder, 'ml-10M100K', 'ratings.dat'), delimiter='::')
         user, item, rating = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(np.float32)
+        user_id, user_inv = np.unique(user, return_inverse=True)
+        item_id, item_inv = np.unique(item, return_inverse=True)
+        M, N = len(user_id), len(item_id)
+        user_id_map = {user_id[i]: i for i in range(len(user_id))}
+        item_id_map = {item_id[i]: i for i in range(len(item_id))}
+        user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
+        item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
         idx = np.random.permutation(data.shape[0])
         num_train = int(data.shape[0] * 0.9)
         train_idx, test_idx = idx[:num_train], idx[num_train:]
-        user_id, item_id = np.unique(user), np.unique(item)
-        m, n = len(user_id), len(item_id)
-        user_id_map = {user_id[i]: i for i in range(len(user_id))}
-        item_id_map = {item_id[i]: i for i in range(len(item_id))}
-        train_data, test_data = -np.ones((m, n), dtype=np.float32), -np.ones((m, n), dtype=np.float32)
-        for i in range(len(train_idx)):
-            train_data[user_id_map[user[train_idx[i]]], item_id_map[item[train_idx[i]]]] = rating[train_idx[i]]
-        for i in range(len(test_idx)):
-            test_data[user_id_map[user[test_idx[i]]], item_id_map[item[test_idx[i]]]] = rating[test_idx[i]]
+        train_user, train_item, train_rating = user[train_idx], item[train_idx], rating[train_idx]
+        test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
+        train_data = coo_matrix((train_rating, (train_user, train_item)), shape=(M, N))
+        test_data = coo_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
 
 
@@ -213,7 +221,7 @@ class ML20M(Dataset):
         self.split = split
         if not check_exists(self.processed_folder):
             self.process()
-        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle')
+        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle').todense()
 
     def __getitem__(self, index):
         data = torch.tensor(self.data[index])
@@ -255,16 +263,18 @@ class ML20M(Dataset):
     def make_data(self):
         data = np.genfromtxt(os.path.join(self.raw_folder, 'ml-20m', 'ratings.csv'), delimiter=',', skip_header=1)
         user, item, rating = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(np.float32)
+        user_id, user_inv = np.unique(user, return_inverse=True)
+        item_id, item_inv = np.unique(item, return_inverse=True)
+        M, N = len(user_id), len(item_id)
+        user_id_map = {user_id[i]: i for i in range(len(user_id))}
+        item_id_map = {item_id[i]: i for i in range(len(item_id))}
+        user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
+        item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
         idx = np.random.permutation(data.shape[0])
         num_train = int(data.shape[0] * 0.9)
         train_idx, test_idx = idx[:num_train], idx[num_train:]
-        user_id, item_id = np.unique(user), np.unique(item)
-        m, n = len(user_id), len(item_id)
-        user_id_map = {user_id[i]: i for i in range(len(user_id))}
-        item_id_map = {item_id[i]: i for i in range(len(item_id))}
-        train_data, test_data = -np.ones((m, n), dtype=np.float32), -np.ones((m, n), dtype=np.float32)
-        for i in range(len(train_idx)):
-            train_data[user_id_map[user[train_idx[i]]], item_id_map[item[train_idx[i]]]] = rating[train_idx[i]]
-        for i in range(len(test_idx)):
-            test_data[user_id_map[user[test_idx[i]]], item_id_map[item[test_idx[i]]]] = rating[test_idx[i]]
+        train_user, train_item, train_rating = user[train_idx], item[train_idx], rating[train_idx]
+        test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
+        train_data = coo_matrix((train_rating, (train_user, train_item)), shape=(M, N))
+        test_data = coo_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
