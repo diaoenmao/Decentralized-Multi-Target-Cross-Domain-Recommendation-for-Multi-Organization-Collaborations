@@ -14,7 +14,7 @@ def fetch_dataset(data_name):
     dataset = {}
     print('fetching data {}...'.format(data_name))
     root = './data/{}'.format(data_name)
-    if data_name in ['MovieLens100K']:
+    if data_name in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
         dataset['train'] = eval('datasets.{}(root=root, split=\'train\')'.format(data_name))
         dataset['test'] = eval('datasets.{}(root=root, split=\'test\')'.format(data_name))
     else:
@@ -102,3 +102,9 @@ def separate_dataset(dataset, idx):
     separated_dataset.target = [dataset.target[s] for s in idx]
     separated_dataset.other['id'] = list(range(len(separated_dataset.data)))
     return separated_dataset
+
+
+def make_implicit(data):
+    data[(data >= 0) & (data <= 3)] = 0
+    data[data > 3] = 1
+    return data

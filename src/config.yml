@@ -1,9 +1,8 @@
 ---
 # control
-#control:
-# data
-data_name: MovieLens100k
-model_name: mf
+control:
+  data_name: ML100k
+  model_name: mf
 # experiment
 num_workers: 0
 init_seed: 0

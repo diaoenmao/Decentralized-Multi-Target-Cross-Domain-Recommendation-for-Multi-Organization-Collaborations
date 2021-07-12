@@ -10,29 +10,16 @@ class ML100K(Dataset):
     data_name = 'ML100K'
     file = [('https://files.grouplens.org/datasets/movielens/ml-100k.zip', '0e33842e24a9c977be4e0107933c0723')]
 
-    # def __init__(self, dataset_path, sep=',', engine='c', header='infer'):
-    #     data = pd.read_csv(dataset_path, sep=sep, engine=engine, header=header).to_numpy()[:, :3]
-    #     self.items = data[:, :2].astype(np.int) - 1  # -1 because ID begins from 1
-    #     self.targets = self.__preprocess_target(data[:, 2]).astype(np.float32)
-    #     self.field_dims = np.max(self.items, axis=0) + 1
-    #     self.user_field_idx = np.array((0,), dtype=np.long)
-    #     self.item_field_idx = np.array((1,), dtype=np.long)
-
     def __init__(self, root, split):
         self.root = os.path.expanduser(root)
         self.split = split
         if not check_exists(self.processed_folder):
             self.process()
-        id, self.data, self.target = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)),
-                                          mode='pickle')
-        self.classes_counts = make_classes_counts(self.target)
-        self.classes_to_labels, self.target_size = load(os.path.join(self.processed_folder, 'meta.pt'), mode='pickle')
-        self.other = {'id': id}
+        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle')
 
     def __getitem__(self, index):
-        data, target = torch.tensor(self.data[index]), torch.tensor(self.target[index])
-        other = {k: torch.tensor(self.other[k][index]) for k in self.other}
-        input = {**other, 'data': data, 'target': target}
+        data = torch.tensor(self.data[index])
+        input = {'data': data}
         return input
 
     def __len__(self):
@@ -49,10 +36,9 @@ class ML100K(Dataset):
     def process(self):
         if not check_exists(self.raw_folder):
             self.download()
-        train_set, test_set, meta = self.make_data()
+        train_set, test_set = self.make_data()
         save(train_set, os.path.join(self.processed_folder, 'train.pt'), mode='pickle')
         save(test_set, os.path.join(self.processed_folder, 'test.pt'), mode='pickle')
-        save(meta, os.path.join(self.processed_folder, 'meta.pt'), mode='pickle')
         return
 
     def download(self):
@@ -69,101 +55,216 @@ class ML100K(Dataset):
         return fmt_str
 
     def make_data(self):
-        exit()
-        # data = pd.read_csv(dataset_path, sep=sep, engine=engine, header=header).to_numpy()[:, :3]
-        # self.items = data[:, :2].astype(np.int) - 1  # -1 because ID begins from 1
-        # self.targets = self.__preprocess_target(data[:, 2]).astype(np.float32)
-        # self.field_dims = np.max(self.items, axis=0) + 1
-        # self.user_field_idx = np.array((0,), dtype=np.long)
-        # self.item_field_idx = np.array((1,), dtype=np.long)
-        train_data = read_image_file(os.path.join(self.raw_folder, 'train-images-idx3-ubyte'))
-        test_data = read_image_file(os.path.join(self.raw_folder, 't10k-images-idx3-ubyte'))
-        train_target = read_label_file(os.path.join(self.raw_folder, 'train-labels-idx1-ubyte'))
-        test_target = read_label_file(os.path.join(self.raw_folder, 't10k-labels-idx1-ubyte'))
-        train_id, test_id = np.arange(len(train_data)).astype(np.int64), np.arange(len(test_data)).astype(np.int64)
-        classes_to_labels = anytree.Node('U', index=[])
-        classes = list(map(str, list(range(10))))
-        for c in classes:
-            make_tree(classes_to_labels, [c])
-        target_size = make_flat_index(classes_to_labels)
-        return (train_id, train_data, train_target), (test_id, test_data, test_target), (classes_to_labels, target_size)
-
-    def __preprocess_target(self, target):
-        target[target <= 3] = 0
-        target[target > 3] = 1
-        return target
-
+        data = np.genfromtxt(os.path.join(self.raw_folder, 'ml-100k', 'u.data'), delimiter='\t')
+        user, item, rating = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(np.float32)
+        idx = np.random.permutation(data.shape[0])
+        num_train = int(data.shape[0] * 0.9)
+        train_idx, test_idx = idx[:num_train], idx[num_train:]
+        user_id, item_id = np.unique(user), np.unique(item)
+        m, n = len(user_id), len(item_id)
+        user_id_map = {user_id[i]: i for i in range(len(user_id))}
+        item_id_map = {item_id[i]: i for i in range(len(item_id))}
+        train_data, test_data = np.zeros((m, n), dtype=np.float32), np.zeros((m, n), dtype=np.float32)
+        for i in range(len(train_idx)):
+            train_data[user_id_map[user[train_idx[i]]], item_id_map[item[train_idx[i]]]] = rating[train_idx[i]]
+        for i in range(len(test_idx)):
+            test_data[user_id_map[user[test_idx[i]]], item_id_map[item[test_idx[i]]]] = rating[test_idx[i]]
+        return train_data, test_data
 
 
 class ML1M(Dataset):
-    """
-    MovieLens 1M Dataset
-    Data preparation
-        treat samples with a rating less than 3 as negative samples
-    :param dataset_path: MovieLens dataset path
-    Reference:
-        https://grouplens.org/datasets/movielens
-    """
+    data_name = 'ML1M'
+    file = [('https://files.grouplens.org/datasets/movielens/ml-1m.zip', 'c4d9eecfca2ab87c1945afe126590906')]
 
-    def __init__(self, dataset_path):
-        super().__init__(dataset_path, sep='::', engine='python', header=None)
-
-
-class MovieLens10M(Dataset):
-    """
-    MovieLens 20M Dataset
-    Data preparation
-        treat samples with a rating less than 3 as negative samples
-    :param dataset_path: MovieLens dataset path
-    Reference:
-        https://grouplens.org/datasets/movielens
-    """
-
-    def __init__(self, dataset_path, sep=',', engine='c', header='infer'):
-        data = pd.read_csv(dataset_path, sep=sep, engine=engine, header=header).to_numpy()[:, :3]
-        self.items = data[:, :2].astype(np.int) - 1  # -1 because ID begins from 1
-        self.targets = self.__preprocess_target(data[:, 2]).astype(np.float32)
-        self.field_dims = np.max(self.items, axis=0) + 1
-        self.user_field_idx = np.array((0,), dtype=np.long)
-        self.item_field_idx = np.array((1,), dtype=np.long)
-
-    def __len__(self):
-        return self.targets.shape[0]
+    def __init__(self, root, split):
+        self.root = os.path.expanduser(root)
+        self.split = split
+        if not check_exists(self.processed_folder):
+            self.process()
+        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle')
 
     def __getitem__(self, index):
-        return self.items[index], self.targets[index]
-
-    def __preprocess_target(self, target):
-        target[target <= 3] = 0
-        target[target > 3] = 1
-        return target
-
-
-class MovieLens20M(Dataset):
-    """
-    MovieLens 20M Dataset
-    Data preparation
-        treat samples with a rating less than 3 as negative samples
-    :param dataset_path: MovieLens dataset path
-    Reference:
-        https://grouplens.org/datasets/movielens
-    """
-
-    def __init__(self, dataset_path, sep=',', engine='c', header='infer'):
-        data = pd.read_csv(dataset_path, sep=sep, engine=engine, header=header).to_numpy()[:, :3]
-        self.items = data[:, :2].astype(np.int) - 1  # -1 because ID begins from 1
-        self.targets = self.__preprocess_target(data[:, 2]).astype(np.float32)
-        self.field_dims = np.max(self.items, axis=0) + 1
-        self.user_field_idx = np.array((0,), dtype=np.long)
-        self.item_field_idx = np.array((1,), dtype=np.long)
+        data = torch.tensor(self.data[index])
+        input = {'data': data}
+        return input
 
     def __len__(self):
-        return self.targets.shape[0]
+        return len(self.data)
+
+    @property
+    def processed_folder(self):
+        return os.path.join(self.root, 'processed')
+
+    @property
+    def raw_folder(self):
+        return os.path.join(self.root, 'raw')
+
+    def process(self):
+        if not check_exists(self.raw_folder):
+            self.download()
+        train_set, test_set = self.make_data()
+        save(train_set, os.path.join(self.processed_folder, 'train.pt'), mode='pickle')
+        save(test_set, os.path.join(self.processed_folder, 'test.pt'), mode='pickle')
+        return
+
+    def download(self):
+        makedir_exist_ok(self.raw_folder)
+        for (url, md5) in self.file:
+            filename = os.path.basename(url)
+            download_url(url, self.raw_folder, filename, md5)
+            extract_file(os.path.join(self.raw_folder, filename))
+        return
+
+    def __repr__(self):
+        fmt_str = 'Dataset {}\nSize: {}\nRoot: {}\nSplit: {}'.format(
+            self.__class__.__name__, self.__len__(), self.root, self.split)
+        return fmt_str
+
+    def make_data(self):
+        data = np.genfromtxt(os.path.join(self.raw_folder, 'ml-1m', 'ratings.dat'), delimiter='::')
+        user, item, rating = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(np.float32)
+        idx = np.random.permutation(data.shape[0])
+        num_train = int(data.shape[0] * 0.9)
+        train_idx, test_idx = idx[:num_train], idx[num_train:]
+        user_id, item_id = np.unique(user), np.unique(item)
+        m, n = len(user_id), len(item_id)
+        user_id_map = {user_id[i]: i for i in range(len(user_id))}
+        item_id_map = {item_id[i]: i for i in range(len(item_id))}
+        train_data, test_data = -np.ones((m, n), dtype=np.float32), -np.ones((m, n), dtype=np.float32)
+        for i in range(len(train_idx)):
+            train_data[user_id_map[user[train_idx[i]]], item_id_map[item[train_idx[i]]]] = rating[train_idx[i]]
+        for i in range(len(test_idx)):
+            test_data[user_id_map[user[test_idx[i]]], item_id_map[item[test_idx[i]]]] = rating[test_idx[i]]
+        return train_data, test_data
+
+
+class ML10M(Dataset):
+    data_name = 'ML10M'
+    file = [('https://files.grouplens.org/datasets/movielens/ml-10m.zip', 'ce571fd55effeba0271552578f2648bd')]
+
+    def __init__(self, root, split):
+        self.root = os.path.expanduser(root)
+        self.split = split
+        if not check_exists(self.processed_folder):
+            self.process()
+        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle')
 
     def __getitem__(self, index):
-        return self.items[index], self.targets[index]
+        data = torch.tensor(self.data[index])
+        input = {'data': data}
+        return input
 
-    def __preprocess_target(self, target):
-        target[target <= 3] = 0
-        target[target > 3] = 1
-        return target
+    def __len__(self):
+        return len(self.data)
+
+    @property
+    def processed_folder(self):
+        return os.path.join(self.root, 'processed')
+
+    @property
+    def raw_folder(self):
+        return os.path.join(self.root, 'raw')
+
+    def process(self):
+        if not check_exists(self.raw_folder):
+            self.download()
+        train_set, test_set = self.make_data()
+        save(train_set, os.path.join(self.processed_folder, 'train.pt'), mode='pickle')
+        save(test_set, os.path.join(self.processed_folder, 'test.pt'), mode='pickle')
+        return
+
+    def download(self):
+        makedir_exist_ok(self.raw_folder)
+        for (url, md5) in self.file:
+            filename = os.path.basename(url)
+            download_url(url, self.raw_folder, filename, md5)
+            extract_file(os.path.join(self.raw_folder, filename))
+        return
+
+    def __repr__(self):
+        fmt_str = 'Dataset {}\nSize: {}\nRoot: {}\nSplit: {}'.format(
+            self.__class__.__name__, self.__len__(), self.root, self.split)
+        return fmt_str
+
+    def make_data(self):
+        data = np.genfromtxt(os.path.join(self.raw_folder, 'ml-10M100K', 'ratings.dat'), delimiter='::')
+        user, item, rating = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(np.float32)
+        idx = np.random.permutation(data.shape[0])
+        num_train = int(data.shape[0] * 0.9)
+        train_idx, test_idx = idx[:num_train], idx[num_train:]
+        user_id, item_id = np.unique(user), np.unique(item)
+        m, n = len(user_id), len(item_id)
+        user_id_map = {user_id[i]: i for i in range(len(user_id))}
+        item_id_map = {item_id[i]: i for i in range(len(item_id))}
+        train_data, test_data = -np.ones((m, n), dtype=np.float32), -np.ones((m, n), dtype=np.float32)
+        for i in range(len(train_idx)):
+            train_data[user_id_map[user[train_idx[i]]], item_id_map[item[train_idx[i]]]] = rating[train_idx[i]]
+        for i in range(len(test_idx)):
+            test_data[user_id_map[user[test_idx[i]]], item_id_map[item[test_idx[i]]]] = rating[test_idx[i]]
+        return train_data, test_data
+
+
+class ML20M(Dataset):
+    data_name = 'ML20M'
+    file = [('https://files.grouplens.org/datasets/movielens/ml-20m.zip', 'cd245b17a1ae2cc31bb14903e1204af3')]
+
+    def __init__(self, root, split):
+        self.root = os.path.expanduser(root)
+        self.split = split
+        if not check_exists(self.processed_folder):
+            self.process()
+        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle')
+
+    def __getitem__(self, index):
+        data = torch.tensor(self.data[index])
+        input = {'data': data}
+        return input
+
+    def __len__(self):
+        return len(self.data)
+
+    @property
+    def processed_folder(self):
+        return os.path.join(self.root, 'processed')
+
+    @property
+    def raw_folder(self):
+        return os.path.join(self.root, 'raw')
+
+    def process(self):
+        if not check_exists(self.raw_folder):
+            self.download()
+        train_set, test_set = self.make_data()
+        save(train_set, os.path.join(self.processed_folder, 'train.pt'), mode='pickle')
+        save(test_set, os.path.join(self.processed_folder, 'test.pt'), mode='pickle')
+        return
+
+    def download(self):
+        makedir_exist_ok(self.raw_folder)
+        for (url, md5) in self.file:
+            filename = os.path.basename(url)
+            download_url(url, self.raw_folder, filename, md5)
+            extract_file(os.path.join(self.raw_folder, filename))
+        return
+
+    def __repr__(self):
+        fmt_str = 'Dataset {}\nSize: {}\nRoot: {}\nSplit: {}'.format(
+            self.__class__.__name__, self.__len__(), self.root, self.split)
+        return fmt_str
+
+    def make_data(self):
+        data = np.genfromtxt(os.path.join(self.raw_folder, 'ml-20m', 'ratings.csv'), delimiter=',', skip_header=1)
+        user, item, rating = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(np.float32)
+        idx = np.random.permutation(data.shape[0])
+        num_train = int(data.shape[0] * 0.9)
+        train_idx, test_idx = idx[:num_train], idx[num_train:]
+        user_id, item_id = np.unique(user), np.unique(item)
+        m, n = len(user_id), len(item_id)
+        user_id_map = {user_id[i]: i for i in range(len(user_id))}
+        item_id_map = {item_id[i]: i for i in range(len(item_id))}
+        train_data, test_data = -np.ones((m, n), dtype=np.float32), -np.ones((m, n), dtype=np.float32)
+        for i in range(len(train_idx)):
+            train_data[user_id_map[user[train_idx[i]]], item_id_map[item[train_idx[i]]]] = rating[train_idx[i]]
+        for i in range(len(test_idx)):
+            test_data[user_id_map[user[test_idx[i]]], item_id_map[item[test_idx[i]]]] = rating[test_idx[i]]
+        return train_data, test_data

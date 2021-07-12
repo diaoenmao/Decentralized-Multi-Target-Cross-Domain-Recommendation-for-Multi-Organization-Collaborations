@@ -18,6 +18,28 @@ def init_param(m):
     return m
 
 
+def normalize(input):
+    if cfg['data_name'] in cfg['stats']:
+        broadcast_size = [1] * input.dim()
+        broadcast_size[1] = input.size(1)
+        m, s = cfg['stats'][cfg['data_name']]
+        m, s = torch.tensor(m, dtype=input.dtype).view(broadcast_size).to(input.device), \
+               torch.tensor(s, dtype=input.dtype).view(broadcast_size).to(input.device)
+        input = input.sub(m).div(s)
+    return input
+
+
+def denormalize(input):
+    if cfg['data_name'] in cfg['stats']:
+        broadcast_size = [1] * input.dim()
+        broadcast_size[1] = input.size(1)
+        m, s = cfg['stats'][cfg['data_name']]
+        m, s = torch.tensor(m, dtype=input.dtype).view(broadcast_size).to(input.device), \
+               torch.tensor(s, dtype=input.dtype).view(broadcast_size).to(input.device)
+        input = input.mul(s).add(m)
+    return input
+
+
 def make_batchnorm(m, momentum, track_running_stats):
     if isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
         m.momentum = momentum
@@ -37,16 +59,7 @@ def loss_fn(output, target, reduction='mean'):
     if target.dtype == torch.int64:
         loss = F.cross_entropy(output, target, reduction=reduction)
     else:
-        if cfg['loss_mode'] == 'mae':
-            loss = mae_loss(output, target)
-        elif cfg['loss_mode'] == 'mse':
-            loss = mse_loss(output, target)
-        elif cfg['loss_mode'] == 'ce':
-            loss = cross_entropy_loss(output, target)
-        elif cfg['loss_mode'] == 'kld':
-            loss = kld_loss(output, target)
-        else:
-            raise ValueError('Not valid loss type')
+        loss = F.mse_loss(output, target, reduction=reduction)
     return loss
 
 
@@ -67,8 +80,9 @@ def mse_loss(output, target, weight=None):
 
 
 def cross_entropy_loss(output, target, weight=None):
-    target = (target.topk(1, 1, True, True)[1]).view(-1)
-    ce = F.cross_entropy(output, target, reduction='mean', weight=weight)
+    if target.dtype != torch.int64:
+        target = (target.topk(1, 1, True, True)[1]).view(-1)
+    ce = F.cross_entropy(output, target, weight=weight, reduction='mean')
     return ce
 
 
@@ -78,3 +92,20 @@ def kld_loss(output, target, weight=None, T=1):
     kld = torch.sum(kld)
     kld /= output.size(0)
     return kld
+
+
+def margin_loss(output, target, weight=None):
+    margin = F.multi_margin_loss(output, target, p=1, margin=1.0, weight=weight, reduction='mean')
+    return margin
+
+
+def make_weight(target):
+    cls_indx, cls_counts = torch.unique(target, return_counts=True)
+    num_samples_per_cls = torch.zeros(cfg['target_size'], dtype=torch.float32, device=target.device)
+    num_samples_per_cls[cls_indx] = cls_counts.float()
+    beta = torch.tensor(0.999, dtype=torch.float32, device=target.device)
+    effective_num = 1.0 - beta.pow(num_samples_per_cls)
+    weight = (1.0 - beta) / effective_num
+    weight[torch.isinf(weight)] = 0
+    weight = weight / torch.sum(weight) * (weight > 0).float().sum()
+    return weight
