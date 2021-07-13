@@ -14,7 +14,7 @@ def fetch_dataset(data_name):
     dataset = {}
     print('fetching data {}...'.format(data_name))
     root = './data/{}'.format(data_name)
-    if data_name in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+    if data_name in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
         dataset['train'] = eval('datasets.{}(root=root, split=\'train\')'.format(data_name))
         dataset['test'] = eval('datasets.{}(root=root, split=\'test\')'.format(data_name))
     else:

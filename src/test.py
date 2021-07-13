@@ -4,17 +4,18 @@ from utils import collate, process_dataset, save_img, process_control, resume, t
 import torch
 import models
 
-# if __name__ == "__main__":
-#     process_control()
-#     cfg['seed'] = 0
-#     data_name = 'ML20M'
-#     batch_size = {'train': 10, 'test': 10}
-#     dataset = fetch_dataset(data_name)
-#     data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
-#     for i, input in enumerate(data_loader['train']):
-#         input = collate(input)
-#         print(torch.unique(input['data']))
-#         exit()
+if __name__ == "__main__":
+    process_control()
+    cfg['seed'] = 0
+    data_name = 'NFP'
+    batch_size = {'train': 10, 'test': 10}
+    dataset = fetch_dataset(data_name)
+    data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
+    for i, input in enumerate(data_loader['train']):
+        input = collate(input)
+        print(input['data'].shape)
+        print(torch.unique(input['data']))
+        exit()
 
 # import numpy as np
 # from scipy.sparse import csr_matrix
@@ -28,3 +29,5 @@ import models
 #     t = torch.sparse_coo_tensor([coo.row.tolist(), coo.col.tolist()],
 #                                 coo.data)
 #     print('t', t)
+#     z = csr[0].todense()
+#     print('z', z)

@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import Dataset
 from utils import check_exists, makedir_exist_ok, save, load
 from .utils import download_url, extract_file
-from scipy.sparse import coo_matrix
+from scipy.sparse import csr_matrix
 
 
 class ML100K(Dataset):
@@ -17,15 +17,15 @@ class ML100K(Dataset):
         self.split = split
         if not check_exists(self.processed_folder):
             self.process()
-        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle').todense()
+        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle')
 
     def __getitem__(self, index):
-        data = torch.tensor(self.data[index])
+        data = torch.tensor(self.data[index].todense())[0]
         input = {'data': data}
         return input
 
     def __len__(self):
-        return len(self.data)
+        return self.data.shape[0]
 
     @property
     def processed_folder(self):
@@ -66,13 +66,13 @@ class ML100K(Dataset):
         item_id_map = {item_id[i]: i for i in range(len(item_id))}
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
-        idx = np.random.permutation(data.shape[0])
-        num_train = int(data.shape[0] * 0.9)
+        idx = np.random.permutation(user.shape[0])
+        num_train = int(user.shape[0] * 0.9)
         train_idx, test_idx = idx[:num_train], idx[num_train:]
         train_user, train_item, train_rating = user[train_idx], item[train_idx], rating[train_idx]
         test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
-        train_data = coo_matrix((train_rating, (train_user, train_item)), shape=(M, N))
-        test_data = coo_matrix((test_rating, (test_user, test_item)), shape=(M, N))
+        train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
+        test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
 
 
@@ -85,15 +85,15 @@ class ML1M(Dataset):
         self.split = split
         if not check_exists(self.processed_folder):
             self.process()
-        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle').todense()
+        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle')
 
     def __getitem__(self, index):
-        data = torch.tensor(self.data[index])
+        data = torch.tensor(self.data[index].todense())[0]
         input = {'data': data}
         return input
 
     def __len__(self):
-        return len(self.data)
+        return self.data.shape[0]
 
     @property
     def processed_folder(self):
@@ -134,13 +134,13 @@ class ML1M(Dataset):
         item_id_map = {item_id[i]: i for i in range(len(item_id))}
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
-        idx = np.random.permutation(data.shape[0])
-        num_train = int(data.shape[0] * 0.9)
+        idx = np.random.permutation(user.shape[0])
+        num_train = int(user.shape[0] * 0.9)
         train_idx, test_idx = idx[:num_train], idx[num_train:]
         train_user, train_item, train_rating = user[train_idx], item[train_idx], rating[train_idx]
         test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
-        train_data = coo_matrix((train_rating, (train_user, train_item)), shape=(M, N))
-        test_data = coo_matrix((test_rating, (test_user, test_item)), shape=(M, N))
+        train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
+        test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
 
 
@@ -153,15 +153,15 @@ class ML10M(Dataset):
         self.split = split
         if not check_exists(self.processed_folder):
             self.process()
-        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle').todense()
+        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle')
 
     def __getitem__(self, index):
-        data = torch.tensor(self.data[index])
+        data = torch.tensor(self.data[index].todense())[0]
         input = {'data': data}
         return input
 
     def __len__(self):
-        return len(self.data)
+        return self.data.shape[0]
 
     @property
     def processed_folder(self):
@@ -202,13 +202,13 @@ class ML10M(Dataset):
         item_id_map = {item_id[i]: i for i in range(len(item_id))}
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
-        idx = np.random.permutation(data.shape[0])
-        num_train = int(data.shape[0] * 0.9)
+        idx = np.random.permutation(user.shape[0])
+        num_train = int(user.shape[0] * 0.9)
         train_idx, test_idx = idx[:num_train], idx[num_train:]
         train_user, train_item, train_rating = user[train_idx], item[train_idx], rating[train_idx]
         test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
-        train_data = coo_matrix((train_rating, (train_user, train_item)), shape=(M, N))
-        test_data = coo_matrix((test_rating, (test_user, test_item)), shape=(M, N))
+        train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
+        test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
 
 
@@ -221,15 +221,15 @@ class ML20M(Dataset):
         self.split = split
         if not check_exists(self.processed_folder):
             self.process()
-        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle').todense()
+        self.data = load(os.path.join(self.processed_folder, '{}.pt'.format(self.split)), mode='pickle')
 
     def __getitem__(self, index):
-        data = torch.tensor(self.data[index])
+        data = torch.tensor(self.data[index].todense())[0]
         input = {'data': data}
         return input
 
     def __len__(self):
-        return len(self.data)
+        return self.data.shape[0]
 
     @property
     def processed_folder(self):
@@ -270,11 +270,11 @@ class ML20M(Dataset):
         item_id_map = {item_id[i]: i for i in range(len(item_id))}
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
-        idx = np.random.permutation(data.shape[0])
-        num_train = int(data.shape[0] * 0.9)
+        idx = np.random.permutation(user.shape[0])
+        num_train = int(user.shape[0] * 0.9)
         train_idx, test_idx = idx[:num_train], idx[num_train:]
         train_user, train_item, train_rating = user[train_idx], item[train_idx], rating[train_idx]
         test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
-        train_data = coo_matrix((train_rating, (train_user, train_item)), shape=(M, N))
-        test_data = coo_matrix((test_rating, (test_user, test_item)), shape=(M, N))
+        train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
+        test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
