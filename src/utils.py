@@ -108,24 +108,23 @@ def recur(fn, input, *args):
 
 def process_dataset(dataset):
     cfg['data_size'] = {'train': len(dataset['train']), 'test': len(dataset['test'])}
-    cfg['target_size'] = dataset['train'].target_size
     return
 
 
 def process_control():
     cfg['data_name'] = cfg['control']['data_name']
+    cfg['data_mode'] = cfg['control']['data_mode']
     cfg['model_name'] = cfg['control']['model_name']
     model_name = cfg['model_name']
     cfg[model_name] = {}
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
-    cfg[model_name]['optimizer_name'] = 'SGD'
-    cfg[model_name]['lr'] = 1e-1
-    cfg[model_name]['momentum'] = 0.9
-    cfg[model_name]['weight_decay'] = 5e-4
-    cfg[model_name]['nesterov'] = True
-    cfg[model_name]['scheduler_name'] = 'CosineAnnealingLR'
-    cfg[model_name]['num_epochs'] = 400
-    cfg[model_name]['batch_size'] = {'train': 250, 'test': 500}
+    cfg[model_name]['optimizer_name'] = 'Adam'
+    cfg[model_name]['lr'] = 1e-3
+    cfg[model_name]['betas'] = (0.9, 0.999)
+    cfg[model_name]['weight_decay'] = 0
+    cfg[model_name]['scheduler_name'] = 'None'
+    cfg[model_name]['num_epochs'] = 100
+    cfg[model_name]['batch_size'] = {'train': 100, 'test': 200}
     return
 
 

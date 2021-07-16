@@ -18,26 +18,10 @@ def init_param(m):
     return m
 
 
-def normalize(input):
-    if cfg['data_name'] in cfg['stats']:
-        broadcast_size = [1] * input.dim()
-        broadcast_size[1] = input.size(1)
-        m, s = cfg['stats'][cfg['data_name']]
-        m, s = torch.tensor(m, dtype=input.dtype).view(broadcast_size).to(input.device), \
-               torch.tensor(s, dtype=input.dtype).view(broadcast_size).to(input.device)
-        input = input.sub(m).div(s)
-    return input
-
-
-def denormalize(input):
-    if cfg['data_name'] in cfg['stats']:
-        broadcast_size = [1] * input.dim()
-        broadcast_size[1] = input.size(1)
-        m, s = cfg['stats'][cfg['data_name']]
-        m, s = torch.tensor(m, dtype=input.dtype).view(broadcast_size).to(input.device), \
-               torch.tensor(s, dtype=input.dtype).view(broadcast_size).to(input.device)
-        input = input.mul(s).add(m)
-    return input
+def make_implicit(data):
+    data[(data >= 0) & (data <= 3)] = 0
+    data[data > 3] = 1
+    return data
 
 
 def make_batchnorm(m, momentum, track_running_stats):

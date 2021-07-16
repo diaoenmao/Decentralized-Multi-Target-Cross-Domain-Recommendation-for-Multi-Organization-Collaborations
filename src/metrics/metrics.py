@@ -10,17 +10,17 @@ def RMSE(output, target):
     return rmse
 
 
-def NDCG(ranklist, K, positive_item):
+def HitRatio(ranklist, K, positive_item):
     if positive_item in ranklist[:K]:
-        ranking_of_positive_item = np.where(ranklist == positive_item)[0][0]
-        return math.log(2) / math.log(2 + ranking_of_positive_item)
+        return 1
     else:
         return 0
 
 
-def HitRatio(ranklist, K, positive_item):
+def NDCG(ranklist, K, positive_item):
     if positive_item in ranklist[:K]:
-        return 1
+        ranking_of_positive_item = np.where(ranklist == positive_item)[0][0]
+        return math.log(2) / math.log(2 + ranking_of_positive_item)
     else:
         return 0
 
