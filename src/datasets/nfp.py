@@ -82,19 +82,26 @@ class NFP(Dataset):
         return train_data, test_data
 
     def make_implicit_data(self):
+        import datetime
+        import pandas as pd
         extract_file(os.path.join(self.raw_folder, 'nf_prize_dataset.tar.gz'))
         extract_file(os.path.join(self.raw_folder, 'download', 'training_set.tar'))
         filenames = os.listdir(os.path.join(self.raw_folder, 'download', 'training_set'))
-        user, item, rating = [], [], []
+        user, item, rating, ts = [], [], [], []
         for i in range(len(filenames)):
-            data = np.genfromtxt(os.path.join(self.raw_folder, 'download', 'training_set', filenames[i]), delimiter=',',
-                                 skip_header=1)
-            user.append(data[:, 0])
-            item.append(np.repeat(i, data.shape[0]))
-            rating.append(data[:, 1])
+            data = pd.read_csv(os.path.join(self.raw_folder, 'download', 'training_set', filenames[i]), skiprows=[0], header=None)
+            user_i = data[0].to_numpy()
+            item_i = np.repeat(i, data.shape[0])
+            rating_i = data[1].to_numpy()
+            ts_i = (pd.to_datetime(data[2], format='%Y-%m-%d').values.astype(np.int64))
+            user.append(user_i)
+            item.append(item_i)
+            rating.append(rating_i)
+            ts.append(ts_i)
         user = np.concatenate(user, axis=0).astype(np.int64)
         item = np.concatenate(item, axis=0).astype(np.int64)
         rating = np.concatenate(rating, axis=0).astype(np.float32)
+        ts = np.concatenate(ts, axis=0).astype(np.float32)
         user_id, user_inv = np.unique(user, return_inverse=True)
         item_id, item_inv = np.unique(item, return_inverse=True)
         M, N = len(user_id), len(item_id)
