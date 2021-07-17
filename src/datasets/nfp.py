@@ -102,28 +102,32 @@ class NFP(Dataset):
         item_id_map = {item_id[i]: i for i in range(len(item_id))}
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
-        rating[:] = 1
-        test_item = []
-        withheld_idxs = []
-        for i in range(len(user_id)):
-            withheld_idx = np.argmax(ts[user == i])
-            withheld_item = np.array([item[withheld_idx]])
-            random_item = list(set(range(N)) - set(item[user == i].tolist()))
-            random_item = np.random.choice(np.array(list(random_item)), 100, replace=False)
-            test_item_i = np.concatenate([withheld_item, random_item], axis=0)
-            test_item.append(test_item_i)
-            withheld_idxs.append(withheld_idx)
-        user = np.delete(user, withheld_idxs, axis=0)
-        item = np.delete(item, withheld_idxs, axis=0)
-        rating = np.delete(rating, withheld_idxs, axis=0)
+        rating.fill(1)
         train_user = user
         train_item = item
         train_rating = rating
-        test_user = np.arange(M).repeat(101)
-        test_item = np.concatenate(test_item, axis=0)
-        test_rating = np.zeros(101, dtype=np.float32)
-        test_rating[0] = 1
-        test_rating = np.tile(test_rating, M)
+        train_ts = ts
         train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
+        random_user = np.arange(M).repeat(100)
+        random_item = []
+        step_size = 10000
+        for i in range(0, M, step_size):
+            valid_step_size = min(i + step_size, M) - i
+            nonzero_user, nonzero_item = train_data[i:i + valid_step_size].nonzero()
+            random_item_i = np.random.rand(valid_step_size, N)
+            random_item_i[nonzero_user, nonzero_item] = np.inf
+            random_item_i = random_item_i.argsort(axis=1)[:, :100].reshape(-1)
+            random_item.append(random_item_i)
+        random_item = np.concatenate(random_item, axis=0)
+        random_rating = np.zeros(random_user.shape[0])
+        train_ts = csr_matrix((train_ts, (train_user, train_item)), shape=(M, N))
+        withheld_user = np.arange(M)
+        withheld_item = np.asarray(train_ts.argmax(axis=1)).reshape(-1)
+        withheld_rating = np.ones(M)
+        train_data[withheld_user, withheld_item] = 0
+        train_data.eliminate_zeros()
+        test_user = np.concatenate([withheld_user, random_user], axis=0)
+        test_item = np.concatenate([withheld_item, random_item], axis=0)
+        test_rating = np.concatenate([withheld_rating, random_rating], axis=0)
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
