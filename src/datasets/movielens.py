@@ -21,8 +21,10 @@ class ML100K(Dataset):
         self.data = load(os.path.join(self.processed_folder, self.mode, '{}.pt'.format(self.split)), mode='pickle')
 
     def __getitem__(self, index):
-        data = torch.tensor(self.data[index].todense())[0]
-        input = {'data': data}
+        data = self.data[index]
+        input = {'user_idx': torch.tensor(index, dtype=torch.long),
+                 'item_idx': torch.tensor(data.col, dtype=torch.long),
+                 'data': torch.tensor(data.data, dtype=torch.float)}
         return input
 
     def __len__(self):
@@ -101,7 +103,7 @@ class ML100K(Dataset):
         step_size = 10000
         for i in range(0, M, step_size):
             valid_step_size = min(i + step_size, M) - i
-            nonzero_user, nonzero_item = train_data[i:i+valid_step_size].nonzero()
+            nonzero_user, nonzero_item = train_data[i:i + valid_step_size].nonzero()
             random_item_i = np.random.rand(valid_step_size, N)
             random_item_i[nonzero_user, nonzero_item] = np.inf
             random_item_i = random_item_i.argsort(axis=1)[:, :100].reshape(-1)
@@ -134,8 +136,10 @@ class ML1M(Dataset):
         self.data = load(os.path.join(self.processed_folder, self.mode, '{}.pt'.format(self.split)), mode='pickle')
 
     def __getitem__(self, index):
-        data = torch.tensor(self.data[index].todense())[0]
-        input = {'data': data}
+        data = self.data[index]
+        input = {'user_idx': torch.tensor(index, dtype=torch.long),
+                 'item_idx': torch.tensor(data.col, dtype=torch.long),
+                 'data': torch.tensor(data.data, dtype=torch.float)}
         return input
 
     def __len__(self):
@@ -214,7 +218,7 @@ class ML1M(Dataset):
         step_size = 10000
         for i in range(0, M, step_size):
             valid_step_size = min(i + step_size, M) - i
-            nonzero_user, nonzero_item = train_data[i:i+valid_step_size].nonzero()
+            nonzero_user, nonzero_item = train_data[i:i + valid_step_size].nonzero()
             random_item_i = np.random.rand(valid_step_size, N)
             random_item_i[nonzero_user, nonzero_item] = np.inf
             random_item_i = random_item_i.argsort(axis=1)[:, :100].reshape(-1)
@@ -234,7 +238,6 @@ class ML1M(Dataset):
         return train_data, test_data
 
 
-
 class ML10M(Dataset):
     data_name = 'ML10M'
     file = [('https://files.grouplens.org/datasets/movielens/ml-10m.zip', 'ce571fd55effeba0271552578f2648bd')]
@@ -248,8 +251,10 @@ class ML10M(Dataset):
         self.data = load(os.path.join(self.processed_folder, self.mode, '{}.pt'.format(self.split)), mode='pickle')
 
     def __getitem__(self, index):
-        data = torch.tensor(self.data[index].todense())[0]
-        input = {'data': data}
+        data = self.data[index]
+        input = {'user_idx': torch.tensor(index, dtype=torch.long),
+                 'item_idx': torch.tensor(data.col, dtype=torch.long),
+                 'data': torch.tensor(data.data, dtype=torch.float)}
         return input
 
     def __len__(self):
@@ -328,7 +333,7 @@ class ML10M(Dataset):
         step_size = 10000
         for i in range(0, M, step_size):
             valid_step_size = min(i + step_size, M) - i
-            nonzero_user, nonzero_item = train_data[i:i+valid_step_size].nonzero()
+            nonzero_user, nonzero_item = train_data[i:i + valid_step_size].nonzero()
             random_item_i = np.random.rand(valid_step_size, N)
             random_item_i[nonzero_user, nonzero_item] = np.inf
             random_item_i = random_item_i.argsort(axis=1)[:, :100].reshape(-1)
@@ -361,8 +366,10 @@ class ML20M(Dataset):
         self.data = load(os.path.join(self.processed_folder, self.mode, '{}.pt'.format(self.split)), mode='pickle')
 
     def __getitem__(self, index):
-        data = torch.tensor(self.data[index].todense())[0]
-        input = {'data': data}
+        data = self.data[index]
+        input = {'user_idx': torch.tensor(index, dtype=torch.long),
+                 'item_idx': torch.tensor(data.col, dtype=torch.long),
+                 'data': torch.tensor(data.data, dtype=torch.float)}
         return input
 
     def __len__(self):
@@ -459,4 +466,3 @@ class ML20M(Dataset):
         test_rating = np.concatenate([withheld_rating, random_rating], axis=0)
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
-

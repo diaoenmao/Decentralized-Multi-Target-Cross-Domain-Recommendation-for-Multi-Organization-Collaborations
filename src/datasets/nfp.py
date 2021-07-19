@@ -20,8 +20,10 @@ class NFP(Dataset):
         self.data = load(os.path.join(self.processed_folder, self.mode, '{}.pt'.format(self.split)), mode='pickle')
 
     def __getitem__(self, index):
-        data = torch.tensor(self.data[index].todense())[0]
-        input = {'data': data}
+        data = self.data[index]
+        input = {'user_idx': torch.tensor(index, dtype=torch.long),
+                 'item_idx': torch.tensor(data.col, dtype=torch.long),
+                 'data': torch.tensor(data.data, dtype=torch.float)}
         return input
 
     def __len__(self):

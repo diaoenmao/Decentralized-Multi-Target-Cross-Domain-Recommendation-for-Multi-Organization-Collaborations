@@ -37,7 +37,12 @@ def runExperiment():
     dataset = fetch_dataset(cfg['data_name'])
     process_dataset(dataset)
     model = eval('models.{}().to(cfg["device"])'.format(cfg['model_name']))
-    metric = Metric({'test': ['Loss', 'Accuracy']})
+    if cfg['data_mode'] == 'explicit':
+        metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
+    elif cfg['data_mode'] == 'implicit':
+        metric = Metric({'train': ['Loss', 'HR', 'NDCG'], 'test': ['Loss', 'HR', 'NDCG']})
+    else:
+        raise ValueError('Not valid data mode')
     result = resume(cfg['model_tag'], load_tag='best')
     last_epoch = result['epoch']
     model.load_state_dict(result['model_state_dict'])

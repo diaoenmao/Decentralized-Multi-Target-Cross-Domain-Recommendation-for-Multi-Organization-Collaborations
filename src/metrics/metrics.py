@@ -10,7 +10,7 @@ def RMSE(output, target):
     return rmse
 
 
-def HitRatio(ranklist, K, positive_item):
+def HR(ranklist, K, positive_item):
     if positive_item in ranklist[:K]:
         return 1
     else:
@@ -30,7 +30,7 @@ class Metric(object):
         self.metric_name = self.make_metric_name(metric_name)
         self.pivot, self.pivot_name, self.pivot_direction = self.make_pivot()
         self.metric = {'Loss': (lambda input, output: output['loss'].item()),
-                       'Accuracy': (lambda input, output: recur(Accuracy, output['target'], input['target']))}
+                       'RMSE': (lambda input, output: recur(RMSE, output['target'], input['target']))}
 
     def make_metric_name(self, metric_name):
         return metric_name
