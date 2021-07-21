@@ -108,6 +108,7 @@ def recur(fn, input, *args):
 
 def process_dataset(dataset):
     cfg['data_size'] = {'train': len(dataset['train']), 'test': len(dataset['test'])}
+    cfg['num_users'], cfg['num_items'] = dataset['train'].num_users, dataset['train'].num_items
     return
 
 
@@ -115,8 +116,8 @@ def process_control():
     cfg['data_name'] = cfg['control']['data_name']
     cfg['data_mode'] = cfg['control']['data_mode']
     cfg['model_name'] = cfg['control']['model_name']
+    cfg['mf'] = {'hidden_size': 128}
     model_name = cfg['model_name']
-    cfg[model_name] = {}
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
     cfg[model_name]['optimizer_name'] = 'Adam'
     cfg[model_name]['lr'] = 1e-3
@@ -223,6 +224,5 @@ def resume(model_tag, load_tag='checkpoint', verbose=True):
 
 
 def collate(input):
-    for k in input:
-        input[k] = torch.stack(input[k], 0)
     return input
+

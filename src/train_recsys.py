@@ -8,7 +8,7 @@ import time
 import torch
 import torch.backends.cudnn as cudnn
 from config import cfg, process_args
-from data import fetch_dataset, make_data_loader, make_batchnorm_stats
+from data import fetch_dataset, make_data_loader
 from metrics import Metric
 from utils import save, to_device, process_control, process_dataset, make_optimizer, make_scheduler, resume, collate
 from logger import make_logger
@@ -89,8 +89,10 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
     start_time = time.time()
     for i, input in enumerate(data_loader):
         input = collate(input)
-        input_size = input['data'].size(0)
+        input_size = len(input['data'])
         input = to_device(input, cfg['device'])
+        print(input)
+        exit()
         optimizer.zero_grad()
         output = model(input)
         output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']

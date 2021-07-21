@@ -1,9 +1,9 @@
 ---
 # control
 control:
-  data_name: ML100k
-  data_mode: implicit
-  model_name: bprmf
+  data_name: ML100K
+  data_mode: explicit
+  model_name: mf
 # experiment
 num_workers: 0
 init_seed: 0

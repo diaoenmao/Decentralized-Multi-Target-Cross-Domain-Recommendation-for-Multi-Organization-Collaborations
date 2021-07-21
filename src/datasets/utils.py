@@ -198,7 +198,7 @@ class Compose(object):
 
     def __call__(self, input):
         for t in self.transforms:
-            input['data'] = t(input['data'])
+            input = t(input)
         return input
 
     def __repr__(self):

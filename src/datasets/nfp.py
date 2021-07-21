@@ -11,19 +11,22 @@ from scipy.sparse import csr_matrix
 class NFP(Dataset):
     data_name = 'NFP'
 
-    def __init__(self, root, split, mode):
+    def __init__(self, root, split, mode, transform=None):
         self.root = os.path.expanduser(root)
         self.split = split
         self.mode = mode
+        self.transform = transform
         if not check_exists(self.processed_folder):
             self.process()
         self.data = load(os.path.join(self.processed_folder, self.mode, '{}.pt'.format(self.split)), mode='pickle')
+        self.num_users, self.num_items = self.data.shape
 
     def __getitem__(self, index):
-        data = self.data[index]
-        input = {'user_idx': torch.tensor(index, dtype=torch.long),
-                 'item_idx': torch.tensor(data.col, dtype=torch.long),
-                 'data': torch.tensor(data.data, dtype=torch.float)}
+        data = self.data[index].tocoo()
+        input = {'user': torch.tensor(index, dtype=torch.long), 'item': torch.tensor(data.col, dtype=torch.long),
+                 'target': torch.tensor(data.data)}
+        if self.transform is not None:
+            input = self.transform(input)
         return input
 
     def __len__(self):
@@ -91,7 +94,8 @@ class NFP(Dataset):
         filenames = os.listdir(os.path.join(self.raw_folder, 'download', 'training_set'))
         user, item, rating, ts = [], [], [], []
         for i in range(len(filenames)):
-            data = pd.read_csv(os.path.join(self.raw_folder, 'download', 'training_set', filenames[i]), skiprows=[0], header=None)
+            data = pd.read_csv(os.path.join(self.raw_folder, 'download', 'training_set', filenames[i]), skiprows=[0],
+                               header=None)
             user_i = data[0].to_numpy()
             item_i = np.repeat(i, data.shape[0])
             rating_i = data[1].to_numpy()
@@ -112,6 +116,7 @@ class NFP(Dataset):
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
         rating.fill(1)
+        rating = rating.astype(np.int64)
         train_user = user
         train_item = item
         train_rating = rating
@@ -137,6 +142,6 @@ class NFP(Dataset):
         train_data.eliminate_zeros()
         test_user = np.concatenate([withheld_user, random_user], axis=0)
         test_item = np.concatenate([withheld_item, random_item], axis=0)
-        test_rating = np.concatenate([withheld_rating, random_rating], axis=0)
+        test_rating = np.concatenate([withheld_rating, random_rating], axis=0).astype(np.int64)
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data

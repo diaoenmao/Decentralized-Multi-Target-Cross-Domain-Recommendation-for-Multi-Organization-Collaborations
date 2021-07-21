@@ -17,6 +17,8 @@ def fetch_dataset(data_name):
     if data_name in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
         dataset['train'] = eval('datasets.{}(root=root, split=\'train\', mode=cfg["data_mode"])'.format(data_name))
         dataset['test'] = eval('datasets.{}(root=root, split=\'test\', mode=cfg["data_mode"])'.format(data_name))
+        if cfg['data_mode'] == 'implicit':
+            dataset['train'].transform = datasets.Compose([NegativeSample(dataset['train'].num_items, 8)])
     else:
         raise ValueError('Not valid dataset name')
     print('data ready')
@@ -74,31 +76,28 @@ def iid(dataset, num_users):
     return data_split, target_split
 
 
-def make_dataset_normal(dataset):
-    import datasets
-    dataset = copy.deepcopy(dataset)
-    transform = datasets.Compose([transforms.ToTensor()])
-    dataset.transform = transform
-    return dataset
-
-
-def make_batchnorm_stats(dataset, model, tag):
-    with torch.no_grad():
-        test_model = copy.deepcopy(model)
-        test_model.apply(lambda m: models.make_batchnorm(m, momentum=None, track_running_stats=True))
-        dataset = make_dataset_normal(dataset)
-        data_loader = make_data_loader({'train': dataset}, tag, shuffle={'train': False})['train']
-        test_model.train(True)
-        for i, input in enumerate(data_loader):
-            input = collate(input)
-            input = to_device(input, cfg['device'])
-            test_model(input)
-    return test_model
-
-
 def separate_dataset(dataset, idx):
     separated_dataset = copy.deepcopy(dataset)
     separated_dataset.data = [dataset.data[s] for s in idx]
     separated_dataset.target = [dataset.target[s] for s in idx]
     separated_dataset.other['id'] = list(range(len(separated_dataset.data)))
     return separated_dataset
+
+
+class NegativeSample(torch.nn.Module):
+    def __init__(self, num_items, num_negatives=1):
+        super().__init__()
+        self.num_items = num_items
+        self.num_negatives = num_negatives
+
+    def forward(self, input):
+        positive_item, positive_target = input['item'], input['target']
+        negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_item.tolist())))
+        negative_item = negative_item[torch.randperm(len(negative_item))[:self.num_negatives * len(positive_item)]]
+        negative_target = torch.zeros(len(negative_item), dtype=torch.long)
+        input['item'] = torch.cat([positive_item, negative_item])
+        input['target'] = torch.cat([positive_target, negative_target])
+        return input
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(size={0})'.format(self.size)

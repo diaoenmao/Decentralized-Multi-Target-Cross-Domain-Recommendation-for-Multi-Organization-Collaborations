@@ -30,16 +30,25 @@ class Metric(object):
         self.metric_name = self.make_metric_name(metric_name)
         self.pivot, self.pivot_name, self.pivot_direction = self.make_pivot()
         self.metric = {'Loss': (lambda input, output: output['loss'].item()),
-                       'RMSE': (lambda input, output: recur(RMSE, output['target'], input['target']))}
+                       'RMSE': (lambda input, output: recur(RMSE, output['target'], input['target'])),
+                       'HR': (lambda input, output: recur(HR, output['target'], input['target'])),
+                       'NDCG': (lambda input, output: recur(NDCG, output['target'], input['target']))}
 
     def make_metric_name(self, metric_name):
         return metric_name
 
     def make_pivot(self):
-        if cfg['data_name'] in ['CIFAR10', 'CIFAR100', 'SVHN']:
-            pivot = -float('inf')
-            pivot_direction = 'up'
-            pivot_name = 'Accuracy'
+        if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
+            if cfg['data_mode'] == 'explicit':
+                pivot = float('inf')
+                pivot_direction = 'down'
+                pivot_name = 'RMSE'
+            elif cfg['data_mode'] == 'implicit':
+                pivot = -float('inf')
+                pivot_direction = 'up'
+                pivot_name = 'HR'
+            else:
+                raise ValueError('Not valid data mode')
         else:
             raise ValueError('Not valid data name')
         return pivot, pivot_name, pivot_direction

@@ -58,3 +58,22 @@ import models
 #     for i, input in enumerate(data_loader['train']):
 #         print(input)
 #         exit()
+
+
+# if __name__ == "__main__":
+#     process_control()
+#     cfg['seed'] = 0
+#     data_names = ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']
+#     batch_size = {'train': 10, 'test': 10}
+#     for data_name in data_names:
+#         print(data_name)
+#         dataset = fetch_dataset(data_name)
+#         data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
+#         for i, input in enumerate(data_loader['train']):
+#             input = collate(input)
+#             print(input['user'][0].dtype, input['item'][0].dtype, input['target'][0].dtype)
+#             break
+#         for i, input in enumerate(data_loader['test']):
+#             input = collate(input)
+#             print(input['user'][0].dtype, input['item'][0].dtype, input['target'][0].dtype)
+#             break

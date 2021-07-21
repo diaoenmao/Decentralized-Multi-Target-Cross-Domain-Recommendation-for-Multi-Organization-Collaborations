@@ -4,7 +4,7 @@ import torch
 import torch.backends.cudnn as cudnn
 import models
 from config import cfg, process_args
-from data import fetch_dataset, make_data_loader, make_batchnorm_stats
+from data import fetch_dataset, make_data_loader
 from metrics import Metric
 from utils import save, to_device, process_control, process_dataset, resume, collate
 from logger import make_logger
@@ -63,7 +63,7 @@ def test(data_loader, model, metric, logger, epoch):
         model.train(False)
         for i, input in enumerate(data_loader):
             input = collate(input)
-            input_size = input['data'].size(0)
+            input_size = len(input['data'])
             input = to_device(input, cfg['device'])
             output = model(input)
             output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
