@@ -1,3 +1,4 @@
+import math
 import torch
 import torch.nn.functional as F
 from config import cfg
@@ -10,19 +11,28 @@ def RMSE(output, target):
     return rmse
 
 
-def HR(ranklist, K, positive_item):
-    if positive_item in ranklist[:K]:
-        return 1
-    else:
-        return 0
+def HR(output, target, topk=10):
+    sorted, indices = torch.sort(output, dim=-1, descending=True)
+    topk_indices = indices[:, :topk]
+    topk_target = target[topk_indices]
+    hr = torch.any(topk_target, dim=-1).mean().item()
+    return hr
 
 
-def NDCG(ranklist, K, positive_item):
+
+def NDCG(output, target, topk=10):
+    sorted, indices = torch.sort(output, dim=-1, descending=True)
+    topk_indices = indices[:, :topk]
+    topk_target = target[topk_indices]
+    mask = torch.any(topk_target, dim=-1)
+    nonzero_items = torch.nonzero(topk_target, dim=-1)[1]
+    ndcg = output.new_zeros(nonzero_items.size(0))
+    ndcg[mask] = math.log(2) / math.log(2 + nonzero_items)
+    ndcg = ndcg.mean().item()
     if positive_item in ranklist[:K]:
         ranking_of_positive_item = np.where(ranklist == positive_item)[0][0]
         return math.log(2) / math.log(2 + ranking_of_positive_item)
-    else:
-        return 0
+    return ndcg
 
 
 class Metric(object):

@@ -116,7 +116,7 @@ def process_control():
     cfg['data_name'] = cfg['control']['data_name']
     cfg['data_mode'] = cfg['control']['data_mode']
     cfg['model_name'] = cfg['control']['model_name']
-    cfg['mf'] = {'hidden_size': 128}
+    cfg['mf'] = {'hidden_size': 128, 'reg': 1e-3}
     model_name = cfg['model_name']
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
     cfg[model_name]['optimizer_name'] = 'Adam'
@@ -225,4 +225,3 @@ def resume(model_tag, load_tag='checkpoint', verbose=True):
 
 def collate(input):
     return input
-

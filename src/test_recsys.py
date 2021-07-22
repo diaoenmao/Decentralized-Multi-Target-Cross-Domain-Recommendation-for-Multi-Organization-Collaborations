@@ -40,7 +40,7 @@ def runExperiment():
     if cfg['data_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
     elif cfg['data_mode'] == 'implicit':
-        metric = Metric({'train': ['Loss', 'HR', 'NDCG'], 'test': ['Loss', 'HR', 'NDCG']})
+        metric = Metric({'train': ['Loss'], 'test': ['Loss', 'HR', 'NDCG']})
     else:
         raise ValueError('Not valid data mode')
     result = resume(cfg['model_tag'], load_tag='best')

@@ -48,8 +48,9 @@ class MF(nn.Module):
         item_embedding = torch.cat(item_embedding)
         output['target'] = torch.cat(pred)
         if self.training:
-            output['loss'] = loss_fn(pred, target) + cfg['mf']['reg'] * torch.linalg.norm(
-                user_embedding) + torch.linalg.norm(item_embedding)
+            output['loss'] = loss_fn(pred, target) + cfg['mf']['reg'] * \
+                             torch.linalg.norm(user_embedding, dim=-1).mean() + \
+                             cfg['mf']['reg'] * torch.linalg.norm(item_embedding, dim=-1).mean()
         return output
 
 
