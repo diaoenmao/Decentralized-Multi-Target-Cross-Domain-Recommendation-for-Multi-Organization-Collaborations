@@ -67,8 +67,7 @@ def runExperiment():
         model = torch.nn.DataParallel(model, device_ids=list(range(cfg['world_size'])))
     for epoch in range(last_epoch, cfg[cfg['model_name']]['num_epochs'] + 1):
         train(data_loader['train'], model, optimizer, metric, logger, epoch)
-        test_model = make_batchnorm_stats(dataset['train'], model, cfg['model_name'])
-        test(data_loader['test'], test_model, metric, logger, epoch)
+        test(data_loader['test'], model, metric, logger, epoch)
         scheduler.step()
         model_state_dict = model.module.state_dict() if cfg['world_size'] > 1 else model.state_dict()
         result = {'cfg': cfg, 'epoch': epoch + 1, 'model_state_dict': model_state_dict,
@@ -89,10 +88,8 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
     start_time = time.time()
     for i, input in enumerate(data_loader):
         input = collate(input)
-        input_size = len(input['data'])
+        input_size = len(input['target'])
         input = to_device(input, cfg['device'])
-        print(input)
-        exit()
         optimizer.zero_grad()
         output = model(input)
         output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
@@ -123,7 +120,7 @@ def test(data_loader, model, metric, logger, epoch):
         model.train(False)
         for i, input in enumerate(data_loader):
             input = collate(input)
-            input_size = input['data'].size(0)
+            input_size = len(input['target'])
             input = to_device(input, cfg['device'])
             output = model(input)
             output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']

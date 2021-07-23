@@ -96,7 +96,6 @@ class ML100K(Dataset):
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
         rating.fill(1)
-        rating = rating.astype(np.int64)
         train_user = user
         train_item = item
         train_rating = rating
@@ -122,7 +121,7 @@ class ML100K(Dataset):
         train_data.eliminate_zeros()
         test_user = np.concatenate([withheld_user, random_user], axis=0)
         test_item = np.concatenate([withheld_item, random_item], axis=0)
-        test_rating = np.concatenate([withheld_rating, random_rating], axis=0).astype(np.int64)
+        test_rating = np.concatenate([withheld_rating, random_rating], axis=0).astype(np.float32)
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
 
@@ -215,7 +214,6 @@ class ML1M(Dataset):
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
         rating.fill(1)
-        rating = rating.astype(np.int64)
         train_user = user
         train_item = item
         train_rating = rating
@@ -241,7 +239,7 @@ class ML1M(Dataset):
         train_data.eliminate_zeros()
         test_user = np.concatenate([withheld_user, random_user], axis=0)
         test_item = np.concatenate([withheld_item, random_item], axis=0)
-        test_rating = np.concatenate([withheld_rating, random_rating], axis=0).astype(np.int64)
+        test_rating = np.concatenate([withheld_rating, random_rating], axis=0).astype(np.float32)
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
 
@@ -334,7 +332,6 @@ class ML10M(Dataset):
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
         rating.fill(1)
-        rating = rating.astype(np.int64)
         train_user = user
         train_item = item
         train_rating = rating
@@ -360,7 +357,7 @@ class ML10M(Dataset):
         train_data.eliminate_zeros()
         test_user = np.concatenate([withheld_user, random_user], axis=0)
         test_item = np.concatenate([withheld_item, random_item], axis=0)
-        test_rating = np.concatenate([withheld_rating, random_rating], axis=0).astype(np.int64)
+        test_rating = np.concatenate([withheld_rating, random_rating], axis=0).astype(np.float32)
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
 
@@ -453,7 +450,6 @@ class ML20M(Dataset):
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
         rating.fill(1)
-        rating = rating.astype(np.int64)
         train_user = user
         train_item = item
         train_rating = rating
@@ -479,6 +475,6 @@ class ML20M(Dataset):
         train_data.eliminate_zeros()
         test_user = np.concatenate([withheld_user, random_user], axis=0)
         test_item = np.concatenate([withheld_item, random_item], axis=0)
-        test_rating = np.concatenate([withheld_rating, random_rating], axis=0).astype(np.int64)
+        test_rating = np.concatenate([withheld_rating, random_rating], axis=0).astype(np.float32)
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data

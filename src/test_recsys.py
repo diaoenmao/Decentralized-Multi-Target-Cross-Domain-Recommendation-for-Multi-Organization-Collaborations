@@ -48,8 +48,7 @@ def runExperiment():
     model.load_state_dict(result['model_state_dict'])
     data_loader = make_data_loader(dataset, cfg['model_name'])
     test_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))
-    test_model = make_batchnorm_stats(dataset['train'], model, cfg['model_name'])
-    test(data_loader['test'], test_model, metric, test_logger, last_epoch)
+    test(data_loader['test'], model, metric, test_logger, last_epoch)
     result = resume(cfg['model_tag'], load_tag='checkpoint')
     train_logger = result['logger'] if 'logger' in result else None
     result = {'cfg': cfg, 'epoch': last_epoch, 'logger': {'train': train_logger, 'test': test_logger}}
@@ -63,7 +62,7 @@ def test(data_loader, model, metric, logger, epoch):
         model.train(False)
         for i, input in enumerate(data_loader):
             input = collate(input)
-            input_size = len(input['data'])
+            input_size = len(input['target'])
             input = to_device(input, cfg['device'])
             output = model(input)
             output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']

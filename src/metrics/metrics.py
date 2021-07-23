@@ -6,32 +6,33 @@ from utils import recur
 
 
 def RMSE(output, target):
+    output = torch.cat(output, dim=0)
+    target = torch.cat(target, dim=0)
     with torch.no_grad():
         rmse = F.mse_loss(output, target).sqrt().item()
     return rmse
 
 
 def HR(output, target, topk=10):
+    output = torch.stack(output, dim=0)
+    target = torch.stack(target, dim=0)
     sorted, indices = torch.sort(output, dim=-1, descending=True)
     topk_indices = indices[:, :topk]
-    topk_target = target[topk_indices]
-    hr = torch.any(topk_target, dim=-1).mean().item()
+    topk_target = target[torch.arange(target.size(0)).view(-1, 1), topk_indices]
+    hr = torch.any(topk_target, dim=-1).float().mean().item()
     return hr
 
 
-
 def NDCG(output, target, topk=10):
+    output = torch.stack(output, dim=0)
+    target = torch.stack(target, dim=0)
     sorted, indices = torch.sort(output, dim=-1, descending=True)
     topk_indices = indices[:, :topk]
-    topk_target = target[topk_indices]
-    mask = torch.any(topk_target, dim=-1)
-    nonzero_items = torch.nonzero(topk_target, dim=-1)[1]
-    ndcg = output.new_zeros(nonzero_items.size(0))
-    ndcg[mask] = math.log(2) / math.log(2 + nonzero_items)
+    topk_target = target[torch.arange(target.size(0)).view(-1, 1), topk_indices]
+    nonzero_items = torch.nonzero(topk_target)
+    ndcg = output.new_zeros(output.size(0))
+    ndcg[nonzero_items[:, 0]] = math.log(2) / torch.log(2 + nonzero_items[:, 1])
     ndcg = ndcg.mean().item()
-    if positive_item in ranklist[:K]:
-        ranking_of_positive_item = np.where(ranklist == positive_item)[0][0]
-        return math.log(2) / math.log(2 + ranking_of_positive_item)
     return ndcg
 
 
@@ -40,9 +41,9 @@ class Metric(object):
         self.metric_name = self.make_metric_name(metric_name)
         self.pivot, self.pivot_name, self.pivot_direction = self.make_pivot()
         self.metric = {'Loss': (lambda input, output: output['loss'].item()),
-                       'RMSE': (lambda input, output: recur(RMSE, output['target'], input['target'])),
-                       'HR': (lambda input, output: recur(HR, output['target'], input['target'])),
-                       'NDCG': (lambda input, output: recur(NDCG, output['target'], input['target']))}
+                       'RMSE': (lambda input, output: RMSE(output['target'], input['target'])),
+                       'HR': (lambda input, output: HR(output['target'], input['target'])),
+                       'NDCG': (lambda input, output: NDCG(output['target'], input['target']))}
 
     def make_metric_name(self, metric_name):
         return metric_name

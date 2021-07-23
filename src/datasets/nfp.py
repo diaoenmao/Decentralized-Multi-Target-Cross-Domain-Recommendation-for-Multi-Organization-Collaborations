@@ -16,8 +16,8 @@ class NFP(Dataset):
         self.split = split
         self.mode = mode
         self.transform = transform
-        if not check_exists(self.processed_folder):
-            self.process()
+        # if not check_exists(self.processed_folder):
+        self.process()
         self.data = load(os.path.join(self.processed_folder, self.mode, '{}.pt'.format(self.split)), mode='pickle')
         self.num_users, self.num_items = self.data.shape
 
@@ -43,9 +43,9 @@ class NFP(Dataset):
     def process(self):
         if not check_exists(self.raw_folder):
             self.download()
-        train_set, test_set = self.make_explicit_data()
-        save(train_set, os.path.join(self.processed_folder, 'explicit', 'train.pt'), mode='pickle')
-        save(test_set, os.path.join(self.processed_folder, 'explicit', 'test.pt'), mode='pickle')
+        # train_set, test_set = self.make_explicit_data()
+        # save(train_set, os.path.join(self.processed_folder, 'explicit', 'train.pt'), mode='pickle')
+        # save(test_set, os.path.join(self.processed_folder, 'explicit', 'test.pt'), mode='pickle')
         train_set, test_set = self.make_implicit_data()
         save(train_set, os.path.join(self.processed_folder, 'implicit', 'train.pt'), mode='pickle')
         save(test_set, os.path.join(self.processed_folder, 'implicit', 'test.pt'), mode='pickle')
@@ -116,7 +116,6 @@ class NFP(Dataset):
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
         rating.fill(1)
-        rating = rating.astype(np.int64)
         train_user = user
         train_item = item
         train_rating = rating
@@ -142,6 +141,6 @@ class NFP(Dataset):
         train_data.eliminate_zeros()
         test_user = np.concatenate([withheld_user, random_user], axis=0)
         test_item = np.concatenate([withheld_item, random_item], axis=0)
-        test_rating = np.concatenate([withheld_rating, random_rating], axis=0).astype(np.int64)
+        test_rating = np.concatenate([withheld_rating, random_rating], axis=0).astype(np.float32)
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
