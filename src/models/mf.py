@@ -11,6 +11,7 @@ class MF(nn.Module):
         super().__init__()
         self.num_users = num_users
         self.num_items = num_items
+        self.hidden_size = hidden_size
         self.user_weight = nn.Embedding(num_users, hidden_size)
         self.item_weight = nn.Embedding(num_items, hidden_size)
         self.user_bias = nn.Embedding(num_users, 1)
@@ -19,6 +20,8 @@ class MF(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
+        nn.init.normal_(self.user_weight.weight, 0.0, 0.01)
+        nn.init.normal_(self.item_weight.weight, 0.0, 0.01)
         nn.init.zeros_(self.user_bias.weight)
         nn.init.zeros_(self.item_bias.weight)
         nn.init.zeros_(self.bias)

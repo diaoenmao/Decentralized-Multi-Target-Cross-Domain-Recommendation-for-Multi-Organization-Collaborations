@@ -7,37 +7,21 @@ from config import cfg
 
 
 class POP(nn.Module):
-    def __init__(self, num_users, num_items, hidden_size):
+    def __init__(self, num_users, num_items):
         super().__init__()
         self.num_users = num_users
         self.num_items = num_items
-        self.user_weight = nn.Embedding(num_users, hidden_size)
-        self.item_weight = nn.Embedding(num_items, hidden_size)
-        self.user_bias = nn.Embedding(num_users, 1)
-        self.item_bias = nn.Embedding(num_items, 1)
-        self.bias = nn.Parameter(torch.randn(1))
-        self.reset_parameters()
-
-    def reset_parameters(self):
-        nn.init.zeros_(self.user_bias.weight)
-        nn.init.zeros_(self.item_bias.weight)
-        nn.init.zeros_(self.bias)
-        return
-
-    def user_embedding(self, user):
-        return self.user_weight(user) + self.user_bias(user)
-
-    def item_embedding(self, item):
-        return self.item_weight(item) + self.item_bias(item)
+        self.register_buffer('popularity', torch.zeros(self.num_items))
 
     def forward(self, input):
         output = {}
         user, item, target = input['user'], input['item'], input['target']
         pred = []
         for i in range(len(user)):
-            user_embedding_i = self.user_embedding(user[i]).view(1, -1)
-            item_embedding_i = self.item_embedding(item[i])
-            pred_i = user_embedding_i.matmul(item_embedding_i.T).view(-1) + self.bias
+            if self.training:
+                positive_item = torch.nonzero(target[i])
+                self.popularity[positive_item] += 1
+            pred_i = self.popularity[item[i]]
             pred.append(pred_i)
         output['target'] = pred
         pred = torch.cat(pred, dim=0)

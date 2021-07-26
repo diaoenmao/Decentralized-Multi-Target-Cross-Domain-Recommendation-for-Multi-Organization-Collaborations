@@ -117,6 +117,8 @@ def process_control():
     cfg['data_mode'] = cfg['control']['data_mode']
     cfg['model_name'] = cfg['control']['model_name']
     cfg['mf'] = {'hidden_size': 128}
+    cfg['nmf'] = {'hidden_size': [128, 64, 32, 16]}
+    cfg['pop'] = {}
     model_name = cfg['model_name']
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
     cfg[model_name]['optimizer_name'] = 'Adam'
@@ -126,8 +128,8 @@ def process_control():
     cfg[model_name]['betas'] = (0.9, 0.999)
     cfg[model_name]['weight_decay'] = 1e-5
     cfg[model_name]['scheduler_name'] = 'None'
-    cfg[model_name]['num_epochs'] = 100
-    cfg[model_name]['batch_size'] = {'train': 10, 'test': 200}
+    cfg[model_name]['num_epochs'] = 200
+    cfg[model_name]['batch_size'] = {'train': 100, 'test': 200}
     return
 
 
