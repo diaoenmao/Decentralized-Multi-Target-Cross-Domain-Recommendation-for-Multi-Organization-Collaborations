@@ -46,9 +46,9 @@ class MF(nn.Module):
         return output
 
 
-def mf():
+def mlp():
     num_users = cfg['num_users']
     num_items = cfg['num_items']
-    hidden_size = cfg['mf']['hidden_size']
-    model = MF(num_users, num_items, hidden_size)
+    hidden_size = cfg['mlp']['hidden_size']
+    model = MLP(num_users, num_items, hidden_size)
     return model

@@ -6,7 +6,7 @@ from .utils import loss_fn
 from config import cfg
 
 
-class MF(nn.Module):
+class POP(nn.Module):
     def __init__(self, num_users, num_items, hidden_size):
         super().__init__()
         self.num_users = num_users
@@ -46,9 +46,8 @@ class MF(nn.Module):
         return output
 
 
-def mf():
+def pop():
     num_users = cfg['num_users']
     num_items = cfg['num_items']
-    hidden_size = cfg['mf']['hidden_size']
-    model = MF(num_users, num_items, hidden_size)
+    model = POP(num_users, num_items)
     return model

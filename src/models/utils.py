@@ -34,9 +34,9 @@ def make_batchnorm(m, momentum, track_running_stats):
 
 
 def loss_fn(output, target, reduction='mean'):
-    if target.dtype == torch.int64:
-        loss = F.binary_cross_entropy(output, target, reduction=reduction)
-    elif target.dtype == torch.float32:
+    if cfg['data_mode'] == 'implicit':
+        loss = F.binary_cross_entropy_with_logits(output, target, reduction=reduction)
+    elif cfg['data_mode'] == 'explicit':
         loss = F.mse_loss(output, target, reduction=reduction)
     else:
         raise ValueError('Not valid data type')

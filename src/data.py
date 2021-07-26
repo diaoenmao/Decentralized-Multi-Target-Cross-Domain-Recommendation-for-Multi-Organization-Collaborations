@@ -93,7 +93,7 @@ class NegativeSample(torch.nn.Module):
     def forward(self, input):
         positive_item, positive_target = input['item'], input['target']
         negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_item.tolist())))
-        negative_item = negative_item[torch.randperm(len(negative_item))[:self.num_negatives * len(positive_item)]]
+        negative_item = negative_item[torch.randperm(len(negative_item))[:(self.num_negatives * len(positive_item))]]
         negative_target = torch.zeros(len(negative_item), dtype=torch.long)
         input['item'] = torch.cat([positive_item, negative_item])
         input['target'] = torch.cat([positive_target, negative_target])

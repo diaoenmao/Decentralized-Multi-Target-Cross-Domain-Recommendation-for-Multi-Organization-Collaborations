@@ -107,6 +107,7 @@ class ML100K(Dataset):
         for i in range(0, M, step_size):
             valid_step_size = min(i + step_size, M) - i
             nonzero_user, nonzero_item = train_data[i:i + valid_step_size].nonzero()
+            print(nonzero_user.shape, nonzero_item.shape)
             random_item_i = np.random.rand(valid_step_size, N)
             random_item_i[nonzero_user, nonzero_item] = np.inf
             random_item_i = random_item_i.argsort(axis=1)[:, :100].reshape(-1)
