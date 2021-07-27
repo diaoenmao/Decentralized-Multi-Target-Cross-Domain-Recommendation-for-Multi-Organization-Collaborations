@@ -119,6 +119,7 @@ def process_control():
     cfg['mf'] = {'hidden_size': 128}
     cfg['nmf'] = {'hidden_size': [128, 64, 32, 16]}
     cfg['pop'] = {}
+    cfg['threshold'] = 0.95
     model_name = cfg['model_name']
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
     cfg[model_name]['optimizer_name'] = 'Adam'

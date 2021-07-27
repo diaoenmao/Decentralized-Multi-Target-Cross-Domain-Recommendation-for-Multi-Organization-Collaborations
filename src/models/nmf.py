@@ -60,7 +60,7 @@ class NMF(nn.Module):
 
     def forward(self, input):
         output = {}
-        user, item, target = input['user'], input['item'], input['target']
+        user, item = input['user'], input['item']
         pred = []
         for i in range(len(user)):
             user_embedding_mlp_i = self.user_embedding_mlp(user[i]).view(1, -1)
@@ -76,8 +76,10 @@ class NMF(nn.Module):
             pred.append(pred_i)
         output['target'] = pred
         pred = torch.cat(pred, dim=0)
-        target = torch.cat(target, dim=0)
-        output['loss'] = loss_fn(pred, target)
+        if 'target' in input:
+            target = input['target']
+            target = torch.cat(target, dim=0)
+            output['loss'] = loss_fn(pred, target)
         return output
 
 

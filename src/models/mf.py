@@ -27,25 +27,41 @@ class MF(nn.Module):
         nn.init.zeros_(self.bias)
         return
 
-    def user_embedding(self, user):
-        return self.user_weight(user) + self.user_bias(user)
+    def user_embedding(self, user, tag=None):
+        embedding = self.user_weight(user) + self.user_bias(user)
+        if tag == 'weak':
+            embedding = embedding + torch.normal(0, 0.01, embedding.size()).to(embedding.device)
+        elif tag == 'strong':
+            embedding = embedding + torch.normal(0, 0.1, embedding.size()).to(embedding.device)
+        return embedding
 
-    def item_embedding(self, item):
-        return self.item_weight(item) + self.item_bias(item)
+    def item_embedding(self, item, tag=None):
+        embedding = self.item_weight(item) + self.item_bias(item)
+        if tag == 'weak':
+            embedding = embedding + torch.normal(0, 0.01, embedding.size()).to(embedding.device)
+        elif tag == 'strong':
+            embedding = embedding + torch.normal(0, 0.1, embedding.size()).to(embedding.device)
+        return embedding
 
     def forward(self, input):
         output = {}
-        user, item, target = input['user'], input['item'], input['target']
+        user, item = input['user'], input['item']
         pred = []
         for i in range(len(user)):
-            user_embedding_i = self.user_embedding(user[i]).view(1, -1)
-            item_embedding_i = self.item_embedding(item[i])
+            if 'tag' in input:
+                user_embedding_i = self.user_embedding(user[i], input['tag']).view(1, -1)
+                item_embedding_i = self.item_embedding(item[i], input['tag'])
+            else:
+                user_embedding_i = self.user_embedding(user[i]).view(1, -1)
+                item_embedding_i = self.item_embedding(item[i])
             pred_i = user_embedding_i.matmul(item_embedding_i.T).view(-1) + self.bias
             pred.append(pred_i)
         output['target'] = pred
         pred = torch.cat(pred, dim=0)
-        target = torch.cat(target, dim=0)
-        output['loss'] = loss_fn(pred, target)
+        if 'target' in input:
+            target = input['target']
+            target = torch.cat(target, dim=0)
+            output['loss'] = loss_fn(pred, target)
         return output
 
 
