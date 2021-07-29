@@ -5,6 +5,7 @@ import models
 import os
 import shutil
 import time
+import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 from scipy.sparse import csr_matrix
@@ -41,6 +42,7 @@ def runExperiment():
     torch.cuda.manual_seed(cfg['seed'])
     dataset = fetch_dataset(cfg['data_name'])
     process_dataset(dataset)
+    data_loader = make_data_loader(dataset, cfg['model_name'])
     model = eval('models.{}().to(cfg["device"])'.format(cfg['model_name']))
     optimizer = make_optimizer(model, cfg['model_name'])
     scheduler = make_scheduler(optimizer, cfg['model_name'])
@@ -87,7 +89,7 @@ def train(data_loader, semi_dataset, model, optimizer, metric, logger, epoch):
     logger.safe(True)
     model.train(True)
     start_time = time.time()
-    for i, input in enumerate(zip(data_loader)):
+    for i, input in enumerate(data_loader):
         input = collate(input)
         input_size = len(input['target'])
         input = to_device(input, cfg['device'])
@@ -95,12 +97,16 @@ def train(data_loader, semi_dataset, model, optimizer, metric, logger, epoch):
         input['tag'] = 'weak'
         output = model(input)
         loss = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
-        user = np.concatenate(input['user'], axis=0)
-        semi_input = collate(input_collate(semi_dataset[user]))
-        input['tag'] = 'strong'
-        semi_output = model(semi_input)
-        semi_loss = semi_output['loss'].mean() if cfg['world_size'] > 1 else semi_output['loss']
-        loss = loss + semi_loss
+        if semi_dataset is not None:
+            user = torch.stack(input['user'], dim=0).cpu().numpy()
+            t = semi_dataset[user]
+            print(t)
+            exit()
+            semi_input = collate(input_collate(t))
+            semi_input['tag'] = 'strong'
+            semi_output = model(semi_input)
+            semi_loss = semi_output['loss'].mean() if cfg['world_size'] > 1 else semi_output['loss']
+            loss = loss + semi_loss
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
         optimizer.step()
@@ -145,7 +151,7 @@ def make_dataset(dataset, model):
     with torch.no_grad():
         semi_dataset = copy.deepcopy(dataset)
         semi_dataset.transform = None
-        data_loader = make_data_loader({'train': semi_dataset}, 'global', shuffle={'train': False})['train']
+        data_loader = make_data_loader({'train': semi_dataset}, cfg['model_name'], shuffle={'train': False})['train']
         model.train(False)
         user = []
         item = []
@@ -159,40 +165,48 @@ def make_dataset(dataset, model):
             target_i = []
             for j in range(len(input['user'])):
                 positive_item = input['item'][j]
-                negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_item.tolist())))
+                negative_item = torch.tensor(list(set(range(semi_dataset.num_items)) - set(positive_item.tolist())))
                 item_j = negative_item
                 item_j_chunks = torch.chunk(item_j, num_chunks)
                 output_j = []
                 for k in range(num_chunks):
                     item_j_k = item_j_chunks[k]
-                    input = {'user': input['user'][j], 'item': item_j_k}
-                    input = to_device(input, cfg['device'])
-                    input['tag'] = 'weak'
-                    _output = model(input)
-                    output_j_k = _output['target']
+                    _input = {'user': [input['user'][j]], 'item': [item_j_k]}
+                    _input = to_device(_input, cfg['device'])
+                    _input['tag'] = 'weak'
+                    _output = model(_input)
+                    output_j_k = _output['target'][0]
                     output_j.append(output_j_k.cpu())
                 output_j = torch.cat(output_j, dim=0)
-                soft_pseudo_label = torch.sigmoid(output_j, dim=-1)
+                p_1 = torch.sigmoid(output_j)
+                p_0 = 1 - p_1
+                soft_pseudo_label = torch.stack([p_0, p_1], dim=-1)
                 max_p, hard_pseudo_label = torch.max(soft_pseudo_label, dim=-1)
                 mask = max_p.ge(cfg['threshold'])
                 if not torch.all(~mask):
+                    print('confident', mask.float().mean())
                     item_j = item_j[mask]
                     output_j = output_j[mask]
                     user_j = input['user'][j].expand_as(item_j)
                     user_i.append(user_j)
                     item_i.append(item_j)
                     target_i.append(output_j)
-            user_i = torch.cat(user_i, dim=0)
-            item_i = torch.cat(item_j, dim=0)
-            target_i = torch.cat(output_j, dim=0)
-            user.append(user_i.numpy())
-            item.append(item_i.numpy())
-            target.append(target_i.numpy())
-        user = np.concatenate(user, axis=0)
-        item = np.concatenate(item, axis=0)
-        target = np.concatenate(target, axis=0)
-        semi_dataset.data = csr_matrix((target, (user, item)), shape=(semi_dataset.num_users, semi_dataset.num_items))
-    return semi_dataset
+            if len(user_i) > 0:
+                user_i = torch.cat(user_i, dim=0)
+                item_i = torch.cat(item_i, dim=0)
+                target_i = torch.cat(target_i, dim=0)
+                user.append(user_i.numpy())
+                item.append(item_i.numpy())
+                target.append(target_i.numpy())
+        if len(user) > 0:
+            user = np.concatenate(user, axis=0)
+            item = np.concatenate(item, axis=0)
+            target = np.concatenate(target, axis=0)
+            semi_dataset.data = csr_matrix((target, (user, item)),
+                                           shape=(semi_dataset.num_users, semi_dataset.num_items))
+            return semi_dataset
+        else:
+            return None
 
 
 if __name__ == "__main__":

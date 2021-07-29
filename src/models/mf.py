@@ -58,7 +58,7 @@ class MF(nn.Module):
             pred.append(pred_i)
         output['target'] = pred
         pred = torch.cat(pred, dim=0)
-        if 'target' in input:
+        if 'target' in input and len(input['target']) > 0:
             target = input['target']
             target = torch.cat(target, dim=0)
             output['loss'] = loss_fn(pred, target)

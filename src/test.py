@@ -90,3 +90,14 @@ import models
 #     print('csr', csr[2])
 #     print('coo', csr[2].tocoo().col)
 #     print('coo', csr[2].tocoo().data)
+
+import numpy as np
+from scipy.sparse import csr_matrix
+import torch
+
+if __name__ == "__main__":
+    data = [[0, 1, 0], [0, 0, 0], [4.5, 0, 5]]
+    csr = csr_matrix(data)
+    print('csr', csr)
+    print(csr[:3].tocoo().row)
+    print(csr[:3].tocoo().col)
