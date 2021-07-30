@@ -16,16 +16,12 @@ class POP(nn.Module):
     def forward(self, input):
         output = {}
         user, item, target = input['user'], input['item'], input['target']
-        pred = []
-        for i in range(len(user)):
-            if self.training:
-                positive_item = torch.nonzero(target[i])
-                self.popularity[positive_item] += 1
-            pred_i = self.popularity[item[i]]
-            pred.append(pred_i)
+        if self.training:
+            positive_item = item[torch.nonzero(target)]
+            unique_positive_item, counts = torch.unique(positive_item, return_counts=True)
+            self.popularity[unique_positive_item] = self.popularity[unique_positive_item] + counts
+        pred = self.popularity[item]
         output['target'] = pred
-        pred = torch.cat(pred, dim=0)
-        target = torch.cat(target, dim=0)
         output['loss'] = loss_fn(pred, target)
         return output
 

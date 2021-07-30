@@ -46,21 +46,16 @@ class MF(nn.Module):
     def forward(self, input):
         output = {}
         user, item = input['user'], input['item']
-        pred = []
-        for i in range(len(user)):
-            if 'tag' in input:
-                user_embedding_i = self.user_embedding(user[i], input['tag']).view(1, -1)
-                item_embedding_i = self.item_embedding(item[i], input['tag'])
-            else:
-                user_embedding_i = self.user_embedding(user[i]).view(1, -1)
-                item_embedding_i = self.item_embedding(item[i])
-            pred_i = user_embedding_i.matmul(item_embedding_i.T).view(-1) + self.bias
-            pred.append(pred_i)
+        if 'tag' in input:
+            user_embedding = self.user_embedding(user, input['tag'])
+            item_embedding = self.item_embedding(item, input['tag'])
+        else:
+            user_embedding = self.user_embedding(user)
+            item_embedding = self.item_embedding(item)
+        pred = (user_embedding * item_embedding).sum(dim=-1) + self.bias
         output['target'] = pred
-        pred = torch.cat(pred, dim=0)
         if 'target' in input and len(input['target']) > 0:
             target = input['target']
-            target = torch.cat(target, dim=0)
             output['loss'] = loss_fn(pred, target)
         return output
 

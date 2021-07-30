@@ -229,4 +229,6 @@ def resume(model_tag, load_tag='checkpoint', verbose=True):
 
 
 def collate(input):
+    for k in input:
+        input[k] = torch.cat(input[k], 0)
     return input

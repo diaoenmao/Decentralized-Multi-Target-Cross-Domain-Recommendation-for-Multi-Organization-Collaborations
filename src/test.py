@@ -56,7 +56,9 @@ import models
 #     dataset = fetch_dataset(data_name)
 #     data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
 #     for i, input in enumerate(data_loader['train']):
+#         input = collate(input)
 #         print(input)
+#         print(input['user'].size(), input['item'].size(), input['target'].size())
 #         exit()
 
 
@@ -91,13 +93,13 @@ import models
 #     print('coo', csr[2].tocoo().col)
 #     print('coo', csr[2].tocoo().data)
 
-import numpy as np
-from scipy.sparse import csr_matrix
-import torch
-
-if __name__ == "__main__":
-    data = [[0, 1, 0], [0, 0, 0], [4.5, 0, 5]]
-    csr = csr_matrix(data)
-    print('csr', csr)
-    print(csr[:3].tocoo().row)
-    print(csr[:3].tocoo().col)
+# import numpy as np
+# from scipy.sparse import csr_matrix
+# import torch
+#
+# if __name__ == "__main__":
+#     data = [[0, 1, 0], [0, 0, 0], [4.5, 0, 5]]
+#     csr = csr_matrix(data)
+#     print('csr', csr)
+#     print(csr[:3].tocoo().row)
+#     print(csr[:3].tocoo().col)

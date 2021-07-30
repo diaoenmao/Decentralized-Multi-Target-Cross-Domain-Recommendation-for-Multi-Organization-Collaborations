@@ -24,7 +24,11 @@ class ML100K(Dataset):
 
     def __getitem__(self, index):
         data = self.data[index].tocoo()
-        input = {'user': torch.tensor(index, dtype=torch.long), 'item': torch.tensor(data.col, dtype=torch.long),
+        # user = index[data.row] if isinstance(index, np.ndarray) else index
+        # input = {'user': torch.tensor(user, dtype=torch.long), 'item': torch.tensor(data.col, dtype=torch.long),
+        #          'target': torch.tensor(data.data)}
+        user = np.array(index).reshape(-1)[data.row]
+        input = {'user': torch.tensor(user, dtype=torch.long), 'item': torch.tensor(data.col, dtype=torch.long),
                  'target': torch.tensor(data.data)}
         if self.transform is not None:
             input = self.transform(input)

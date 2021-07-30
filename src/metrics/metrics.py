@@ -6,16 +6,14 @@ from utils import recur
 
 
 def RMSE(output, target):
-    output = torch.cat(output, dim=0)
-    target = torch.cat(target, dim=0)
     with torch.no_grad():
         rmse = F.mse_loss(output, target).sqrt().item()
     return rmse
 
 
 def HR(output, target, topk=10):
-    output = torch.stack(output, dim=0)
-    target = torch.stack(target, dim=0)
+    output = output.reshape(-1, 101)
+    target = target.reshape(-1, 101)
     sorted, indices = torch.sort(output, dim=-1, descending=True)
     topk_indices = indices[:, :topk]
     topk_target = target[torch.arange(target.size(0)).view(-1, 1), topk_indices]
@@ -24,8 +22,8 @@ def HR(output, target, topk=10):
 
 
 def NDCG(output, target, topk=10):
-    output = torch.stack(output, dim=0)
-    target = torch.stack(target, dim=0)
+    output = output.reshape(-1, 101)
+    target = target.reshape(-1, 101)
     sorted, indices = torch.sort(output, dim=-1, descending=True)
     topk_indices = indices[:, :topk]
     topk_target = target[torch.arange(target.size(0)).view(-1, 1), topk_indices]
