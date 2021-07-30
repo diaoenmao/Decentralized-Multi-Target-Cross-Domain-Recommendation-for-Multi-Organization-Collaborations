@@ -61,25 +61,18 @@ class NMF(nn.Module):
     def forward(self, input):
         output = {}
         user, item = input['user'], input['item']
-        pred = []
-        for i in range(len(user)):
-            user_embedding_mlp_i = self.user_embedding_mlp(user[i]).view(1, -1)
-            user_embedding_mf_i = self.user_embedding_mf(user[i]).view(1, -1)
-            item_embedding_mlp_i = self.item_embedding_mlp(item[i])
-            item_embedding_mf_i = self.item_embedding_mf(item[i])
-            mf = torch.mul(user_embedding_mf_i, item_embedding_mf_i)
-            mlp = torch.cat([user_embedding_mlp_i.expand(item_embedding_mlp_i.size(0), -1), item_embedding_mlp_i],
-                            dim=-1)
-            mlp = self.fc(mlp)
-            mlp_mf = torch.cat([mlp, mf], dim=-1)
-            pred_i = self.affine(mlp_mf).view(-1)
-            pred.append(pred_i)
+        user_embedding_mlp = self.user_embedding_mlp(user)
+        user_embedding_mf = self.user_embedding_mf(user)
+        item_embedding_mlp = self.item_embedding_mlp(item)
+        item_embedding_mf = self.item_embedding_mf(item)
+        mf = torch.mul(user_embedding_mf, item_embedding_mf)
+        mlp = torch.cat([user_embedding_mlp, item_embedding_mlp], dim=-1)
+        mlp = self.fc(mlp)
+        mlp_mf = torch.cat([mlp, mf], dim=-1)
+        pred = self.affine(mlp_mf).view(-1)
         output['target'] = pred
-        pred = torch.cat(pred, dim=0)
         if 'target' in input:
-            target = input['target']
-            target = torch.cat(target, dim=0)
-            output['loss'] = loss_fn(pred, target)
+            output['loss'] = loss_fn(output['target'], input['target'])
         return output
 
 

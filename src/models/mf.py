@@ -55,8 +55,7 @@ class MF(nn.Module):
         pred = (user_embedding * item_embedding).sum(dim=-1) + self.bias
         output['target'] = pred
         if 'target' in input:
-            target = input['target']
-            output['loss'] = loss_fn(pred, target)
+            output['loss'] = loss_fn(output['target'], input['target'])
         return output
 
 
