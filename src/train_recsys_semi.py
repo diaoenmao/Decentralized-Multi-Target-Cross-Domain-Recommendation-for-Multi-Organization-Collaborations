@@ -94,16 +94,14 @@ def train(data_loader, semi_dataset, model, optimizer, metric, logger, epoch):
         input_size = len(input['target'])
         input = to_device(input, cfg['device'])
         optimizer.zero_grad()
-        input['tag'] = 'weak'
+        # input['tag'] = 'weak'
         output = model(input)
         loss = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
         if semi_dataset is not None:
-            user = torch.stack(input['user'], dim=0).cpu().numpy()
-            t = semi_dataset[user]
-            print(t)
-            exit()
-            semi_input = collate(input_collate(t))
-            semi_input['tag'] = 'strong'
+            user = torch.unique(input['user']).cpu().numpy()
+            semi_input = semi_dataset[user]
+            semi_input = to_device(semi_input, cfg['device'])
+            # semi_input['tag'] = 'strong'
             semi_output = model(semi_input)
             semi_loss = semi_output['loss'].mean() if cfg['world_size'] > 1 else semi_output['loss']
             loss = loss + semi_loss
@@ -159,7 +157,6 @@ def make_dataset(dataset, model):
         negative_size = 500
         num_chunks = semi_dataset.num_items // negative_size
         for i, input in enumerate(data_loader):
-            input = collate(input)
             user_i = []
             item_i = []
             target_i = []
@@ -171,11 +168,11 @@ def make_dataset(dataset, model):
                 output_j = []
                 for k in range(num_chunks):
                     item_j_k = item_j_chunks[k]
-                    _input = {'user': [input['user'][j]], 'item': [item_j_k]}
+                    _input = {'user': input['user'][j][0].expand_as(item_j_k), 'item': item_j_k}
                     _input = to_device(_input, cfg['device'])
-                    _input['tag'] = 'weak'
+                    # _input['tag'] = 'weak'
                     _output = model(_input)
-                    output_j_k = _output['target'][0]
+                    output_j_k = _output['target']
                     output_j.append(output_j_k.cpu())
                 output_j = torch.cat(output_j, dim=0)
                 p_1 = torch.sigmoid(output_j)
@@ -184,10 +181,10 @@ def make_dataset(dataset, model):
                 max_p, hard_pseudo_label = torch.max(soft_pseudo_label, dim=-1)
                 mask = max_p.ge(cfg['threshold'])
                 if not torch.all(~mask):
-                    print('confident', mask.float().mean())
                     item_j = item_j[mask]
-                    output_j = output_j[mask]
-                    user_j = input['user'][j].expand_as(item_j)
+                    output_j = hard_pseudo_label[mask].float()
+                    user_j = input['user'][j][0].expand_as(item_j)
+                    # print('confident', mask.float().mean(), 'count', torch.unique(hard_pseudo_label[mask]))
                     user_i.append(user_j)
                     item_i.append(item_j)
                     target_i.append(output_j)
