@@ -90,6 +90,7 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
         input = collate(input)
         input_size = len(input['target'])
         input = to_device(input, cfg['device'])
+        input['tag'] = 'weak'
         optimizer.zero_grad()
         output = model(input)
         output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']

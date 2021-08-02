@@ -91,14 +91,53 @@ class NegativeSample(torch.nn.Module):
         self.num_negatives = num_negatives
 
     def forward(self, input):
-        positive_item, positive_target = input['item'], input['target']
-        negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_item.tolist())))
-        negative_item = negative_item[torch.randperm(len(negative_item))[:(self.num_negatives * len(positive_item))]]
-        negative_target = torch.zeros(len(negative_item), dtype=torch.long)
-        input['user'] = torch.full((len(positive_item) + len(negative_item),), input['user'][0])
-        input['item'] = torch.cat([positive_item, negative_item])
-        input['target'] = torch.cat([positive_target, negative_target])
+        positive_item = input['item']
+        positive_target = input['target']
+        if 'semi_user' in input:
+            positive_full_item = torch.cat([positive_item, input['semi_item']])
+            negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_full_item.tolist())),
+                                         dtype=torch.long)
+            negative_item = negative_item[
+                torch.randperm(len(negative_item))[:(self.num_negatives * len(positive_full_item))]]
+            negative_target = torch.zeros(len(negative_item))
+            input['user'] = torch.full((len(positive_item) + len(negative_item),), input['user'][0])
+            input['item'] = torch.cat([positive_item, negative_item])
+            input['target'] = torch.cat([positive_target, negative_target])
+        else:
+            negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_item.tolist())),
+                                         dtype=torch.long)
+            negative_item = negative_item[
+                torch.randperm(len(negative_item))[:(self.num_negatives * len(positive_item))]]
+            negative_target = torch.zeros(len(negative_item))
+            input['user'] = torch.full((len(positive_item) + len(negative_item),), input['user'][0])
+            input['item'] = torch.cat([positive_item, negative_item])
+            input['target'] = torch.cat([positive_target, negative_target])
         return input
 
     def __repr__(self):
         return self.__class__.__name__ + '(size={0})'.format(self.size)
+
+
+class FullDataset(Dataset):
+    def __init__(self, dataset, semi_dataset):
+        self.data = dataset.data
+        self.semi_data = semi_dataset.data
+        self.transform = dataset.transform
+
+    def __getitem__(self, index):
+        data = self.data[index].tocoo()
+        semi_data = self.semi_data[index].tocoo()
+        user = np.array(index).reshape(-1)[data.row]
+        semi_user = np.array(index).reshape(-1)[semi_data.row]
+        input = {'user': torch.tensor(user, dtype=torch.long),
+                 'item': torch.tensor(data.col, dtype=torch.long),
+                 'target': torch.tensor(data.data),
+                 'semi_user': torch.tensor(semi_user, dtype=torch.long),
+                 'semi_item': torch.tensor(semi_data.col, dtype=torch.long),
+                 'semi_target': torch.tensor(semi_data.data, dtype=torch.long)}
+        if self.transform is not None:
+            input = self.transform(input)
+        return input
+
+    def __len__(self):
+        return self.data.shape[0]

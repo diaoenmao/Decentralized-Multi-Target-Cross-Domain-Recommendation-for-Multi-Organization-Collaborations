@@ -16,14 +16,15 @@ class NFP(Dataset):
         self.split = split
         self.mode = mode
         self.transform = transform
-        # if not check_exists(self.processed_folder):
-        self.process()
+        if not check_exists(self.processed_folder):
+            self.process()
         self.data = load(os.path.join(self.processed_folder, self.mode, '{}.pt'.format(self.split)), mode='pickle')
         self.num_users, self.num_items = self.data.shape
 
     def __getitem__(self, index):
         data = self.data[index].tocoo()
-        input = {'user': torch.tensor(index, dtype=torch.long), 'item': torch.tensor(data.col, dtype=torch.long),
+        user = np.array(index).reshape(-1)[data.row]
+        input = {'user': torch.tensor(user, dtype=torch.long), 'item': torch.tensor(data.col, dtype=torch.long),
                  'target': torch.tensor(data.data)}
         if self.transform is not None:
             input = self.transform(input)
@@ -43,9 +44,9 @@ class NFP(Dataset):
     def process(self):
         if not check_exists(self.raw_folder):
             self.download()
-        # train_set, test_set = self.make_explicit_data()
-        # save(train_set, os.path.join(self.processed_folder, 'explicit', 'train.pt'), mode='pickle')
-        # save(test_set, os.path.join(self.processed_folder, 'explicit', 'test.pt'), mode='pickle')
+        train_set, test_set = self.make_explicit_data()
+        save(train_set, os.path.join(self.processed_folder, 'explicit', 'train.pt'), mode='pickle')
+        save(test_set, os.path.join(self.processed_folder, 'explicit', 'test.pt'), mode='pickle')
         train_set, test_set = self.make_implicit_data()
         save(train_set, os.path.join(self.processed_folder, 'implicit', 'train.pt'), mode='pickle')
         save(test_set, os.path.join(self.processed_folder, 'implicit', 'test.pt'), mode='pickle')
