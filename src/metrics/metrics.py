@@ -34,7 +34,7 @@ def NDCG(output, target, topk=10):
     return ndcg
 
 
-def Confidence(num_confident, num_unknown):
+def ConfidenceRate(num_confident, num_unknown):
     with torch.no_grad():
         confidence = (num_confident / num_unknown).item()
     return confidence
@@ -48,7 +48,9 @@ class Metric(object):
                        'RMSE': (lambda input, output: RMSE(output['target'], input['target'])),
                        'HR': (lambda input, output: HR(output['target'], input['target'])),
                        'NDCG': (lambda input, output: NDCG(output['target'], input['target'])),
-                       'Confidence': (lambda input, output: Confidence(input['num_confident'], input['num_unknown']))}
+                       'Confidence': (lambda input, output: input['num_confident'].item()),
+                       'Confidence Rate': (
+                           lambda input, output: ConfidenceRate(input['num_confident'], input['num_unknown']))}
 
     def make_metric_name(self, metric_name):
         return metric_name

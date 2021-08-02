@@ -94,23 +94,10 @@ class NegativeSample(torch.nn.Module):
         positive_item = input['item']
         positive_target = input['target']
         if 'semi_user' in input:
-            # positive_full_item = torch.cat([positive_item, input['semi_item']])
-            # negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_full_item.tolist())),
-            #                              dtype=torch.long)
-            # negative_item = negative_item[
-            #     torch.randperm(len(negative_item))[:(self.num_negatives * len(positive_full_item))]]
-            # negative_target = torch.zeros(len(negative_item))
-            # input['user'] = torch.full((len(positive_item) + len(negative_item),), input['user'][0])
-            # input['item'] = torch.cat([positive_item, negative_item])
-            # input['target'] = torch.cat([positive_target, negative_target])
-            semi_target = input['semi_target']
-            mask = semi_target == 1
-            postive_semi_item = input['semi_item'][mask]
-            negative_semi_item = input['semi_item'][~mask]
+            postive_semi_item = input['semi_item']
             positive_full_item = torch.cat([positive_item, postive_semi_item], dim=0)
-            positive_full_negative_semi_item = torch.cat([positive_full_item, negative_semi_item])
-            negative_item = torch.tensor(
-                list(set(range(self.num_items)) - set(positive_full_negative_semi_item.tolist())), dtype=torch.long)
+            negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_full_item.tolist())),
+                                         dtype=torch.long)
             num_negative_random_item = self.num_negatives * len(positive_full_item)
             negative_random_item = negative_item[torch.randperm(len(negative_item))[:num_negative_random_item]]
             negative_random_target = torch.zeros(len(negative_random_item))

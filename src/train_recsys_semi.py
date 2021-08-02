@@ -49,7 +49,7 @@ def runExperiment():
     if cfg['data_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
     elif cfg['data_mode'] == 'implicit':
-        metric = Metric({'train': ['Loss'], 'test': ['Loss', 'HR', 'NDCG'], 'make': ['Confidence']})
+        metric = Metric({'train': ['Loss'], 'test': ['Loss', 'HR', 'NDCG'], 'make': ['Confidence', 'Confidence Rate']})
     else:
         raise ValueError('Not valid data mode')
     if cfg['resume_mode'] == 1:
@@ -95,17 +95,9 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
         input_size = len(input['target'])
         input = to_device(input, cfg['device'])
         optimizer.zero_grad()
-        input['tag'] = 'weak'
+        input['tag'] = True
         output = model(input)
         loss = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
-        # if semi_dataset is not None:
-        #     user = torch.unique(input['user']).cpu().numpy()
-        #     semi_input = semi_dataset[user]
-        #     semi_input = to_device(semi_input, cfg['device'])
-        #     # semi_input['tag'] = 'strong'
-        #     semi_output = model(semi_input)
-        #     semi_loss = semi_output['loss'].mean() if cfg['world_size'] > 1 else semi_output['loss']
-        #     loss = loss + semi_loss
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
         optimizer.step()
@@ -174,21 +166,17 @@ def make_dataset(dataset, model, metric, logger, epoch):
                     item_j_k = item_j_chunks[k]
                     _input = {'user': input['user'][j][0].expand_as(item_j_k), 'item': item_j_k}
                     _input = to_device(_input, cfg['device'])
-                    _input['tag'] = 'weak'
+                    _input['tag'] = True
                     _output = model(_input)
                     output_j_k = _output['target']
                     output_j.append(output_j_k.cpu())
                 output_j = torch.cat(output_j, dim=0)
                 p_1 = torch.sigmoid(output_j)
-                p_0 = 1 - p_1
-                soft_pseudo_label = torch.stack([p_0, p_1], dim=-1)
-                max_p, hard_pseudo_label = torch.max(soft_pseudo_label, dim=-1)
-                # mask = p_1.ge(cfg['threshold'])
-                mask = max_p.ge(cfg['threshold'])
+                mask = p_1.ge(cfg['threshold'])
                 num_unknown += mask.size(0)
                 num_confident += mask.float().sum()
                 if not torch.all(~mask):
-                    # hard_pseudo_label = p_1.new_ones(p_1.size(0))
+                    hard_pseudo_label = p_1.new_ones(p_1.size(0))
                     item_j = item_j[mask]
                     output_j = hard_pseudo_label[mask].float()
                     user_j = input['user'][j][0].expand_as(item_j)
@@ -203,6 +191,7 @@ def make_dataset(dataset, model, metric, logger, epoch):
                 item.append(item_i.numpy())
                 target.append(target_i.numpy())
         input = {'num_confident': num_confident, 'num_unknown': num_unknown}
+
         evaluation = metric.evaluate(metric.metric_name['make'], input, None)
         logger.append(evaluation, 'make', n=1)
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Make Epoch: {}({:.0f}%)'.format(epoch, 100.)]}

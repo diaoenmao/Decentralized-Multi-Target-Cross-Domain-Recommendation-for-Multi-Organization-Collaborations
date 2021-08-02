@@ -29,26 +29,14 @@ class MF(nn.Module):
 
     def user_embedding(self, user, tag=None):
         embedding = self.user_weight(user) + self.user_bias(user)
-        if tag == 'weak':
-            # sigma = 0.5
-            # embedding = embedding + sigma ** 2 * torch.randn(embedding.size(), device=embedding.device)
-            embedding = embedding
-        elif tag == 'strong':
-            # sigma = 1
-            # embedding = embedding + sigma ** 2 * torch.randn(embedding.size(), device=embedding.device)
-            embedding = embedding
+        if tag is not None and cfg['sigma'] > 0:
+            embedding = embedding + cfg['sigma'] ** 2 * torch.randn(embedding.size(), device=embedding.device)
         return embedding
 
     def item_embedding(self, item, tag=None):
         embedding = self.item_weight(item) + self.item_bias(item)
-        if tag == 'weak':
-            # sigma = 0.5
-            # embedding = embedding + sigma ** 2 * torch.randn(embedding.size(), device=embedding.device)
-            embedding = embedding
-        elif tag == 'strong':
-            # sigma = 1
-            # embedding = embedding + sigma ** 2 * torch.randn(embedding.size(), device=embedding.device)
-            embedding = embedding
+        if tag is not None and cfg['sigma'] > 0:
+            embedding = embedding + cfg['sigma'] ** 2 * torch.randn(embedding.size(), device=embedding.device)
         return embedding
 
     def forward(self, input):
@@ -56,10 +44,10 @@ class MF(nn.Module):
         user, item = input['user'], input['item']
         if 'semi_user' in input:
             semi_user, semi_item = input['semi_user'], input['semi_item']
-            user_embedding = self.user_embedding(user, 'weak')
-            item_embedding = self.item_embedding(item, 'weak')
-            semi_user_embedding = self.user_embedding(semi_user, 'strong')
-            semi_item_embedding = self.item_embedding(semi_item, 'strong')
+            user_embedding = self.user_embedding(user, input['tag'])
+            item_embedding = self.item_embedding(item, input['tag'])
+            semi_user_embedding = self.user_embedding(semi_user, input['tag'])
+            semi_item_embedding = self.item_embedding(semi_item, input['tag'])
             user_embedding = torch.cat([user_embedding, semi_user_embedding], dim=0)
             item_embedding = torch.cat([item_embedding, semi_item_embedding], dim=0)
             input['target'] = torch.cat([input['target'], input['semi_target']], dim=0)

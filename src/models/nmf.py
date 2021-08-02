@@ -46,25 +46,60 @@ class NMF(nn.Module):
         nn.init.zeros_(self.affine.bias)
         return
 
-    def user_embedding_mlp(self, user):
-        return self.user_weight_mlp(user) + self.user_bias_mlp(user)
+    def user_embedding_mlp(self, user, tag=None):
+        embedding = self.user_weight_mlp(user) + self.user_bias_mlp(user)
+        if tag is not None and cfg['sigma'] > 0:
+            embedding = embedding + cfg['sigma'] ** 2 * torch.randn(embedding.size(), device=embedding.device)
+        return embedding
 
-    def user_embedding_mf(self, user):
-        return self.user_weight_mf(user) + self.user_bias_mf(user)
+    def user_embedding_mf(self, user, tag=None):
+        embedding = self.user_weight_mf(user) + self.user_bias_mf(user)
+        if tag is not None and cfg['sigma'] > 0:
+            embedding = embedding + cfg['sigma'] ** 2 * torch.randn(embedding.size(), device=embedding.device)
+        return embedding
 
-    def item_embedding_mlp(self, item):
-        return self.item_weight_mlp(item) + self.item_bias_mlp(item)
 
-    def item_embedding_mf(self, item):
-        return self.item_weight_mf(item) + self.item_bias_mf(item)
+    def item_embedding_mlp(self, item, tag=None):
+        embedding = self.item_weight_mlp(item) + self.item_bias_mlp(item)
+        if tag is not None and cfg['sigma'] > 0:
+            embedding = embedding + cfg['sigma'] ** 2 * torch.randn(embedding.size(), device=embedding.device)
+        return embedding
+
+    def item_embedding_mf(self, item, tag=None):
+        embedding = self.item_weight_mf(item) + self.item_bias_mf(item)
+        if tag is not None and cfg['sigma'] > 0:
+            embedding = embedding + cfg['sigma'] ** 2 * torch.randn(embedding.size(), device=embedding.device)
+        return embedding
 
     def forward(self, input):
         output = {}
         user, item = input['user'], input['item']
-        user_embedding_mlp = self.user_embedding_mlp(user)
-        user_embedding_mf = self.user_embedding_mf(user)
-        item_embedding_mlp = self.item_embedding_mlp(item)
-        item_embedding_mf = self.item_embedding_mf(item)
+        if 'semi_user' in input:
+            semi_user, semi_item = input['semi_user'], input['semi_item']
+            user_embedding_mlp = self.user_embedding_mlp(user, input['tag'])
+            user_embedding_mf = self.user_embedding_mf(user, input['tag'])
+            item_embedding_mlp = self.item_embedding_mlp(item, input['tag'])
+            item_embedding_mf = self.item_embedding_mf(item, input['tag'])
+            semi_user_embedding_mlp = self.user_embedding_mlp(semi_user, input['tag'])
+            semi_user_embedding_mf = self.user_embedding_mf(semi_user, input['tag'])
+            semi_item_embedding_mlp = self.item_embedding_mlp(semi_item, input['tag'])
+            semi_item_embedding_mf = self.item_embedding_mf(semi_item, input['tag'])
+            user_embedding_mlp = torch.cat([user_embedding_mlp, semi_user_embedding_mlp], dim=0)
+            user_embedding_mf = torch.cat([user_embedding_mf, semi_user_embedding_mf], dim=0)
+            item_embedding_mlp = torch.cat([item_embedding_mlp, semi_item_embedding_mlp], dim=0)
+            item_embedding_mf = torch.cat([item_embedding_mf, semi_item_embedding_mf], dim=0)
+            input['target'] = torch.cat([input['target'], input['semi_target']], dim=0)
+        else:
+            if 'tag' in input:
+                user_embedding_mlp = self.user_embedding_mlp(user, input['tag'])
+                user_embedding_mf = self.user_embedding_mf(user, input['tag'])
+                item_embedding_mlp = self.item_embedding_mlp(item, input['tag'])
+                item_embedding_mf = self.item_embedding_mf(item, input['tag'])
+            else:
+                user_embedding_mlp = self.user_embedding_mlp(user)
+                user_embedding_mf = self.user_embedding_mf(user)
+                item_embedding_mlp = self.item_embedding_mlp(item)
+                item_embedding_mf = self.item_embedding_mf(item)
         mf = torch.mul(user_embedding_mf, item_embedding_mf)
         mlp = torch.cat([user_embedding_mlp, item_embedding_mlp], dim=-1)
         mlp = self.fc(mlp)

@@ -116,6 +116,7 @@ def process_control():
     cfg['data_name'] = cfg['control']['data_name']
     cfg['data_mode'] = cfg['control']['data_mode']
     cfg['model_name'] = cfg['control']['model_name']
+    cfg['sigma'] = float(cfg['control']['sigma'])
     cfg['mf'] = {'hidden_size': 128}
     cfg['nmf'] = {'hidden_size': [128, 64, 32, 16]}
     cfg['pop'] = {}
@@ -129,7 +130,7 @@ def process_control():
     cfg[model_name]['betas'] = (0.9, 0.999)
     cfg[model_name]['weight_decay'] = 0
     cfg[model_name]['scheduler_name'] = 'None'
-    cfg[model_name]['num_epochs'] = 200
+    cfg[model_name]['num_epochs'] = 400
     cfg[model_name]['batch_size'] = {'train': 100, 'test': 200}
     return
 
