@@ -49,7 +49,7 @@ def runExperiment():
     if cfg['data_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
     elif cfg['data_mode'] == 'implicit':
-        metric = Metric({'train': ['Loss'], 'test': ['Loss', 'HR', 'NDCG']})
+        metric = Metric({'train': ['Loss'], 'test': ['Loss', 'HR', 'NDCG'], 'make': ['Confidence']})
     else:
         raise ValueError('Not valid data mode')
     if cfg['resume_mode'] == 1:
@@ -68,7 +68,7 @@ def runExperiment():
     if cfg['world_size'] > 1:
         model = torch.nn.DataParallel(model, device_ids=list(range(cfg['world_size'])))
     for epoch in range(last_epoch, cfg[cfg['model_name']]['num_epochs'] + 1):
-        full_dataset = make_dataset(dataset['train'], model)
+        full_dataset = make_dataset(dataset['train'], model, metric,  logger, epoch)
         data_loader['train'] = make_data_loader({'train': full_dataset}, cfg['model_name'])['train']
         train(data_loader['train'], model, optimizer, metric, logger, epoch)
         test(data_loader['test'], model, metric, logger, epoch)
@@ -146,7 +146,8 @@ def test(data_loader, model, metric, logger, epoch):
     return
 
 
-def make_dataset(dataset, model):
+def make_dataset(dataset, model, metric, logger, epoch):
+    logger.safe(True)
     with torch.no_grad():
         semi_dataset = copy.deepcopy(dataset)
         semi_dataset.transform = None
@@ -157,8 +158,8 @@ def make_dataset(dataset, model):
         target = []
         negative_size = 500
         num_chunks = semi_dataset.num_items // negative_size
-        N = 0
-        count = 0
+        num_unknown = 0
+        num_confident = 0
         for i, input in enumerate(data_loader):
             user_i = []
             item_i = []
@@ -179,14 +180,15 @@ def make_dataset(dataset, model):
                     output_j.append(output_j_k.cpu())
                 output_j = torch.cat(output_j, dim=0)
                 p_1 = torch.sigmoid(output_j)
-                # p_0 = 1 - p_1
-                # soft_pseudo_label = torch.stack([p_0, p_1], dim=-1)
-                # max_p, hard_pseudo_label = torch.max(soft_pseudo_label, dim=-1)
-                mask = p_1.ge(cfg['threshold'])
-                N += mask.size(0)
-                count += mask.float().sum()
+                p_0 = 1 - p_1
+                soft_pseudo_label = torch.stack([p_0, p_1], dim=-1)
+                max_p, hard_pseudo_label = torch.max(soft_pseudo_label, dim=-1)
+                # mask = p_1.ge(cfg['threshold'])
+                mask = max_p.ge(cfg['threshold'])
+                num_unknown += mask.size(0)
+                num_confident += mask.float().sum()
                 if not torch.all(~mask):
-                    hard_pseudo_label = p_1.new_ones(p_1.size(0))
+                    # hard_pseudo_label = p_1.new_ones(p_1.size(0))
                     item_j = item_j[mask]
                     output_j = hard_pseudo_label[mask].float()
                     user_j = input['user'][j][0].expand_as(item_j)
@@ -200,7 +202,12 @@ def make_dataset(dataset, model):
                 user.append(user_i.numpy())
                 item.append(item_i.numpy())
                 target.append(target_i.numpy())
-        print('count: {}'.format(count.item()))
+        input = {'num_confident': num_confident, 'num_unknown': num_unknown}
+        evaluation = metric.evaluate(metric.metric_name['make'], input, None)
+        logger.append(evaluation, 'make', n=1)
+        info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Make Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
+        logger.append(info, 'make', mean=False)
+        print(logger.write('make', metric.metric_name['make']))
         if len(user) > 0:
             user = np.concatenate(user, axis=0)
             item = np.concatenate(item, axis=0)
@@ -208,10 +215,10 @@ def make_dataset(dataset, model):
             semi_dataset.data = csr_matrix((target, (user, item)),
                                            shape=(semi_dataset.num_users, semi_dataset.num_items))
             full_dataset = FullDataset(dataset, semi_dataset)
-            return full_dataset
         else:
-            return dataset
-
+             full_dataset = dataset
+    logger.safe(False)
+    return full_dataset
 
 if __name__ == "__main__":
     main()
