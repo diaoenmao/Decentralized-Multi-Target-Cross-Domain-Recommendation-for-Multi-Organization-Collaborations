@@ -5,6 +5,7 @@ control:
   data_mode: explicit
   model_name: mf
   sigma: 0.1
+  semi_mode: fix
 # experiment
 num_workers: 0
 init_seed: 0

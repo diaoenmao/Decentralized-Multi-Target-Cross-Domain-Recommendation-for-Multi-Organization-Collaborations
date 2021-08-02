@@ -18,7 +18,7 @@ def fetch_dataset(data_name):
         dataset['train'] = eval('datasets.{}(root=root, split=\'train\', mode=cfg["data_mode"])'.format(data_name))
         dataset['test'] = eval('datasets.{}(root=root, split=\'test\', mode=cfg["data_mode"])'.format(data_name))
         if cfg['data_mode'] == 'implicit':
-            dataset['train'].transform = datasets.Compose([NegativeSample(dataset['train'].num_items, 8)])
+            dataset['train'].transform = datasets.Compose([NegativeSample(dataset['train'].num_items, 2)])
     else:
         raise ValueError('Not valid dataset name')
     print('data ready')
@@ -104,6 +104,11 @@ class NegativeSample(torch.nn.Module):
             input['user'] = torch.full((len(positive_item) + len(negative_random_item),), input['user'][0])
             input['item'] = torch.cat([positive_item, negative_random_item])
             input['target'] = torch.cat([positive_target, negative_random_target])
+            if 'mix' in cfg['semi_mode']:
+                input['mix_user'] = torch.full((len(positive_full_item),), input['user'][0])
+                input['mix_item_a'] = positive_full_item
+                input['mix_item_b'] = positive_full_item[torch.randperm(positive_full_item.size(0))]
+                input['mix_target'] = torch.ones(len(positive_full_item))
         else:
             negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_item.tolist())),
                                          dtype=torch.long)

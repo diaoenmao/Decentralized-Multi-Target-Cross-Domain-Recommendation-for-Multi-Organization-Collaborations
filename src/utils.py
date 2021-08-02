@@ -117,10 +117,13 @@ def process_control():
     cfg['data_mode'] = cfg['control']['data_mode']
     cfg['model_name'] = cfg['control']['model_name']
     cfg['sigma'] = float(cfg['control']['sigma'])
+    if 'semi_mode' in cfg['control']:
+        cfg['semi_mode'] = cfg['control']['semi_mode']
     cfg['mf'] = {'hidden_size': 128}
     cfg['nmf'] = {'hidden_size': [128, 64, 32, 16]}
     cfg['pop'] = {}
     cfg['threshold'] = 0.95
+    cfg['alpha'] = 0.75
     model_name = cfg['model_name']
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
     cfg[model_name]['optimizer_name'] = 'Adam'

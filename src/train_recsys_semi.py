@@ -172,11 +172,14 @@ def make_dataset(dataset, model, metric, logger, epoch):
                     output_j.append(output_j_k.cpu())
                 output_j = torch.cat(output_j, dim=0)
                 p_1 = torch.sigmoid(output_j)
+                p_0 = 1 - p_1
+                soft_pseudo_label = torch.stack([p_0, p_1], dim=-1)
+                max_p, hard_pseudo_label = torch.max(soft_pseudo_label, dim=-1)
+                # mask = max_p.ge(cfg['threshold'])
                 mask = p_1.ge(cfg['threshold'])
                 num_unknown += mask.size(0)
                 num_confident += mask.float().sum()
                 if not torch.all(~mask):
-                    hard_pseudo_label = p_1.new_ones(p_1.size(0))
                     item_j = item_j[mask]
                     output_j = hard_pseudo_label[mask].float()
                     user_j = input['user'][j][0].expand_as(item_j)
@@ -191,13 +194,12 @@ def make_dataset(dataset, model, metric, logger, epoch):
                 item.append(item_i.numpy())
                 target.append(target_i.numpy())
         input = {'num_confident': num_confident, 'num_unknown': num_unknown}
-
         evaluation = metric.evaluate(metric.metric_name['make'], input, None)
         logger.append(evaluation, 'make', n=1)
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Make Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
         logger.append(info, 'make', mean=False)
         print(logger.write('make', metric.metric_name['make']))
-        if len(user) > 0:
+        if len(user) > 0 and 'fix' in cfg['semi_mode']:
             user = np.concatenate(user, axis=0)
             item = np.concatenate(item, axis=0)
             target = np.concatenate(target, axis=0)

@@ -48,9 +48,22 @@ class MF(nn.Module):
             item_embedding = self.item_embedding(item, input['tag'])
             semi_user_embedding = self.user_embedding(semi_user, input['tag'])
             semi_item_embedding = self.item_embedding(semi_item, input['tag'])
-            user_embedding = torch.cat([user_embedding, semi_user_embedding], dim=0)
-            item_embedding = torch.cat([item_embedding, semi_item_embedding], dim=0)
-            input['target'] = torch.cat([input['target'], input['semi_target']], dim=0)
+            if 'mix_user' in input:
+                mix_user, mix_item_a, mix_item_b = input['mix_user'], input['mix_item_a'], input['mix_item_b']
+                mix_user_embedding = self.user_embedding(mix_user, input['tag'])
+                mix_item_a_embedding = self.item_embedding(mix_item_a, input['tag'])
+                mix_item_b_embedding = self.item_embedding(mix_item_b, input['tag'])
+                beta = torch.distributions.beta.Beta(torch.tensor([cfg['alpha']], device=mix_user.device),
+                                                     torch.tensor([cfg['alpha']], device=mix_user.device))
+                lam = beta.sample((mix_user.size(0),))
+                mix_item_embedding = lam * mix_item_a_embedding + (1 - lam) * mix_item_b_embedding
+                user_embedding = torch.cat([user_embedding, semi_user_embedding, mix_user_embedding], dim=0)
+                item_embedding = torch.cat([item_embedding, semi_item_embedding, mix_item_embedding], dim=0)
+                input['target'] = torch.cat([input['target'], input['semi_target'], input['mix_target']], dim=0)
+            else:
+                user_embedding = torch.cat([user_embedding, semi_user_embedding], dim=0)
+                item_embedding = torch.cat([item_embedding, semi_item_embedding], dim=0)
+                input['target'] = torch.cat([input['target'], input['semi_target']], dim=0)
         else:
             if 'tag' in input:
                 user_embedding = self.user_embedding(user, input['tag'])
