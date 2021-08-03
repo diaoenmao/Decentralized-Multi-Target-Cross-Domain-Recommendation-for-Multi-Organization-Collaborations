@@ -48,8 +48,16 @@ def main():
     elif file_list[0] == 'semi':
         script_name = [['{}_recsys_semi.py'.format(run)]]
         control_name = [
-            [['ML100K', 'ML1M'], ['implicit'], ['mf', 'nmf'], ['0', '0.05', '0.1', '0.5'], ['fix']]]
-        controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
+            [['ML100K', 'ML1M'], ['explicit'], ['mf', 'nmf'], ['0', '0.05', '0.1', '0.5'], ['fix']]]
+        explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                          control_name)
+        script_name = [['{}_recsys_semi.py'.format(run)]]
+        control_name = [
+            [['ML100K', 'ML1M'], ['implicit'], ['mf', 'nmf'], ['0', '0.05', '0.1', '0.5'], ['fix', 'fixp']]]
+        implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                          control_name)
+        controls = explicit_controls + implicit_controls
+
     else:
         raise ValueError('Not valid file')
     s = '#!/bin/bash\n'

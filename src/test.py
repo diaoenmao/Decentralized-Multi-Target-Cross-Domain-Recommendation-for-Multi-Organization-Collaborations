@@ -51,13 +51,13 @@ import models
 # if __name__ == "__main__":
 #     process_control()
 #     cfg['seed'] = 0
-#     data_name = 'ML100K'
+#     data_name = 'NFP'
 #     batch_size = {'train': 10, 'test': 10}
 #     dataset = fetch_dataset(data_name)
 #     data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
 #     for i, input in enumerate(data_loader['train']):
 #         input = collate(input)
-#         print(input)
+#         print(torch.unique(input['target']))
 #         print(input['user'].size(), input['item'].size(), input['target'].size())
 #         exit()
 

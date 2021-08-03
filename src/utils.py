@@ -119,10 +119,15 @@ def process_control():
     cfg['sigma'] = float(cfg['control']['sigma'])
     if 'semi_mode' in cfg['control']:
         cfg['semi_mode'] = cfg['control']['semi_mode']
+    data_resolution = {'ML100K': 1, 'ML1M': 1, 'ML10M': 0.5, 'ML20M': 0.5, 'NFP': 1}
+    cfg['data_resolution'] = data_resolution[cfg['data_name']]
+    data_range = {'ML100K': [1, 5], 'ML1M': [1, 5], 'ML10M': [0.5, 5], 'ML20M': [0.5, 5], 'NFP': [1, 5]}
+    cfg['data_range'] = data_range[cfg['data_name']]
     cfg['mf'] = {'hidden_size': 128}
     cfg['nmf'] = {'hidden_size': [128, 64, 32, 16]}
     cfg['pop'] = {}
     cfg['threshold'] = 0.95
+    cfg['dist'] = 1e-2
     cfg['alpha'] = 0.75
     model_name = cfg['model_name']
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}

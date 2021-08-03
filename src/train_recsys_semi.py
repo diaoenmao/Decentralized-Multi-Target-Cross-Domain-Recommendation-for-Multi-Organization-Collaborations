@@ -47,7 +47,7 @@ def runExperiment():
     optimizer = make_optimizer(model, cfg['model_name'])
     scheduler = make_scheduler(optimizer, cfg['model_name'])
     if cfg['data_mode'] == 'explicit':
-        metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
+        metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE'], 'make': ['Confidence', 'Confidence Rate']})
     elif cfg['data_mode'] == 'implicit':
         metric = Metric({'train': ['Loss'], 'test': ['Loss', 'HR', 'NDCG'], 'make': ['Confidence', 'Confidence Rate']})
     else:
@@ -141,6 +141,7 @@ def test(data_loader, model, metric, logger, epoch):
 def make_dataset(dataset, model, metric, logger, epoch):
     logger.safe(True)
     with torch.no_grad():
+        assert 'fix' in cfg['semi_mode']
         semi_dataset = copy.deepcopy(dataset)
         semi_dataset.transform = None
         data_loader = make_data_loader({'train': semi_dataset}, cfg['model_name'], shuffle={'train': False})['train']
@@ -171,17 +172,29 @@ def make_dataset(dataset, model, metric, logger, epoch):
                     output_j_k = _output['target']
                     output_j.append(output_j_k.cpu())
                 output_j = torch.cat(output_j, dim=0)
-                p_1 = torch.sigmoid(output_j)
-                p_0 = 1 - p_1
-                soft_pseudo_label = torch.stack([p_0, p_1], dim=-1)
-                max_p, hard_pseudo_label = torch.max(soft_pseudo_label, dim=-1)
-                # mask = max_p.ge(cfg['threshold'])
-                mask = p_1.ge(cfg['threshold'])
+                if cfg['data_mode'] == 'explicit':
+                    scale = 1 / cfg['data_resolution']
+                    rounded_output_j = torch.round(output_j * scale) / scale
+                    rounded_output_j = torch.clamp(rounded_output_j, *cfg['data_range'])
+                    distance = (output_j - rounded_output_j).abs()
+                    mask = distance < cfg['dist']
+                    output_j = rounded_output_j
+                elif cfg['data_mode'] == 'implicit':
+                    p_1 = torch.sigmoid(output_j)
+                    p_0 = 1 - p_1
+                    soft_pseudo_label = torch.stack([p_0, p_1], dim=-1)
+                    max_p, output_j = torch.max(soft_pseudo_label, dim=-1)
+                    if 'fixp' in cfg['semi_mode']:
+                        mask = p_1.ge(cfg['threshold'])
+                    else:
+                        mask = max_p.ge(cfg['threshold'])
+                else:
+                    raise ValueError('Not valid data mode')
                 num_unknown += mask.size(0)
                 num_confident += mask.float().sum()
                 if not torch.all(~mask):
                     item_j = item_j[mask]
-                    output_j = hard_pseudo_label[mask].float()
+                    output_j = output_j[mask].float()
                     user_j = input['user'][j][0].expand_as(item_j)
                     user_i.append(user_j)
                     item_i.append(item_j)
@@ -199,7 +212,7 @@ def make_dataset(dataset, model, metric, logger, epoch):
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Make Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
         logger.append(info, 'make', mean=False)
         print(logger.write('make', metric.metric_name['make']))
-        if len(user) > 0 and 'fix' in cfg['semi_mode']:
+        if len(user) > 0:
             user = np.concatenate(user, axis=0)
             item = np.concatenate(item, axis=0)
             target = np.concatenate(target, axis=0)
