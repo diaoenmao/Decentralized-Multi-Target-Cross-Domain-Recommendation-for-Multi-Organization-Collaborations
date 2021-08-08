@@ -10,7 +10,7 @@ import torch
 import torch.backends.cudnn as cudnn
 from scipy.sparse import csr_matrix
 from config import cfg, process_args
-from data import fetch_dataset, make_data_loader, input_collate, FullDataset
+from data import fetch_dataset, make_data_loader, input_collate, make_labeled_dataset, FullDataset
 from metrics import Metric
 from utils import save, to_device, process_control, process_dataset, make_optimizer, make_scheduler, resume, collate
 from logger import make_logger
@@ -42,12 +42,13 @@ def runExperiment():
     torch.cuda.manual_seed(cfg['seed'])
     dataset = fetch_dataset(cfg['data_name'])
     process_dataset(dataset)
+    dataset['train'] = make_labeled_dataset(dataset['train'])
     data_loader = make_data_loader(dataset, cfg['model_name'])
     model = eval('models.{}().to(cfg["device"])'.format(cfg['model_name']))
     optimizer = make_optimizer(model, cfg['model_name'])
     scheduler = make_scheduler(optimizer, cfg['model_name'])
     if cfg['data_mode'] == 'explicit':
-        metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE'], 'make': ['Confidence', 'Confidence Rate']})
+        metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
     elif cfg['data_mode'] == 'implicit':
         metric = Metric({'train': ['Loss'], 'test': ['Loss', 'HR', 'NDCG'], 'make': ['Confidence', 'Confidence Rate']})
     else:
@@ -95,7 +96,7 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
         input_size = len(input['target'])
         input = to_device(input, cfg['device'])
         optimizer.zero_grad()
-        input['tag'] = True
+        input['aug'] = True
         output = model(input)
         loss = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
         loss.backward()
@@ -141,7 +142,6 @@ def test(data_loader, model, metric, logger, epoch):
 def make_dataset(dataset, model, metric, logger, epoch):
     logger.safe(True)
     with torch.no_grad():
-        assert 'fix' in cfg['semi_mode']
         semi_dataset = copy.deepcopy(dataset)
         semi_dataset.transform = None
         data_loader = make_data_loader({'train': semi_dataset}, cfg['model_name'], shuffle={'train': False})['train']
@@ -149,8 +149,8 @@ def make_dataset(dataset, model, metric, logger, epoch):
         user = []
         item = []
         target = []
-        negative_size = 500
-        num_chunks = semi_dataset.num_items // negative_size
+        chunk_size = 500
+        num_chunks = semi_dataset.num_items // chunk_size
         num_unknown = 0
         num_confident = 0
         for i, input in enumerate(data_loader):
@@ -159,6 +159,7 @@ def make_dataset(dataset, model, metric, logger, epoch):
             target_i = []
             for j in range(len(input['user'])):
                 positive_item = input['item'][j]
+                positive_target = input['target'][j]
                 negative_item = torch.tensor(list(set(range(semi_dataset.num_items)) - set(positive_item.tolist())))
                 item_j = negative_item
                 item_j_chunks = torch.chunk(item_j, num_chunks)
@@ -167,60 +168,52 @@ def make_dataset(dataset, model, metric, logger, epoch):
                     item_j_k = item_j_chunks[k]
                     _input = {'user': input['user'][j][0].expand_as(item_j_k), 'item': item_j_k}
                     _input = to_device(_input, cfg['device'])
-                    _input['tag'] = True
+                    _input['aug'] = True
                     _output = model(_input)
                     output_j_k = _output['target']
                     output_j.append(output_j_k.cpu())
                 output_j = torch.cat(output_j, dim=0)
-                if cfg['data_mode'] == 'explicit':
-                    scale = 1 / cfg['data_resolution']
-                    rounded_output_j = torch.round(output_j * scale) / scale
-                    rounded_output_j = torch.clamp(rounded_output_j, *cfg['data_range'])
-                    distance = (output_j - rounded_output_j).abs()
-                    mask = distance < cfg['dist']
-                    output_j = rounded_output_j
-                elif cfg['data_mode'] == 'implicit':
-                    p_1 = torch.sigmoid(output_j)
-                    p_0 = 1 - p_1
-                    soft_pseudo_label = torch.stack([p_0, p_1], dim=-1)
-                    max_p, output_j = torch.max(soft_pseudo_label, dim=-1)
-                    if 'fixp' in cfg['semi_mode']:
-                        mask = p_1.ge(cfg['threshold'])
-                    else:
-                        mask = max_p.ge(cfg['threshold'])
-                else:
-                    raise ValueError('Not valid data mode')
+                p_1 = torch.sigmoid(output_j)
+                p_0 = 1 - p_1
+                soft_pseudo_label = torch.stack([p_0, p_1], dim=-1)
+                max_p, output_j = torch.max(soft_pseudo_label, dim=-1)
+                # output_j = output_j.float()
+                output_j = output_j.float().fill_(cfg['threshold'])
+                # mask = max_p.ge(cfg['threshold'])
+                mask = p_1.ge(cfg['threshold'])
+                # max_p_1, mask = torch.max(p_1, dim=0)
+                # print(max_p_1, mask)
                 num_unknown += mask.size(0)
                 num_confident += mask.float().sum()
                 if not torch.all(~mask):
-                    item_j = item_j[mask]
-                    output_j = output_j[mask].float()
+                    item_j = torch.cat([positive_item, item_j[mask]], dim=0)
+                    output_j = torch.cat([positive_target, output_j[mask]], dim=0)
                     user_j = input['user'][j][0].expand_as(item_j)
-                    user_i.append(user_j)
-                    item_i.append(item_j)
-                    target_i.append(output_j)
-            if len(user_i) > 0:
-                user_i = torch.cat(user_i, dim=0)
-                item_i = torch.cat(item_i, dim=0)
-                target_i = torch.cat(target_i, dim=0)
-                user.append(user_i.numpy())
-                item.append(item_i.numpy())
-                target.append(target_i.numpy())
+                else:
+                    item_j = positive_item
+                    output_j = positive_target
+                    user_j = input['user'][j][0].expand_as(item_j)
+                user_i.append(user_j)
+                item_i.append(item_j)
+                target_i.append(output_j)
+            user_i = torch.cat(user_i, dim=0)
+            item_i = torch.cat(item_i, dim=0)
+            target_i = torch.cat(target_i, dim=0)
+            user.append(user_i.numpy())
+            item.append(item_i.numpy())
+            target.append(target_i.numpy())
         input = {'num_confident': num_confident, 'num_unknown': num_unknown}
         evaluation = metric.evaluate(metric.metric_name['make'], input, None)
         logger.append(evaluation, 'make', n=1)
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Make Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
         logger.append(info, 'make', mean=False)
         print(logger.write('make', metric.metric_name['make']))
-        if len(user) > 0:
-            user = np.concatenate(user, axis=0)
-            item = np.concatenate(item, axis=0)
-            target = np.concatenate(target, axis=0)
-            semi_dataset.data = csr_matrix((target, (user, item)),
-                                           shape=(semi_dataset.num_users, semi_dataset.num_items))
-            full_dataset = FullDataset(dataset, semi_dataset)
-        else:
-             full_dataset = dataset
+        user = np.concatenate(user, axis=0)
+        item = np.concatenate(item, axis=0)
+        target = np.concatenate(target, axis=0)
+        semi_dataset.data = csr_matrix((target, (user, item)),
+                                       shape=(semi_dataset.num_users, semi_dataset.num_items))
+        full_dataset = FullDataset(dataset, semi_dataset)
     logger.safe(False)
     return full_dataset
 

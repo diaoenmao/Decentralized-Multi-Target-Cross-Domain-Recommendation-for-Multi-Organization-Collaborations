@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import models
 from config import cfg
+from scipy.sparse import csr_matrix
 from torchvision import transforms
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.dataloader import default_collate
@@ -18,7 +19,7 @@ def fetch_dataset(data_name):
         dataset['train'] = eval('datasets.{}(root=root, split=\'train\', mode=cfg["data_mode"])'.format(data_name))
         dataset['test'] = eval('datasets.{}(root=root, split=\'test\', mode=cfg["data_mode"])'.format(data_name))
         if cfg['data_mode'] == 'implicit':
-            dataset['train'].transform = datasets.Compose([NegativeSample(dataset['train'].num_items, 2)])
+            dataset['train'].transform = datasets.Compose([NegativeSample(dataset['train'].num_items, 1)])
     else:
         raise ValueError('Not valid dataset name')
     print('data ready')
@@ -84,6 +85,28 @@ def separate_dataset(dataset, idx):
     return separated_dataset
 
 
+def make_labeled_dataset(dataset):
+    semi_dataset = copy.deepcopy(dataset)
+    if cfg['num_supervised_per_user'] > 0:
+        labeled_user = []
+        labeled_item = []
+        labeled_target = []
+        for i in range(len(semi_dataset)):
+            mask = torch.randperm(len(semi_dataset[i]['item']))
+            labeled_item_i = semi_dataset[i]['item'][mask][:cfg['num_supervised_per_user']].numpy().reshape(-1)
+            labeled_user_i = np.full(len(labeled_item_i), i)
+            labeled_target_i = semi_dataset[i]['target'][mask][:cfg['num_supervised_per_user']].numpy().reshape(-1)
+            labeled_user.append(labeled_user_i)
+            labeled_item.append(labeled_item_i)
+            labeled_target.append(labeled_target_i)
+        labeled_user = np.concatenate(labeled_user, axis=0)
+        labeled_item = np.concatenate(labeled_item, axis=0)
+        labeled_target = np.concatenate(labeled_target, axis=0)
+        semi_dataset.data = csr_matrix((labeled_target, (labeled_user, labeled_item)),
+                                       shape=(semi_dataset.num_users, semi_dataset.num_items))
+    return semi_dataset
+
+
 class NegativeSample(torch.nn.Module):
     def __init__(self, num_items, num_negatives=1):
         super().__init__()
@@ -99,7 +122,7 @@ class NegativeSample(torch.nn.Module):
             negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_full_item.tolist())),
                                          dtype=torch.long)
             num_negative_random_item = self.num_negatives * len(positive_full_item)
-            negative_random_item = negative_item[torch.randperm(len(negative_item))[:num_negative_random_item]]
+            negative_random_item = negative_item[torch.randperm(len(negative_item))][:num_negative_random_item]
             negative_random_target = torch.zeros(len(negative_random_item))
             input['user'] = torch.full((len(positive_item) + len(negative_random_item),), input['user'][0])
             input['item'] = torch.cat([positive_item, negative_random_item])
@@ -108,7 +131,7 @@ class NegativeSample(torch.nn.Module):
             negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_item.tolist())),
                                          dtype=torch.long)
             num_negative_random_item = self.num_negatives * len(positive_item)
-            negative_item = negative_item[torch.randperm(len(negative_item))[:num_negative_random_item]]
+            negative_item = negative_item[torch.randperm(len(negative_item))][:num_negative_random_item]
             negative_target = torch.zeros(len(negative_item))
             input['user'] = torch.full((len(positive_item) + len(negative_item),), input['user'][0])
             input['item'] = torch.cat([positive_item, negative_item])

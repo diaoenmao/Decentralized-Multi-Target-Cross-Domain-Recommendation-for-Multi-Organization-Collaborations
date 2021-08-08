@@ -27,15 +27,15 @@ class MF(nn.Module):
         nn.init.zeros_(self.bias)
         return
 
-    def user_embedding(self, user, tag=None):
+    def user_embedding(self, user, aug=None):
         embedding = self.user_weight(user) + self.user_bias(user)
-        if tag is not None and cfg['sigma'] > 0:
+        if aug is not None and cfg['sigma'] > 0:
             embedding = embedding + cfg['sigma'] ** 2 * torch.randn(embedding.size(), device=embedding.device)
         return embedding
 
-    def item_embedding(self, item, tag=None):
+    def item_embedding(self, item, aug=None):
         embedding = self.item_weight(item) + self.item_bias(item)
-        if tag is not None and cfg['sigma'] > 0:
+        if aug is not None and cfg['sigma'] > 0:
             embedding = embedding + cfg['sigma'] ** 2 * torch.randn(embedding.size(), device=embedding.device)
         return embedding
 
@@ -44,17 +44,17 @@ class MF(nn.Module):
         user, item = input['user'], input['item']
         if 'semi_user' in input:
             semi_user, semi_item = input['semi_user'], input['semi_item']
-            user_embedding = self.user_embedding(user, input['tag'])
-            item_embedding = self.item_embedding(item, input['tag'])
-            semi_user_embedding = self.user_embedding(semi_user, input['tag'])
-            semi_item_embedding = self.item_embedding(semi_item, input['tag'])
+            user_embedding = self.user_embedding(user, input['aug'])
+            item_embedding = self.item_embedding(item, input['aug'])
+            semi_user_embedding = self.user_embedding(semi_user, input['aug'])
+            semi_item_embedding = self.item_embedding(semi_item, input['aug'])
             user_embedding = torch.cat([user_embedding, semi_user_embedding], dim=0)
             item_embedding = torch.cat([item_embedding, semi_item_embedding], dim=0)
             input['target'] = torch.cat([input['target'], input['semi_target']], dim=0)
         else:
-            if 'tag' in input:
-                user_embedding = self.user_embedding(user, input['tag'])
-                item_embedding = self.item_embedding(item, input['tag'])
+            if 'aug' in input:
+                user_embedding = self.user_embedding(user, input['aug'])
+                item_embedding = self.item_embedding(item, input['aug'])
             else:
                 user_embedding = self.user_embedding(user)
                 item_embedding = self.item_embedding(item)

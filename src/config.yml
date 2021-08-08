@@ -2,10 +2,10 @@
 # control
 control:
   data_name: ML100K
-  data_mode: explicit
+  data_mode: implicit
   model_name: mf
   sigma: 0.1
-  semi_mode: fix
+  num_supervised_per_user: 20
 # experiment
 num_workers: 0
 init_seed: 0
