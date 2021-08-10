@@ -29,7 +29,7 @@ def main():
     process_control()
     seeds = list(range(cfg['init_seed'], cfg['init_seed'] + cfg['num_experiments']))
     for i in range(cfg['num_experiments']):
-        model_tag_list = [str(seeds[i]), cfg['data_name'], cfg['model_name'], cfg['control_name']]
+        model_tag_list = [str(seeds[i]), cfg['control_name']]
         cfg['model_tag'] = '_'.join([x for x in model_tag_list if x])
         print('Experiment: {}'.format(cfg['model_tag']))
         runExperiment()
@@ -177,8 +177,8 @@ def make_dataset(dataset, model, metric, logger, epoch):
                 p_0 = 1 - p_1
                 soft_pseudo_label = torch.stack([p_0, p_1], dim=-1)
                 max_p, output_j = torch.max(soft_pseudo_label, dim=-1)
-                # output_j = output_j.float()
-                output_j = output_j.float().fill_(cfg['threshold'])
+                output_j = output_j.float()
+                # output_j = output_j.float().fill_(cfg['threshold'])
                 # mask = max_p.ge(cfg['threshold'])
                 mask = p_1.ge(cfg['threshold'])
                 # max_p_1, mask = torch.max(p_1, dim=0)

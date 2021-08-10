@@ -119,6 +119,8 @@ def process_control():
     cfg['sigma'] = float(cfg['control']['sigma'])
     cfg['num_supervised_per_user'] = int(cfg['control']['num_supervised_per_user'])
     cfg['mf'] = {'hidden_size': 128}
+    cfg['gmf'] = {'hidden_size': 128}
+    cfg['mlp'] = {'hidden_size': [128, 64, 32, 16]}
     cfg['nmf'] = {'hidden_size': [128, 64, 32, 16]}
     cfg['pop'] = {}
     cfg['threshold'] = 0.95
