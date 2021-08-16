@@ -17,8 +17,8 @@ class ML100K(Dataset):
         self.split = split
         self.mode = mode
         self.transform = transform
-        if not check_exists(self.processed_folder):
-            self.process()
+        # if not check_exists(self.processed_folder):
+        self.process()
         self.data = load(os.path.join(self.processed_folder, self.mode, '{}.pt'.format(self.split)), mode='pickle')
         self.num_users, self.num_items = self.data.shape
 
@@ -45,12 +45,16 @@ class ML100K(Dataset):
     def process(self):
         if not check_exists(self.raw_folder):
             self.download()
-        train_set, test_set = self.make_explicit_data()
+        train_set, test_set, user_profile, item_attr = self.make_explicit_data()
         save(train_set, os.path.join(self.processed_folder, 'explicit', 'train.pt'), mode='pickle')
         save(test_set, os.path.join(self.processed_folder, 'explicit', 'test.pt'), mode='pickle')
+        save(user_profile, os.path.join(self.processed_folder, 'explicit', 'user_profile.pt'), mode='pickle')
+        save(item_attr, os.path.join(self.processed_folder, 'explicit', 'item_attr.pt'), mode='pickle')
         train_set, test_set = self.make_implicit_data()
         save(train_set, os.path.join(self.processed_folder, 'implicit', 'train.pt'), mode='pickle')
         save(test_set, os.path.join(self.processed_folder, 'implicit', 'test.pt'), mode='pickle')
+        save(user_profile, os.path.join(self.processed_folder, 'implicit', 'user_profile.pt'), mode='pickle')
+        save(item_attr, os.path.join(self.processed_folder, 'implicit', 'item_attr.pt'), mode='pickle')
         return
 
     def download(self):
@@ -67,6 +71,30 @@ class ML100K(Dataset):
         return fmt_str
 
     def make_explicit_data(self):
+        import pandas as pd
+        from sklearn import preprocessing
+        le = preprocessing.LabelEncoder()
+        user_profile = pd.read_csv(os.path.join(self.raw_folder, 'ml-100k', 'u.user'), delimiter='|',
+                                   names=['id', 'age', 'gender', 'occupation', 'zipcode'])
+        age = user_profile['age'].to_numpy().astype(np.int64)
+        age[age <= 17] = 0
+        age[(age >= 18) & (age <= 24)] = 1
+        age[(age >= 25) & (age <= 34)] = 2
+        age[(age >= 35) & (age <= 44)] = 3
+        age[(age >= 45) & (age <= 49)] = 4
+        age[(age >= 50) & (age <= 55)] = 5
+        age[age >= 56] = 6
+        age = np.eye(7)[age]
+        gender = le.fit_transform(user_profile['gender'].to_numpy()).astype(np.int64)
+        gender = np.eye(len(le.classes_))[gender]
+        occupation = le.fit_transform(user_profile['occupation'].to_numpy()).astype(np.int64)
+        occupation = np.eye(len(le.classes_))[occupation]
+        user_profile = np.hstack([age, gender, occupation])
+        item_attr = pd.read_csv(os.path.join(self.raw_folder, 'ml-100k', 'u.item'), delimiter='|', header=None)
+        genre = item_attr.iloc[:, 5:].to_numpy().astype(np.int64)
+        time = le.fit_transform(pd.to_datetime(item_attr.iloc[:, 2]).dt.year.to_numpy()).astype(np.int64)
+        time = np.eye(len(le.classes_))[time]
+        item_attr = np.hstack([genre, time])
         data = np.genfromtxt(os.path.join(self.raw_folder, 'ml-100k', 'u.data'), delimiter='\t')
         user, item, rating = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(np.float32)
         user_id, user_inv = np.unique(user, return_inverse=True)
@@ -83,9 +111,33 @@ class ML100K(Dataset):
         test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
         train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
-        return train_data, test_data
+        return train_data, test_data, user_profile, item_attr
 
     def make_implicit_data(self):
+        import pandas as pd
+        from sklearn import preprocessing
+        le = preprocessing.LabelEncoder()
+        user_profile = pd.read_csv(os.path.join(self.raw_folder, 'ml-100k', 'u.user'), delimiter='|',
+                                   names=['id', 'age', 'gender', 'occupation', 'zipcode'])
+        age = user_profile['age'].to_numpy().astype(np.int64)
+        age[age <= 17] = 0
+        age[(age >= 18) & (age <= 24)] = 1
+        age[(age >= 25) & (age <= 34)] = 2
+        age[(age >= 35) & (age <= 44)] = 3
+        age[(age >= 45) & (age <= 49)] = 4
+        age[(age >= 50) & (age <= 55)] = 5
+        age[age >= 56] = 6
+        age = np.eye(7)[age]
+        gender = le.fit_transform(user_profile['gender'].to_numpy()).astype(np.int64)
+        gender = np.eye(len(le.classes_))[gender]
+        occupation = le.fit_transform(user_profile['occupation'].to_numpy()).astype(np.int64)
+        occupation = np.eye(len(le.classes_))[occupation]
+        user_profile = np.hstack([age, gender, occupation])
+        item_attr = pd.read_csv(os.path.join(self.raw_folder, 'ml-100k', 'u.item'), delimiter='|', header=None)
+        genre = item_attr.iloc[:, 5:].to_numpy().astype(np.int64)
+        time = le.fit_transform(pd.to_datetime(item_attr.iloc[:, 2]).dt.year.to_numpy()).astype(np.int64)
+        time = np.eye(len(le.classes_))[time]
+        item_attr = np.hstack([genre, time])
         data = np.genfromtxt(os.path.join(self.raw_folder, 'ml-100k', 'u.data'), delimiter='\t')
         user, item, rating, ts = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(
             np.float32), data[:, 3].astype(np.float32)
@@ -124,7 +176,7 @@ class ML100K(Dataset):
         test_item = np.concatenate([withheld_item, random_item], axis=0)
         test_rating = np.concatenate([withheld_rating, random_rating], axis=0).astype(np.float32)
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
-        return train_data, test_data
+        return train_data, test_data, user_profile, item_attr
 
 
 class ML1M(Dataset):
