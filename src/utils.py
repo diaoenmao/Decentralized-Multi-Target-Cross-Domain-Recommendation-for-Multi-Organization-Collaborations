@@ -116,14 +116,14 @@ def process_control():
     cfg['data_name'] = cfg['control']['data_name']
     cfg['data_mode'] = cfg['control']['data_mode']
     cfg['model_name'] = cfg['control']['model_name']
-    cfg['sigma'] = float(cfg['control']['sigma'])
-    cfg['num_supervised_per_user'] = int(cfg['control']['num_supervised_per_user'])
+    cfg['info'] = cfg['control']['info'] if 'info' in cfg['control'] else 0
     cfg['mf'] = {'hidden_size': 128}
     cfg['gmf'] = {'hidden_size': 128}
     cfg['mlp'] = {'hidden_size': [128, 64, 32, 16]}
     cfg['nmf'] = {'hidden_size': [128, 64, 32, 16]}
-    cfg['pop'] = {}
-    cfg['threshold'] = 0.95
+    cfg['base'] = {}
+    cfg['num_negatives'] = 1
+    cfg['num_random'] = 100
     model_name = cfg['model_name']
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
     cfg[model_name]['optimizer_name'] = 'Adam'
@@ -233,6 +233,12 @@ def resume(model_tag, load_tag='checkpoint', verbose=True):
 
 
 def collate(input):
-    for k in input:
-        input[k] = torch.cat(input[k], 0)
+    if cfg['model_name'] in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
+        for k in input:
+            input[k] = torch.cat(input[k], 0)
+    elif 'ae' in cfg['model_name']:
+        for k in input:
+            input[k] = torch.stack(input[k], 0)
+    else:
+        raise ValueError('Not valid model name')
     return input

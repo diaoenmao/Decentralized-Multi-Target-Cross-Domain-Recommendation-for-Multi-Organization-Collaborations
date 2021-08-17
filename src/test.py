@@ -55,12 +55,12 @@ if __name__ == "__main__":
     batch_size = {'train': 10, 'test': 10}
     dataset = fetch_dataset(data_name)
     data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
-    for i, input in enumerate(data_loader['train']):
+    for i, input in enumerate(data_loader['test']):
         input = collate(input)
-        print(torch.unique(input['target']))
-        print(input['user'].size(), input['item'].size(), input['target'].size())
+        print(input['data_user'].size(), input['data_item'].size(), input['data_rating'].size(),
+              input['target_user'].size(), input['target_item'].size(), input['target_rating'].size(),
+              input['user_profile'].size(), input['item_attr'].size())
         exit()
-
 
 # if __name__ == "__main__":
 #     process_control()

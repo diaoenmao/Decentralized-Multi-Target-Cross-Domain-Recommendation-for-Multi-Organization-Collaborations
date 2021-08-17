@@ -16,10 +16,22 @@ def fetch_dataset(data_name):
     print('fetching data {}...'.format(data_name))
     root = './data/{}'.format(data_name)
     if data_name in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
-        dataset['train'] = eval('datasets.{}(root=root, split=\'train\', mode=cfg["data_mode"])'.format(data_name))
-        dataset['test'] = eval('datasets.{}(root=root, split=\'test\', mode=cfg["data_mode"])'.format(data_name))
-        if cfg['data_mode'] == 'implicit':
-            dataset['train'].transform = datasets.Compose([NegativeSample(dataset['train'].num_items, 1)])
+        dataset['train'] = eval('datasets.{}(root=root, split=\'train\', data_mode=cfg["data_mode"])'.format(data_name))
+        dataset['test'] = eval('datasets.{}(root=root, split=\'test\', data_mode=cfg["data_mode"])'.format(data_name))
+        if cfg['model_name'] in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
+            if cfg['data_mode'] == 'explicit':
+                dataset['train'].transform = datasets.Compose([PairInput()])
+                dataset['test'].transform = datasets.Compose([PairInput()])
+            else:
+                dataset['train'].transform = datasets.Compose(
+                    [NegativeSample(dataset['train'].item_attr, dataset['train'].num_items, cfg['num_negatives']),
+                     PairInput()])
+                dataset['test'].transform = datasets.Compose(
+                    [RandomSample(dataset['train'].num_items, cfg['num_random']), PairInput()])
+        elif cfg['model_name'] in ['vae', 'dae']:
+            pass
+        else:
+            raise ValueError('Not valid model name')
     else:
         raise ValueError('Not valid dataset name')
     print('data ready')
@@ -85,83 +97,71 @@ def separate_dataset(dataset, idx):
     return separated_dataset
 
 
-def make_labeled_dataset(dataset):
-    semi_dataset = copy.deepcopy(dataset)
-    if cfg['num_supervised_per_user'] > 0:
-        labeled_user = []
-        labeled_item = []
-        labeled_target = []
-        for i in range(len(semi_dataset)):
-            mask = torch.randperm(len(semi_dataset[i]['item']))
-            labeled_item_i = semi_dataset[i]['item'][mask][:cfg['num_supervised_per_user']].numpy().reshape(-1)
-            labeled_user_i = np.full(len(labeled_item_i), i)
-            labeled_target_i = semi_dataset[i]['target'][mask][:cfg['num_supervised_per_user']].numpy().reshape(-1)
-            labeled_user.append(labeled_user_i)
-            labeled_item.append(labeled_item_i)
-            labeled_target.append(labeled_target_i)
-        labeled_user = np.concatenate(labeled_user, axis=0)
-        labeled_item = np.concatenate(labeled_item, axis=0)
-        labeled_target = np.concatenate(labeled_target, axis=0)
-        semi_dataset.data = csr_matrix((labeled_target, (labeled_user, labeled_item)),
-                                       shape=(semi_dataset.num_users, semi_dataset.num_items))
-    return semi_dataset
-
-
 class NegativeSample(torch.nn.Module):
-    def __init__(self, num_items, num_negatives=1):
+    def __init__(self, item_attr, num_items, num_negatives):
         super().__init__()
+        self.item_attr = item_attr
         self.num_items = num_items
         self.num_negatives = num_negatives
 
     def forward(self, input):
-        positive_item = input['item']
-        positive_target = input['target']
-        if 'semi_user' in input:
-            postive_semi_item = input['semi_item']
-            positive_full_item = torch.cat([positive_item, postive_semi_item], dim=0)
-            negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_full_item.tolist())),
-                                         dtype=torch.long)
-            num_negative_random_item = self.num_negatives * len(positive_full_item)
-            negative_random_item = negative_item[torch.randperm(len(negative_item))][:num_negative_random_item]
-            negative_random_target = torch.zeros(len(negative_random_item))
-            input['user'] = torch.full((len(positive_item) + len(negative_random_item),), input['user'][0])
-            input['item'] = torch.cat([positive_item, negative_random_item])
-            input['target'] = torch.cat([positive_target, negative_random_target])
+        positive_item = input['data_item']
+        positive_rating = input['data_rating']
+        negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_item.tolist())),
+                                     dtype=torch.long)
+        num_negative_random_item = self.num_negatives * len(positive_item)
+        negative_item = negative_item[torch.randperm(len(negative_item))][:num_negative_random_item]
+        negative_rating = torch.zeros(negative_item.size(0))
+        input['data_item'] = torch.cat([positive_item, negative_item], dim=0)
+        input['data_rating'] = torch.cat([positive_rating, negative_rating], dim=0)
+        input['item_attr'] = torch.cat([input['item_attr'], torch.tensor(self.item_attr[negative_item])], dim=0)
+        return input
+
+
+class PairInput(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, input):
+        input['data_user'] = input['data_user'].repeat(input['data_item'].size(0))
+        input['target_user'] = input['target_user'].repeat(input['target_item'].size(0))
+        if cfg['info'] == 1:
+            input['user_profile'] = input['user_profile'].view(1, -1).repeat(input['data_item'].size(0), 1)
         else:
-            negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_item.tolist())),
-                                         dtype=torch.long)
-            num_negative_random_item = self.num_negatives * len(positive_item)
-            negative_item = negative_item[torch.randperm(len(negative_item))][:num_negative_random_item]
-            negative_target = torch.zeros(len(negative_item))
-            input['user'] = torch.full((len(positive_item) + len(negative_item),), input['user'][0])
-            input['item'] = torch.cat([positive_item, negative_item])
-            input['target'] = torch.cat([positive_target, negative_target])
+            del input['user_profile']
+            del input['item_attr']
         return input
 
-    def __repr__(self):
-        return self.__class__.__name__ + '(size={0})'.format(self.size)
 
+class RandomSample(torch.nn.Module):
+    def __init__(self, num_items, num_random):
+        super().__init__()
+        self.num_items = num_items
+        self.num_random = num_random
 
-class FullDataset(Dataset):
-    def __init__(self, dataset, semi_dataset):
-        self.data = dataset.data
-        self.semi_data = semi_dataset.data
-        self.transform = dataset.transform
-
-    def __getitem__(self, index):
-        data = self.data[index].tocoo()
-        semi_data = self.semi_data[index].tocoo()
-        user = np.array(index).reshape(-1)[data.row]
-        semi_user = np.array(index).reshape(-1)[semi_data.row]
-        input = {'user': torch.tensor(user, dtype=torch.long),
-                 'item': torch.tensor(data.col, dtype=torch.long),
-                 'target': torch.tensor(data.data),
-                 'semi_user': torch.tensor(semi_user, dtype=torch.long),
-                 'semi_item': torch.tensor(semi_data.col, dtype=torch.long),
-                 'semi_target': torch.tensor(semi_data.data, dtype=torch.long)}
-        if self.transform is not None:
-            input = self.transform(input)
+    def forward(self, input):
+        positive_item = input['data_item']
+        witheld_item = input['target_item']
+        witheld_rating = input['target_rating']
+        random_item = torch.rand(self.num_items)
+        nonzero_item = torch.cat([positive_item, witheld_item], dim=0)
+        random_item[nonzero_item] = np.inf
+        random_item = torch.sort(random_item, dim=-1)[1][:self.num_random]
+        random_rating = torch.zeros(self.num_random)
+        input['target_item'] = torch.cat([witheld_item, random_item], dim=0)
+        input['target_rating'] = torch.cat([witheld_rating, random_rating], dim=0)
         return input
 
-    def __len__(self):
-        return self.data.shape[0]
+# class TableInput(torch.nn.Module):
+#     def __init__(self):
+#         super().__init__()
+#
+#     def forward(self, input):
+#         input['data_user'] = input['data_user'].repeat(input['data_item'].size(0))
+#         input['target_user'] = input['target_user'].repeat(input['target_item'].size(0))
+#         if cfg['info'] == 1:
+#             input['user_profile'] = input['user_profile'].view(1, -1).repeat(input['data_item'].size(0), 1)
+#         else:
+#             del input['user_profile']
+#             del input['item_attr']
+#         return input

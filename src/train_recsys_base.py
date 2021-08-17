@@ -8,7 +8,7 @@ import time
 import torch
 import torch.backends.cudnn as cudnn
 from config import cfg, process_args
-from data import fetch_dataset, make_data_loader, make_labeled_dataset
+from data import fetch_dataset, make_data_loader
 from metrics import Metric
 from utils import save, to_device, process_control, process_dataset, make_optimizer, make_scheduler, resume, collate
 from logger import make_logger
@@ -39,7 +39,6 @@ def runExperiment():
     torch.manual_seed(cfg['seed'])
     torch.cuda.manual_seed(cfg['seed'])
     dataset = fetch_dataset(cfg['data_name'])
-    dataset['train'] = make_labeled_dataset(dataset['train'])
     process_dataset(dataset)
     data_loader = make_data_loader(dataset, cfg['model_name'])
     model = eval('models.{}().to(cfg["device"])'.format(cfg['model_name']))
@@ -70,7 +69,7 @@ def train(data_loader, model, metric, logger, epoch):
     start_time = time.time()
     for i, input in enumerate(data_loader):
         input = collate(input)
-        input_size = len(input['target'])
+        input_size = len(input['data_user'])
         input = to_device(input, cfg['device'])
         output = model(input)
         output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
@@ -97,7 +96,7 @@ def test(data_loader, model, metric, logger, epoch):
         model.train(False)
         for i, input in enumerate(data_loader):
             input = collate(input)
-            input_size = len(input['target'])
+            input_size = len(input['data_user'])
             input = to_device(input, cfg['device'])
             output = model(input)
             output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
