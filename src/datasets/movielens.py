@@ -31,11 +31,13 @@ class ML100K(Dataset):
         input = {'data_user': torch.tensor(np.array([index]), dtype=torch.long),
                  'data_item': torch.tensor(data.col, dtype=torch.long),
                  'data_rating': torch.tensor(data.data),
+                 'data_user_profile': torch.tensor(self.user_profile[index]),
+                 'data_item_attr': torch.tensor(self.item_attr[data.col]),
                  'target_user': torch.tensor(np.array([index]), dtype=torch.long),
                  'target_item': torch.tensor(target.col, dtype=torch.long),
                  'target_rating': torch.tensor(target.data),
-                 'user_profile': torch.tensor(self.user_profile[index]),
-                 'item_attr': torch.tensor(self.item_attr[data.col])}
+                 'target_user_profile': torch.tensor(self.user_profile[index]),
+                 'target_item_attr': torch.tensor(self.item_attr[target.col])}
         if self.transform is not None:
             input = self.transform(input)
         return input

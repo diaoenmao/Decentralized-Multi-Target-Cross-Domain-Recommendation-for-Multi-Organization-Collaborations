@@ -109,6 +109,11 @@ def recur(fn, input, *args):
 def process_dataset(dataset):
     cfg['data_size'] = {'train': len(dataset['train']), 'test': len(dataset['test'])}
     cfg['num_users'], cfg['num_items'] = dataset['train'].num_users, dataset['train'].num_items
+    if cfg['info'] == 1:
+        cfg['info_size'] = {'user_profile': dataset['train'].user_profile.shape[1],
+                            'item_attr': dataset['train'].item_attr.shape[1]}
+    else:
+        cfg['info_size'] = None
     return
 
 
@@ -116,7 +121,7 @@ def process_control():
     cfg['data_name'] = cfg['control']['data_name']
     cfg['data_mode'] = cfg['control']['data_mode']
     cfg['model_name'] = cfg['control']['model_name']
-    cfg['info'] = cfg['control']['info'] if 'info' in cfg['control'] else 0
+    cfg['info'] = float(cfg['control']['info']) if 'info' in cfg['control'] else 0
     cfg['mf'] = {'hidden_size': 128}
     cfg['gmf'] = {'hidden_size': 128}
     cfg['mlp'] = {'hidden_size': [128, 64, 32, 16]}
