@@ -55,11 +55,16 @@ if __name__ == "__main__":
     batch_size = {'train': 10, 'test': 10}
     dataset = fetch_dataset(data_name)
     data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
-    for i, input in enumerate(data_loader['test']):
+    for i, input in enumerate(data_loader['train']):
         input = collate(input)
-        print(input['data_user'].size(), input['data_item'].size(), input['data_rating'].size(),
-              input['target_user'].size(), input['target_item'].size(), input['target_rating'].size(),
-              input['user_profile'].size(), input['item_attr'].size())
+        # print(input['user'].size(), input['item'].size(), input['rating'].size(),
+        #       input['user_profile'].size(), input['item_attr'].size(),
+        #       input['target_user'].size(), input['target_item'].size(), input['target_rating'].size(),
+        #       input['target_user_profile'].size(), input['target_item_attr'].size())
+        print(input['user'].size(), input['rating'].size(),
+              input['user_profile'].size(), input['item_attr'].size(),
+              input['target_user'].size(), input['target_rating'].size(),
+              input['target_user_profile'].size(), input['target_item_attr'].size())
         exit()
 
 # if __name__ == "__main__":
@@ -103,3 +108,14 @@ if __name__ == "__main__":
 #     print('csr', csr)
 #     print(csr[:3].tocoo().row)
 #     print(csr[:3].tocoo().col)
+
+
+# if __name__ == "__main__":
+#     x = torch.full((5, 5), float('nan'))
+#     x[0, 2:4] = 1
+#     x[1, 1:3] = 2
+#     x[2, [0, 2]] = 3
+#     x[3, [1, 2]] = 4
+#     x[4, [2, 4]] = 5
+#     x = x[~x.isnan()].reshape(x.size(0), -1)
+#     print(x)

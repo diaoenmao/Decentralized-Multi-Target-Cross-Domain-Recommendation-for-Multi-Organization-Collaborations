@@ -69,7 +69,7 @@ def train(data_loader, model, metric, logger, epoch):
     start_time = time.time()
     for i, input in enumerate(data_loader):
         input = collate(input)
-        input_size = len(input['data_user'])
+        input_size = len(input['user'])
         input = to_device(input, cfg['device'])
         output = model(input)
         output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
@@ -96,7 +96,7 @@ def test(data_loader, model, metric, logger, epoch):
         model.train(False)
         for i, input in enumerate(data_loader):
             input = collate(input)
-            input_size = len(input['data_user'])
+            input_size = len(input['user'])
             input = to_device(input, cfg['device'])
             output = model(input)
             output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']

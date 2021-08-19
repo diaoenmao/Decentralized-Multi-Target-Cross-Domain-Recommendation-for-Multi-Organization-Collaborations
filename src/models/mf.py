@@ -29,11 +29,6 @@ class MF(nn.Module):
         nn.init.zeros_(self.user_bias.weight)
         nn.init.zeros_(self.item_bias.weight)
         nn.init.zeros_(self.bias)
-        if self.info_size is not None:
-            nn.init.normal_(self.user_profile.weight, 0.0, 0.01)
-            nn.init.zeros_(self.user_profile.bias)
-            nn.init.normal_(self.item_attr.weight, 0.0, 0.01)
-            nn.init.zeros_(self.item_attr.bias)
         return
 
     def user_embedding(self, user):
@@ -47,12 +42,12 @@ class MF(nn.Module):
     def forward(self, input):
         output = {}
         if self.training:
-            user = input['data_user']
-            item = input['data_item']
-            rating = input['data_rating']
+            user = input['user']
+            item = input['item']
+            rating = input['rating']
             if self.info_size is not None:
-                user_profile = input['data_user_profile']
-                item_attr = input['data_item_attr']
+                user_profile = input['user_profile']
+                item_attr = input['item_attr']
         else:
             user = input['target_user']
             item = input['target_item']
@@ -62,14 +57,14 @@ class MF(nn.Module):
                 item_attr = input['target_item_attr']
         user_embedding = self.user_embedding(user)
         item_embedding = self.item_embedding(item)
-        pred = (user_embedding * item_embedding).sum(dim=-1) + self.bias
+        pred = user_embedding * item_embedding
         if self.info_size is not None:
             user_profile = self.user_profile(user_profile)
-            user_profile = (user_embedding * user_profile).sum(dim=-1)
+            user_profile = user_embedding * user_profile
             item_attr = self.item_attr(item_attr)
-            item_attr = (item_embedding * item_attr).sum(dim=-1)
+            item_attr = item_embedding * item_attr
             pred = pred + user_profile + item_attr
-        output['target_rating'] = pred
+        output['target_rating'] = pred.sum(dim=-1) + self.bias
         output['loss'] = loss_fn(output['target_rating'], rating)
         return output
 

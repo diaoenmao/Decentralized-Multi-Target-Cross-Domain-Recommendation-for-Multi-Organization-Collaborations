@@ -31,8 +31,18 @@ def fetch_dataset(data_name):
                      PairInput()])
             else:
                 raise ValueError('Not valid data mode')
-        elif cfg['model_name'] in ['vae', 'dae']:
-            pass
+        elif cfg['model_name'] in ['ae']:
+            if cfg['data_mode'] == 'explicit':
+                dataset['train'].transform = datasets.Compose([FlatInput(dataset['train'].num_items, 0)])
+                dataset['test'].transform = datasets.Compose([FlatInput(dataset['train'].num_items, 0)])
+            elif cfg['data_mode'] == 'implicit':
+                dataset['train'].transform = datasets.Compose(
+                     [FlatInput(dataset['train'].num_items, cfg['num_negatives'])])
+                dataset['test'].transform = datasets.Compose(
+                    [RandomSample(dataset['train'].item_attr, dataset['train'].num_items, cfg['num_random']),
+                     FlatInput(dataset['train'].num_items, 0)])
+            else:
+                raise ValueError('Not valid data mode')
         else:
             raise ValueError('Not valid model name')
     else:
@@ -108,17 +118,17 @@ class NegativeSample(torch.nn.Module):
         self.num_negatives = num_negatives
 
     def forward(self, input):
-        positive_item = input['data_item']
-        positive_rating = input['data_rating']
+        positive_item = input['item']
+        positive_rating = input['rating']
         negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_item.tolist())),
                                      dtype=torch.long)
         num_negative_random_item = self.num_negatives * len(positive_item)
         negative_item = negative_item[torch.randperm(len(negative_item))][:num_negative_random_item]
         negative_rating = torch.zeros(negative_item.size(0))
-        input['data_item'] = torch.cat([positive_item, negative_item], dim=0)
-        input['data_rating'] = torch.cat([positive_rating, negative_rating], dim=0)
-        input['data_item_attr'] = torch.cat([input['data_item_attr'], torch.tensor(self.item_attr[negative_item])],
-                                            dim=0)
+        input['item'] = torch.cat([positive_item, negative_item], dim=0)
+        input['rating'] = torch.cat([positive_rating, negative_rating], dim=0)
+        input['item_attr'] = torch.cat([input['item_attr'], torch.tensor(self.item_attr[negative_item])],
+                                       dim=0)
         return input
 
 
@@ -127,17 +137,16 @@ class PairInput(torch.nn.Module):
         super().__init__()
 
     def forward(self, input):
-        input['data_user'] = input['data_user'].repeat(input['data_item'].size(0))
+        input['user'] = input['user'].repeat(input['item'].size(0))
         input['target_user'] = input['target_user'].repeat(input['target_item'].size(0))
         if cfg['info'] == 1:
-            input['data_user_profile'] = input['data_user_profile'].view(1, -1).repeat(
-                input['data_item'].size(0), 1)
+            input['user_profile'] = input['user_profile'].view(1, -1).repeat(input['item'].size(0), 1)
             input['target_user_profile'] = input['target_user_profile'].view(1, -1).repeat(
                 input['target_item'].size(0), 1)
         else:
-            del input['data_user_profile']
-            del input['data_item_attr']
+            del input['user_profile']
             del input['target_user_profile']
+            del input['item_attr']
             del input['target_item_attr']
         return input
 
@@ -150,7 +159,7 @@ class RandomSample(torch.nn.Module):
         self.num_random = num_random
 
     def forward(self, input):
-        positive_item = input['data_item']
+        positive_item = input['item']
         witheld_item = input['target_item']
         witheld_rating = input['target_rating']
         random_item = torch.rand(self.num_items)
@@ -164,16 +173,40 @@ class RandomSample(torch.nn.Module):
                                               dim=0)
         return input
 
-# class TableInput(torch.nn.Module):
-#     def __init__(self):
-#         super().__init__()
-#
-#     def forward(self, input):
-#         input['data_user'] = input['data_user'].repeat(input['data_item'].size(0))
-#         input['target_user'] = input['target_user'].repeat(input['target_item'].size(0))
-#         if cfg['info'] == 1:
-#             input['user_profile'] = input['user_profile'].view(1, -1).repeat(input['data_item'].size(0), 1)
-#         else:
-#             del input['user_profile']
-#             del input['item_attr']
-#         return input
+
+class FlatInput(torch.nn.Module):
+    def __init__(self, num_items, num_negatives):
+        super().__init__()
+        self.num_items = num_items
+        self.num_negatives = num_negatives
+
+    def forward(self, input):
+        rating = torch.zeros(self.num_items)
+        rating[input['item']] = input['rating']
+        input['rating'] = rating
+        if self.num_negatives == 0:
+            target_rating = torch.full((self.num_items,), float('nan'))
+            target_rating[input['target_item']] = input['target_rating']
+            input['target_rating'] = target_rating
+        else:
+            target_rating = torch.full((self.num_items,), float('nan'))
+            positive_item = input['item']
+            negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_item.tolist())),
+                                         dtype=torch.long)
+            num_negative_random_item = self.num_negatives * len(positive_item)
+            negative_item = negative_item[torch.randperm(len(negative_item))][:num_negative_random_item]
+            negative_rating = torch.zeros(negative_item.size(0))
+            target_rating[negative_item] = negative_rating
+            target_rating[input['target_item']] = input['target_rating']
+            input['target_rating'] = target_rating
+        del input['item']
+        del input['target_item']
+        if cfg['info'] == 1:
+            input['item_attr'] = input['item_attr'].sum(dim=0)
+            input['target_item_attr'] = input['target_item_attr'].sum(dim=0)
+        else:
+            del input['user_profile']
+            del input['target_user_profile']
+            del input['item_attr']
+            del input['target_item_attr']
+        return input

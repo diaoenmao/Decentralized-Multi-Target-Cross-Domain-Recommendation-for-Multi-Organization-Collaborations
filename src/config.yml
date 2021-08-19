@@ -3,7 +3,7 @@
 control:
   data_name: ML100K
   data_mode: implicit
-  model_name: mf
+  model_name: dae
   info: 1
 # experiment
 num_workers: 0

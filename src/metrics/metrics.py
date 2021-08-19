@@ -12,9 +12,8 @@ def RMSE(output, target):
 
 
 def HR(output, target, topk=10):
-    if cfg['model_name'] in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
-        output = output.reshape(-1, cfg['num_random'] + 1)
-        target = target.reshape(-1, cfg['num_random'] + 1)
+    output = output.reshape(-1, cfg['num_random'] + 1)
+    target = target.reshape(-1, cfg['num_random'] + 1)
     output_indices = torch.sort(output, dim=-1, descending=True)[1]
     topk_output = output_indices[:, :topk]
     topk_target = target[torch.arange(target.size(0)).view(-1, 1), topk_output]
@@ -23,9 +22,8 @@ def HR(output, target, topk=10):
 
 
 def NDCG(output, target, topk=10):
-    if cfg['model_name'] in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
-        output = output.reshape(-1, cfg['num_random'] + 1)
-        target = target.reshape(-1, cfg['num_random'] + 1)
+    output = output.reshape(-1, cfg['num_random'] + 1)
+    target = target.reshape(-1, cfg['num_random'] + 1)
     output_indices = torch.sort(output, dim=-1, descending=True)[1]
     topk_output = output_indices[:, :topk]
     topk_target = target[torch.arange(target.size(0)).view(-1, 1), topk_output]

@@ -18,18 +18,18 @@ class Base(nn.Module):
         output = {}
         if cfg['data_mode'] == 'explicit':
             if self.training:
-                base = input['data_rating'].new_zeros(self.num_items, input['data_rating'].size(0))
-                base.scatter_(0, input['data_item'].view(1, -1), input['data_rating'].view(1, -1))
+                base = input['rating'].new_zeros(self.num_items, input['rating'].size(0))
+                base.scatter_(0, input['item'].view(1, -1), input['rating'].view(1, -1))
                 self.base = self.base + base.sum(dim=-1)
                 self.count = self.count + (base > 0).float().sum(dim=-1)
             output['target_rating'] = self.base[input['target_item']] / (self.count[input['target_item']] + 1e-10)
             output['loss'] = loss_fn(output['target_rating'], input['target_rating'])
         elif cfg['data_mode'] == 'implicit':
             if self.training:
-                base = input['data_rating'].new_zeros(self.num_items, input['data_rating'].size(0))
-                base.scatter_(0, input['data_item'].view(1, -1), input['data_rating'].view(1, -1))
+                base = input['rating'].new_zeros(self.num_items, input['rating'].size(0))
+                base.scatter_(0, input['item'].view(1, -1), input['rating'].view(1, -1))
                 self.base = self.base + base.sum(dim=-1)
-                self.count = self.count + torch.unique(input['data_user']).size(0)
+                self.count = self.count + torch.unique(input['user']).size(0)
             output['target_rating'] = self.base[input['target_item']] / self.count[input['target_item']]
             output['loss'] = loss_fn(output['target_rating'], input['target_rating'])
         else:

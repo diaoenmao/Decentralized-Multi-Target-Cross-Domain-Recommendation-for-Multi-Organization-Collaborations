@@ -122,11 +122,12 @@ def process_control():
     cfg['data_mode'] = cfg['control']['data_mode']
     cfg['model_name'] = cfg['control']['model_name']
     cfg['info'] = float(cfg['control']['info']) if 'info' in cfg['control'] else 0
+    cfg['base'] = {}
     cfg['mf'] = {'hidden_size': 128}
     cfg['gmf'] = {'hidden_size': 128}
     cfg['mlp'] = {'hidden_size': [128, 64, 32, 16]}
     cfg['nmf'] = {'hidden_size': [128, 64, 32, 16]}
-    cfg['base'] = {}
+    cfg['ae'] = {'encoder_hidden_size': [64, 128], 'decoder_hidden_size': [128, 64]}
     cfg['num_negatives'] = 1
     cfg['num_random'] = 100
     model_name = cfg['model_name']
@@ -241,7 +242,7 @@ def collate(input):
     if cfg['model_name'] in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
         for k in input:
             input[k] = torch.cat(input[k], 0)
-    elif 'ae' in cfg['model_name']:
+    elif cfg['model_name'] in ['ae']:
         for k in input:
             input[k] = torch.stack(input[k], 0)
     else:

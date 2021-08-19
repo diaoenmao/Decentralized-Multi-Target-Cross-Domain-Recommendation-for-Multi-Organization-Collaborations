@@ -19,25 +19,41 @@ class ML100K(Dataset):
         self.transform = transform
         if not check_exists(self.processed_folder):
             self.process()
-        self.data, self.target = load(os.path.join(self.processed_folder, self.data_mode, '{}.pt'.format(self.split)),
-                                      mode='pickle')
+        self.train_data = load(os.path.join(self.processed_folder, self.data_mode, 'train.pt'), mode='pickle')
+        self.test_data = load(os.path.join(self.processed_folder, self.data_mode, 'test.pt'), mode='pickle')
         self.user_profile = load(os.path.join(self.processed_folder, 'user_profile.pt'), mode='pickle')
         self.item_attr = load(os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')
-        self.num_users, self.num_items = self.data.shape
+        self.num_users, self.num_items = self.train_data.shape
 
     def __getitem__(self, index):
-        data = self.data[index].tocoo()
-        target = self.target[index].tocoo()
-        input = {'data_user': torch.tensor(np.array([index]), dtype=torch.long),
-                 'data_item': torch.tensor(data.col, dtype=torch.long),
-                 'data_rating': torch.tensor(data.data),
-                 'data_user_profile': torch.tensor(self.user_profile[index]),
-                 'data_item_attr': torch.tensor(self.item_attr[data.col]),
-                 'target_user': torch.tensor(np.array([index]), dtype=torch.long),
-                 'target_item': torch.tensor(target.col, dtype=torch.long),
-                 'target_rating': torch.tensor(target.data),
-                 'target_user_profile': torch.tensor(self.user_profile[index]),
-                 'target_item_attr': torch.tensor(self.item_attr[target.col])}
+        if self.split == 'train':
+            train_data = self.train_data[index].tocoo()
+            input = {'user': torch.tensor(np.array([index]), dtype=torch.long),
+                     'item': torch.tensor(train_data.col, dtype=torch.long),
+                     'rating': torch.tensor(train_data.data),
+                     'user_profile': torch.tensor(self.user_profile[index]),
+                     'item_attr': torch.tensor(self.item_attr[train_data.col]),
+                     'target_user': torch.tensor(np.array([index]), dtype=torch.long),
+                     'target_item': torch.tensor(train_data.col, dtype=torch.long),
+                     'target_rating': torch.tensor(train_data.data),
+                     'target_user_profile': torch.tensor(self.user_profile[index]),
+                     'target_item_attr': torch.tensor(self.item_attr[train_data.col])}
+        elif self.split == 'test':
+            train_data = self.train_data[index].tocoo()
+            test_data = self.test_data[index].tocoo()
+            input = {'user': torch.tensor(np.array([index]), dtype=torch.long),
+                     'item': torch.tensor(train_data.col, dtype=torch.long),
+                     'rating': torch.tensor(train_data.data),
+                     'user_profile': torch.tensor(self.user_profile[index]),
+                     'item_attr': torch.tensor(self.item_attr[train_data.col]),
+                     'target_user': torch.tensor(np.array([index]), dtype=torch.long),
+                     'target_item': torch.tensor(test_data.col, dtype=torch.long),
+                     'target_rating': torch.tensor(test_data.data),
+                     'target_user_profile': torch.tensor(self.user_profile[index]),
+                     'target_item_attr': torch.tensor(self.item_attr[test_data.col])}
+
+        else:
+            raise ValueError('Not valid load mode')
         if self.transform is not None:
             input = self.transform(input)
         return input
@@ -96,10 +112,8 @@ class ML100K(Dataset):
         train_user, train_item, train_rating = user[train_idx], item[train_idx], rating[train_idx]
         test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
         train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
-        train_target = train_data
-        test_data = train_data
-        test_target = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
-        return (train_data, train_target), (test_data, test_target)
+        test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
+        return train_data, test_data
 
     def make_implicit_data(self):
         data = np.genfromtxt(os.path.join(self.raw_folder, 'ml-100k', 'u.data'), delimiter='\t')
@@ -121,13 +135,11 @@ class ML100K(Dataset):
         train_ts = csr_matrix((train_ts, (train_user, train_item)), shape=(M, N))
         test_user = np.arange(M)
         test_item = np.asarray(train_ts.argmax(axis=1)).reshape(-1)
-        test_rating = np.ones(M)
+        test_rating = np.ones(M, dtype=np.float32)
         train_data[test_user, test_item] = 0
         train_data.eliminate_zeros()
-        train_target = train_data
-        test_data = train_data
-        test_target = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
-        return (train_data, train_target), (test_data, test_target)
+        test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
+        return train_data, test_data
 
     def make_info(self):
         import pandas as pd
@@ -151,9 +163,7 @@ class ML100K(Dataset):
         user_profile = np.hstack([age, gender, occupation])
         item_attr = pd.read_csv(os.path.join(self.raw_folder, 'ml-100k', 'u.item'), delimiter='|', header=None)
         genre = item_attr.iloc[:, 5:].to_numpy().astype(np.float32)
-        time = le.fit_transform(pd.to_datetime(item_attr.iloc[:, 2]).dt.year.to_numpy()).astype(np.int64)
-        time = np.eye(len(le.classes_), dtype=np.float32)[time]
-        item_attr = np.hstack([genre, time])
+        item_attr = genre
         return user_profile, item_attr
 
 
