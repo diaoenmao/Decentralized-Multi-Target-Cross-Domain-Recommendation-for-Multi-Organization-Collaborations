@@ -125,15 +125,18 @@ def process_control():
     cfg['base'] = {}
     cfg['mf'] = {'hidden_size': 128}
     cfg['gmf'] = {'hidden_size': 128}
-    cfg['mlp'] = {'hidden_size': [128, 64, 32, 16]}
-    cfg['nmf'] = {'hidden_size': [128, 64, 32, 16]}
-    cfg['ae'] = {'encoder_hidden_size': [64, 128], 'decoder_hidden_size': [128, 64]}
-    cfg['num_negatives'] = 1
+    cfg['mlp'] = {'hidden_size': [128, 64]}
+    cfg['nmf'] = {'hidden_size': [128, 64]}
+    cfg['ae'] = {'encoder_hidden_size': [128, 256], 'decoder_hidden_size': [256, 128]}
+    cfg['num_negatives'] = 4
     cfg['num_random'] = 100
     model_name = cfg['model_name']
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
     cfg[model_name]['optimizer_name'] = 'Adam'
-    cfg[model_name]['lr'] = 1e-3
+    if cfg['data_mode'] == 'explicit':
+        cfg[model_name]['lr'] = 1e-4
+    elif cfg['data_mode'] == 'implicit':
+        cfg[model_name]['lr'] = 1e-3
     cfg[model_name]['momentum'] = 0.9
     cfg[model_name]['nesterov'] = True
     cfg[model_name]['betas'] = (0.9, 0.999)

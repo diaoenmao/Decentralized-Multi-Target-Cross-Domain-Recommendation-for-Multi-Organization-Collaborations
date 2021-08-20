@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 from utils import check_exists, makedir_exist_ok, save, load
 from .utils import download_url, extract_file
 from scipy.sparse import csr_matrix
-
+from config import cfg
 
 class ML100K(Dataset):
     data_name = 'ML100K'
@@ -132,12 +132,27 @@ class ML100K(Dataset):
         train_rating = rating
         train_ts = ts
         train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
+        random_user = np.arange(M).repeat(cfg['num_random'])
+        random_item = []
+        step_size = 50000
+        for i in range(0, M, step_size):
+            valid_step_size = min(i + step_size, M) - i
+            nonzero_user, nonzero_item = train_data[i:i + valid_step_size].nonzero()
+            random_item_i = np.random.rand(valid_step_size, N)
+            random_item_i[nonzero_user, nonzero_item] = np.inf
+            random_item_i = random_item_i.argsort(axis=1)[:, :cfg['num_random']].reshape(-1)
+            random_item.append(random_item_i)
+        random_item = np.concatenate(random_item, axis=0)
+        random_rating = np.zeros(random_user.shape[0], np.float32)
         train_ts = csr_matrix((train_ts, (train_user, train_item)), shape=(M, N))
-        test_user = np.arange(M)
-        test_item = np.asarray(train_ts.argmax(axis=1)).reshape(-1)
-        test_rating = np.ones(M, dtype=np.float32)
-        train_data[test_user, test_item] = 0
+        withheld_user = np.arange(M)
+        withheld_item = np.asarray(train_ts.argmax(axis=1)).reshape(-1)
+        withheld_rating = np.ones(M, dtype=np.float32)
+        train_data[withheld_user, withheld_item] = 0
         train_data.eliminate_zeros()
+        test_user = np.concatenate([withheld_user, random_user], axis=0)
+        test_item = np.concatenate([withheld_item, random_item], axis=0)
+        test_rating = np.concatenate([withheld_rating, random_rating], axis=0)
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
 

@@ -33,14 +33,9 @@ class Encoder(nn.Module):
     def reset_parameters(self):
         for m in self.blocks:
             if isinstance(m, nn.Linear):
-                if cfg['data_mode'] == 'explicit':
-                    nn.init.xavier_uniform_(m.weight)
-                    if m.bias is not None:
-                        m.bias.data.zero_()
-                elif cfg['data_mode'] == 'implicit':
-                    nn.init.xavier_uniform_(m.weight)
-                    if m.bias is not None:
-                        m.bias.data.zero_()
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    m.bias.data.zero_()
         return
 
     def forward(self, x, user_profile=None, item_attr=None):
@@ -70,14 +65,9 @@ class Decoder(nn.Module):
     def reset_parameters(self):
         for m in self.blocks:
             if isinstance(m, nn.Linear):
-                if cfg['data_mode'] == 'explicit':
-                    nn.init.xavier_uniform_(m.weight)
-                    if m.bias is not None:
-                        m.bias.data.zero_()
-                elif cfg['data_mode'] == 'implicit':
-                    nn.init.xavier_uniform_(m.weight)
-                    if m.bias is not None:
-                        m.bias.data.zero_()
+                nn.init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    m.bias.data.zero_()
         return
 
     def forward(self, x):

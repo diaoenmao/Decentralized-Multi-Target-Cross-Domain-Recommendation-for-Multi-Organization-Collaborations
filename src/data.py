@@ -27,8 +27,7 @@ def fetch_dataset(data_name):
                     [NegativeSample(dataset['train'].item_attr, dataset['train'].num_items, cfg['num_negatives']),
                      PairInput()])
                 dataset['test'].transform = datasets.Compose(
-                    [RandomSample(dataset['train'].item_attr, dataset['train'].num_items, cfg['num_random']),
-                     PairInput()])
+                    [PairInput()])
             else:
                 raise ValueError('Not valid data mode')
         elif cfg['model_name'] in ['ae']:
@@ -37,10 +36,9 @@ def fetch_dataset(data_name):
                 dataset['test'].transform = datasets.Compose([FlatInput(dataset['train'].num_items, 0)])
             elif cfg['data_mode'] == 'implicit':
                 dataset['train'].transform = datasets.Compose(
-                     [FlatInput(dataset['train'].num_items, cfg['num_negatives'])])
+                    [FlatInput(dataset['train'].num_items, cfg['num_negatives'])])
                 dataset['test'].transform = datasets.Compose(
-                    [RandomSample(dataset['train'].item_attr, dataset['train'].num_items, cfg['num_random']),
-                     FlatInput(dataset['train'].num_items, 0)])
+                    [FlatInput(dataset['train'].num_items, 0)])
             else:
                 raise ValueError('Not valid data mode')
         else:
@@ -151,29 +149,6 @@ class PairInput(torch.nn.Module):
         return input
 
 
-class RandomSample(torch.nn.Module):
-    def __init__(self, item_attr, num_items, num_random):
-        super().__init__()
-        self.item_attr = item_attr
-        self.num_items = num_items
-        self.num_random = num_random
-
-    def forward(self, input):
-        positive_item = input['item']
-        witheld_item = input['target_item']
-        witheld_rating = input['target_rating']
-        random_item = torch.rand(self.num_items)
-        nonzero_item = torch.cat([positive_item, witheld_item], dim=0)
-        random_item[nonzero_item] = np.inf
-        random_item = torch.sort(random_item, dim=-1)[1][:self.num_random]
-        random_rating = torch.zeros(len(random_item))
-        input['target_item'] = torch.cat([witheld_item, random_item], dim=0)
-        input['target_rating'] = torch.cat([witheld_rating, random_rating], dim=0)
-        input['target_item_attr'] = torch.cat([input['target_item_attr'], torch.tensor(self.item_attr[random_item])],
-                                              dim=0)
-        return input
-
-
 class FlatInput(torch.nn.Module):
     def __init__(self, num_items, num_negatives):
         super().__init__()
@@ -199,6 +174,9 @@ class FlatInput(torch.nn.Module):
             target_rating[negative_item] = negative_rating
             target_rating[input['target_item']] = input['target_rating']
             input['target_rating'] = target_rating
+            # target_rating = torch.zeros(self.num_items)
+            # target_rating[input['target_item']] = input['target_rating']
+            # input['target_rating'] = target_rating
         del input['item']
         del input['target_item']
         if cfg['info'] == 1:
