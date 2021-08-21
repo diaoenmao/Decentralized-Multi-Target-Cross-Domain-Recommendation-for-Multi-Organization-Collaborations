@@ -138,12 +138,14 @@ class PairInput(torch.nn.Module):
         input['user'] = input['user'].repeat(input['item'].size(0))
         input['target_user'] = input['target_user'].repeat(input['target_item'].size(0))
         if cfg['info'] == 1:
-            input['user_profile'] = input['user_profile'].view(1, -1).repeat(input['item'].size(0), 1)
-            input['target_user_profile'] = input['target_user_profile'].view(1, -1).repeat(
-                input['target_item'].size(0), 1)
+            if 'user_profile' in input:
+                input['user_profile'] = input['user_profile'].view(1, -1).repeat(input['item'].size(0), 1)
+                input['target_user_profile'] = input['target_user_profile'].view(1, -1).repeat(
+                    input['target_item'].size(0), 1)
         else:
-            del input['user_profile']
-            del input['target_user_profile']
+            if 'user_profile' in input:
+                del input['user_profile']
+                del input['target_user_profile']
             del input['item_attr']
             del input['target_item_attr']
         return input
@@ -174,17 +176,15 @@ class FlatInput(torch.nn.Module):
             target_rating[negative_item] = negative_rating
             target_rating[input['target_item']] = input['target_rating']
             input['target_rating'] = target_rating
-            # target_rating = torch.zeros(self.num_items)
-            # target_rating[input['target_item']] = input['target_rating']
-            # input['target_rating'] = target_rating
         del input['item']
         del input['target_item']
         if cfg['info'] == 1:
             input['item_attr'] = input['item_attr'].sum(dim=0)
             input['target_item_attr'] = input['target_item_attr'].sum(dim=0)
         else:
-            del input['user_profile']
-            del input['target_user_profile']
+            if 'user_profile' in input:
+                del input['user_profile']
+                del input['target_user_profile']
             del input['item_attr']
             del input['target_item_attr']
         return input

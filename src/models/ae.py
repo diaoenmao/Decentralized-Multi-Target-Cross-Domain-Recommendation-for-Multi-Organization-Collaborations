@@ -21,8 +21,12 @@ class Encoder(nn.Module):
                 blocks.append(nn.SELU())
             self.blocks = nn.Sequential(*blocks)
         else:
-            blocks = [nn.Linear(num_items + info_size['user_profile'] + info_size['item_attr'], hidden_size[0]),
-                      nn.SELU()]
+            if cfg['data_name'] in ['ML100K', 'ML1M']:
+                blocks = [nn.Linear(num_items + info_size['user_profile'] + info_size['item_attr'], hidden_size[0]),
+                          nn.SELU()]
+            else:
+                blocks = [nn.Linear(num_items + info_size['item_attr'], hidden_size[0]),
+                          nn.SELU()]
             for i in range(len(hidden_size) - 1):
                 blocks.append(nn.Linear(hidden_size[i], hidden_size[i + 1]))
                 blocks.append(nn.SELU())
@@ -38,12 +42,8 @@ class Encoder(nn.Module):
                     m.bias.data.zero_()
         return
 
-    def forward(self, x, user_profile=None, item_attr=None):
-        if self.info_size is None:
-            x = self.blocks(x)
-        else:
-            x = torch.cat([x, user_profile, item_attr], dim=-1)
-            x = self.blocks(x)
+    def forward(self, x):
+        x = self.blocks(x)
         x = self.dropout(x)
         return x
 
@@ -88,9 +88,15 @@ class AE(nn.Module):
         target_rating = input['target_rating']
         target_mask = ~target_rating.isnan()
         if self.info_size is not None:
-            user_profile = input['user_profile']
-            item_attr = input['item_attr']
-            encoded = self.encoder(rating, user_profile, item_attr)
+            if cfg['data_name'] in ['ML100K', 'ML1M']:
+                user_profile = input['user_profile']
+                item_attr = input['item_attr']
+                x = torch.cat([rating, user_profile, item_attr], dim=-1)
+                encoded = self.encoder(x)
+            else:
+                item_attr = input['item_attr']
+                x = torch.cat([rating, item_attr], dim=-1)
+                encoded = self.encoder(x)
         else:
             x = rating
             encoded = self.encoder(x)

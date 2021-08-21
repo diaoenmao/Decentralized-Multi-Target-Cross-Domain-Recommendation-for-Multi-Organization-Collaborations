@@ -110,8 +110,10 @@ def process_dataset(dataset):
     cfg['data_size'] = {'train': len(dataset['train']), 'test': len(dataset['test'])}
     cfg['num_users'], cfg['num_items'] = dataset['train'].num_users, dataset['train'].num_items
     if cfg['info'] == 1:
-        cfg['info_size'] = {'user_profile': dataset['train'].user_profile.shape[1],
-                            'item_attr': dataset['train'].item_attr.shape[1]}
+        cfg['info_size'] = {}
+        if cfg['data_name'] in ['ML100K', 'ML1M']:
+            cfg['info_size']['user_profile'] = dataset['train'].user_profile.shape[1]
+        cfg['info_size']['item_attr'] = dataset['train'].item_attr.shape[1]
     else:
         cfg['info_size'] = None
     return
@@ -143,7 +145,7 @@ def process_control():
     cfg[model_name]['weight_decay'] = 0
     cfg[model_name]['scheduler_name'] = 'None'
     cfg[model_name]['num_epochs'] = 200
-    cfg[model_name]['batch_size'] = {'train': 100, 'test': 200}
+    cfg[model_name]['batch_size'] = {'train': 128, 'test': 256}
     return
 
 

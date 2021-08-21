@@ -19,7 +19,8 @@ class MF(nn.Module):
         self.item_bias = nn.Embedding(num_items, 1)
         self.bias = nn.Parameter(torch.randn(1))
         if self.info_size is not None:
-            self.user_profile = nn.Linear(info_size['user_profile'], hidden_size)
+            if cfg['data_name'] in ['ML100K', 'ML1M']:
+                self.user_profile = nn.Linear(info_size['user_profile'], hidden_size)
             self.item_attr = nn.Linear(info_size['item_attr'], hidden_size)
         self.reset_parameters()
 
@@ -46,24 +47,31 @@ class MF(nn.Module):
             item = input['item']
             rating = input['rating']
             if self.info_size is not None:
-                user_profile = input['user_profile']
+                if cfg['data_name'] in ['ML100K', 'ML1M']:
+                    user_profile = input['user_profile']
                 item_attr = input['item_attr']
         else:
             user = input['target_user']
             item = input['target_item']
             rating = input['target_rating']
             if self.info_size is not None:
-                user_profile = input['target_user_profile']
+                if cfg['data_name'] in ['ML100K', 'ML1M']:
+                    user_profile = input['target_user_profile']
                 item_attr = input['target_item_attr']
         user_embedding = self.user_embedding(user)
         item_embedding = self.item_embedding(item)
         pred = user_embedding * item_embedding
         if self.info_size is not None:
-            user_profile = self.user_profile(user_profile)
-            user_profile = user_embedding * user_profile
-            item_attr = self.item_attr(item_attr)
-            item_attr = item_embedding * item_attr
-            pred = pred + user_profile + item_attr
+            if cfg['data_name'] in ['ML100K', 'ML1M']:
+                user_profile = self.user_profile(user_profile)
+                user_profile = user_embedding * user_profile
+                item_attr = self.item_attr(item_attr)
+                item_attr = item_embedding * item_attr
+                pred = pred + user_profile + item_attr
+            else:
+                item_attr = self.item_attr(item_attr)
+                item_attr = item_embedding * item_attr
+                pred = pred + item_attr
         output['target_rating'] = pred.sum(dim=-1) + self.bias
         output['loss'] = loss_fn(output['target_rating'], rating)
         return output
