@@ -11,27 +11,44 @@ from scipy.sparse import csr_matrix
 class NFP(Dataset):
     data_name = 'NFP'
 
-    def __init__(self, root, split, mode, transform=None):
+    def __init__(self, root, split, data_mode, transform=None):
         self.root = os.path.expanduser(root)
         self.split = split
-        self.mode = mode
+        self.data_mode = data_mode
         self.transform = transform
         if not check_exists(self.processed_folder):
             self.process()
-        self.data = load(os.path.join(self.processed_folder, self.mode, '{}.pt'.format(self.split)), mode='pickle')
-        self.num_users, self.num_items = self.data.shape
+        self.train_data = load(os.path.join(self.processed_folder, self.data_mode, 'train.pt'), mode='pickle')
+        self.test_data = load(os.path.join(self.processed_folder, self.data_mode, 'test.pt'), mode='pickle')
+        self.num_users, self.num_items = self.train_data.shape
 
     def __getitem__(self, index):
-        data = self.data[index].tocoo()
-        user = np.array(index).reshape(-1)[data.row]
-        input = {'user': torch.tensor(user, dtype=torch.long), 'item': torch.tensor(data.col, dtype=torch.long),
-                 'target': torch.tensor(data.data)}
+        if self.split == 'train':
+            train_data = self.train_data[index].tocoo()
+            input = {'user': torch.tensor(np.array([index]), dtype=torch.long),
+                     'item': torch.tensor(train_data.col, dtype=torch.long),
+                     'rating': torch.tensor(train_data.data),
+                     'target_user': torch.tensor(np.array([index]), dtype=torch.long),
+                     'target_item': torch.tensor(train_data.col, dtype=torch.long),
+                     'target_rating': torch.tensor(train_data.data)}
+        elif self.split == 'test':
+            train_data = self.train_data[index].tocoo()
+            test_data = self.test_data[index].tocoo()
+            input = {'user': torch.tensor(np.array([index]), dtype=torch.long),
+                     'item': torch.tensor(train_data.col, dtype=torch.long),
+                     'rating': torch.tensor(train_data.data),
+                     'target_user': torch.tensor(np.array([index]), dtype=torch.long),
+                     'target_item': torch.tensor(test_data.col, dtype=torch.long),
+                     'target_rating': torch.tensor(test_data.data)}
+
+        else:
+            raise ValueError('Not valid load mode')
         if self.transform is not None:
             input = self.transform(input)
         return input
 
     def __len__(self):
-        return self.data.shape[0]
+        return self.num_users
 
     @property
     def processed_folder(self):
@@ -133,15 +150,15 @@ class NFP(Dataset):
             random_item_i = random_item_i.argsort(axis=1)[:, :100].reshape(-1)
             random_item.append(random_item_i)
         random_item = np.concatenate(random_item, axis=0)
-        random_rating = np.zeros(random_user.shape[0])
+        random_rating = np.zeros(random_user.shape[0], dtype=np.float32)
         train_ts = csr_matrix((train_ts, (train_user, train_item)), shape=(M, N))
         withheld_user = np.arange(M)
         withheld_item = np.asarray(train_ts.argmax(axis=1)).reshape(-1)
-        withheld_rating = np.ones(M)
+        withheld_rating = np.ones(M, dtype=np.float32)
         train_data[withheld_user, withheld_item] = 0
         train_data.eliminate_zeros()
         test_user = np.concatenate([withheld_user, random_user], axis=0)
         test_item = np.concatenate([withheld_item, random_item], axis=0)
-        test_rating = np.concatenate([withheld_rating, random_rating], axis=0).astype(np.float32)
+        test_rating = np.concatenate([withheld_rating, random_rating], axis=0)
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data

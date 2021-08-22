@@ -146,8 +146,9 @@ class PairInput(torch.nn.Module):
             if 'user_profile' in input:
                 del input['user_profile']
                 del input['target_user_profile']
-            del input['item_attr']
-            del input['target_item_attr']
+            if 'item_attr' in input:
+                del input['item_attr']
+                del input['target_item_attr']
         return input
 
 

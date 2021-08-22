@@ -505,7 +505,6 @@ class ML10M(Dataset):
 
     def make_info(self):
         import pandas as pd
-        from sklearn import preprocessing
         data = np.genfromtxt(os.path.join(self.raw_folder, 'ml-10M100K', 'ratings.dat'), delimiter='::')
         user, item, rating, ts = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(
             np.float32), data[:, 3].astype(np.float32)
@@ -536,7 +535,6 @@ class ML20M(Dataset):
             self.process()
         self.train_data = load(os.path.join(self.processed_folder, self.data_mode, 'train.pt'), mode='pickle')
         self.test_data = load(os.path.join(self.processed_folder, self.data_mode, 'test.pt'), mode='pickle')
-        self.user_profile = load(os.path.join(self.processed_folder, 'user_profile.pt'), mode='pickle')
         self.item_attr = load(os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')
         self.num_users, self.num_items = self.train_data.shape
 
@@ -546,12 +544,10 @@ class ML20M(Dataset):
             input = {'user': torch.tensor(np.array([index]), dtype=torch.long),
                      'item': torch.tensor(train_data.col, dtype=torch.long),
                      'rating': torch.tensor(train_data.data),
-                     'user_profile': torch.tensor(self.user_profile[index]),
                      'item_attr': torch.tensor(self.item_attr[train_data.col]),
                      'target_user': torch.tensor(np.array([index]), dtype=torch.long),
                      'target_item': torch.tensor(train_data.col, dtype=torch.long),
                      'target_rating': torch.tensor(train_data.data),
-                     'target_user_profile': torch.tensor(self.user_profile[index]),
                      'target_item_attr': torch.tensor(self.item_attr[train_data.col])}
         elif self.split == 'test':
             train_data = self.train_data[index].tocoo()
@@ -559,12 +555,10 @@ class ML20M(Dataset):
             input = {'user': torch.tensor(np.array([index]), dtype=torch.long),
                      'item': torch.tensor(train_data.col, dtype=torch.long),
                      'rating': torch.tensor(train_data.data),
-                     'user_profile': torch.tensor(self.user_profile[index]),
                      'item_attr': torch.tensor(self.item_attr[train_data.col]),
                      'target_user': torch.tensor(np.array([index]), dtype=torch.long),
                      'target_item': torch.tensor(test_data.col, dtype=torch.long),
                      'target_rating': torch.tensor(test_data.data),
-                     'target_user_profile': torch.tensor(self.user_profile[index]),
                      'target_item_attr': torch.tensor(self.item_attr[test_data.col])}
 
         else:
@@ -593,8 +587,7 @@ class ML20M(Dataset):
         train_set, test_set = self.make_implicit_data()
         save(train_set, os.path.join(self.processed_folder, 'implicit', 'train.pt'), mode='pickle')
         save(test_set, os.path.join(self.processed_folder, 'implicit', 'test.pt'), mode='pickle')
-        user_profile, item_attr = self.make_info()
-        save(user_profile, os.path.join(self.processed_folder, 'user_profile.pt'), mode='pickle')
+        item_attr = self.make_info()
         save(item_attr, os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')
         return
 
@@ -628,18 +621,6 @@ class ML20M(Dataset):
         test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
         train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
-        le = preprocessing.LabelEncoder()
-        item_attr = pd.read_csv(os.path.join(self.raw_folder, 'ml-10M100K', 'movies.dat'), delimiter='::',
-                                names=['id', 'name', 'genre'], engine='python')
-        item_attr = item_attr[item_attr['id'].isin(list(item_id_map.keys()))]
-        genre_list = ['Action', 'Adventure', 'Animation', "Children's", 'Comedy', 'Crime', 'Documentary', 'Drama',
-                      'Fantasy', 'Film-Noir', 'Horror', 'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War',
-                      'Western']
-        genre_map = lambda x: [1 if g in x else 0 for g in genre_list]
-        genre = np.array(item_attr['genre'].apply(genre_map).to_list(), dtype=np.int64)
-        time = le.fit_transform(item_attr['name'].str[-5:-1].to_numpy()).astype(np.int64)
-        time = np.eye(len(le.classes_))[time]
-        item_attr = np.hstack([genre, time])
         return train_data, test_data
 
     def make_implicit_data(self):
@@ -670,28 +651,45 @@ class ML20M(Dataset):
             random_item_i = random_item_i.argsort(axis=1)[:, :100].reshape(-1)
             random_item.append(random_item_i)
         random_item = np.concatenate(random_item, axis=0)
-        random_rating = np.zeros(random_user.shape[0])
+        random_rating = np.zeros(random_user.shape[0], dtype=np.float32)
         train_ts = csr_matrix((train_ts, (train_user, train_item)), shape=(M, N))
         withheld_user = np.arange(M)
         withheld_item = np.asarray(train_ts.argmax(axis=1)).reshape(-1)
-        withheld_rating = np.ones(M)
+        withheld_rating = np.ones(M, dtype=np.float32)
         train_data[withheld_user, withheld_item] = 0
         train_data.eliminate_zeros()
         test_user = np.concatenate([withheld_user, random_user], axis=0)
         test_item = np.concatenate([withheld_item, random_item], axis=0)
-        test_rating = np.concatenate([withheld_rating, random_rating], axis=0).astype(np.float32)
+        test_rating = np.concatenate([withheld_rating, random_rating], axis=0)
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
 
     def make_info(self):
         import pandas as pd
-        item_attr = pd.read_csv(os.path.join(self.raw_folder, 'ml-10M100K', 'movies.dat'), delimiter='::',
-                                names=['id', 'name', 'genre'], engine='python')
-        item_attr = item_attr[item_attr['id'].isin(list(item_id_map.keys()))]
+        data = np.genfromtxt(os.path.join(self.raw_folder, 'ml-20m', 'ratings.csv'), delimiter=',', skip_header=1)
+        user, item, rating, ts = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(
+            np.float32), data[:, 3].astype(np.float32)
+        item_id, item_inv = np.unique(item, return_inverse=True)
+        item_id_map = {item_id[i]: i for i in range(len(item_id))}
+        item_attr = pd.read_csv(os.path.join(self.raw_folder, 'ml-20m', 'movies.csv'), delimiter=',')
+        item_attr = item_attr[item_attr['movieId'].isin(list(item_id_map.keys()))]
         genre_list = ['Action', 'Adventure', 'Animation', "Children's", 'Comedy', 'Crime', 'Documentary', 'Drama',
                       'Fantasy', 'Film-Noir', 'Horror', 'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War',
                       'Western']
         genre_map = lambda x: [1 if g in x else 0 for g in genre_list]
-        genre = np.array(item_attr['genre'].apply(genre_map).to_list(), dtype=np.int64)
-        item_attr = genre
+        genre = np.array(item_attr['genres'].apply(genre_map).to_list(), dtype=np.float32)
+        genome_tags = pd.read_csv(os.path.join(self.raw_folder, 'ml-20m', 'genome-tags.csv'), delimiter=',',
+                                  dtype={'tagId': int, 'tag': str})
+        item_attr = pd.read_csv(os.path.join(self.raw_folder, 'ml-20m', 'genome-scores.csv'), delimiter=',',
+                                dtype={'movieId': int, 'tagId': int, 'relevance': float})
+        item = item_attr['movieId'].astype(np.int64)
+        valid_mask = np.in1d(item, item_id)
+        item_attr = item_attr[valid_mask]
+        relevance = np.zeros((len(item_id), len(genome_tags['tagId'])), dtype=np.float32)
+        item = item_attr['movieId'].astype(np.int64)
+        item_id, item_inv = np.unique(item, return_inverse=True)
+        item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
+        tag_id = item_attr['tagId'].to_numpy().astype(np.int64)
+        relevance[item, tag_id - 1] = item_attr['relevance'].to_numpy()
+        item_attr = np.hstack([genre, relevance])
         return item_attr
