@@ -135,7 +135,7 @@ class ML100K(Dataset):
         train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
         random_user = np.arange(M).repeat(cfg['num_random'])
         random_item = []
-        step_size = 50000
+        step_size = 10000
         for i in range(0, M, step_size):
             valid_step_size = min(i + step_size, M) - i
             nonzero_user, nonzero_item = train_data[i:i + valid_step_size].nonzero()
@@ -309,7 +309,7 @@ class ML1M(Dataset):
         train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
         random_user = np.arange(M).repeat(cfg['num_random'])
         random_item = []
-        step_size = 50000
+        step_size = 10000
         for i in range(0, M, step_size):
             valid_step_size = min(i + step_size, M) - i
             nonzero_user, nonzero_item = train_data[i:i + valid_step_size].nonzero()

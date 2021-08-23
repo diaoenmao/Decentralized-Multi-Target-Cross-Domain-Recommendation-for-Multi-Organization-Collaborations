@@ -16,9 +16,20 @@ class MLP(nn.Module):
         self.item_weight = nn.Embedding(num_items, hidden_size[0])
         self.user_bias = nn.Embedding(num_users, 1)
         self.item_bias = nn.Embedding(num_items, 1)
+        if self.info_size is not None:
+            if cfg['data_name'] in ['ML100K', 'ML1M']:
+                self.user_profile = nn.Linear(info_size['user_profile'], hidden_size)
+            self.item_attr = nn.Linear(info_size['item_attr'], hidden_size)
         fc = []
         for i in range(len(hidden_size) - 1):
-            input_size = 2 * hidden_size[i] if i == 0 else hidden_size[i]
+            if i == 0:
+                input_size = 2 * hidden_size[i]
+                if self.info_size is not None:
+                    if cfg['data_name'] in ['ML100K', 'ML1M']:
+                        input_size = input_size + info_size['user_profile']
+                    input_size = input_size + info_size['item_attr']
+            else:
+                input_size = hidden_size[i]
             fc.append(torch.nn.Linear(input_size, hidden_size[i + 1]))
             fc.append(nn.ReLU())
         self.fc = nn.Sequential(*fc)
@@ -38,49 +49,54 @@ class MLP(nn.Module):
         nn.init.zeros_(self.affine.bias)
         return
 
-    def user_embedding(self, user, tag=None):
+    def user_embedding(self, user):
         embedding = self.user_weight(user) + self.user_bias(user)
-        if tag is not None and cfg['sigma'] > 0:
-            embedding = embedding + cfg['sigma'] ** 2 * torch.randn(embedding.size(), device=embedding.device)
         return embedding
 
-    def item_embedding(self, item, aug=None):
+    def item_embedding(self, item):
         embedding = self.item_weight(item) + self.item_bias(item)
-        if aug is not None and cfg['sigma'] > 0:
-            embedding = embedding + cfg['sigma'] ** 2 * torch.randn(embedding.size(), device=embedding.device)
         return embedding
 
     def forward(self, input):
         output = {}
-        user, item = input['user'], input['item']
-        if 'semi_user' in input:
-            semi_user, semi_item = input['semi_user'], input['semi_item']
-            user_embedding = self.user_embedding(user, input['aug'])
-            item_embedding = self.item_embedding(item, input['aug'])
-            semi_user_embedding = self.user_embedding(semi_user, input['aug'])
-            semi_item_embedding = self.item_embedding(semi_item, input['aug'])
-            user_embedding = torch.cat([user_embedding, semi_user_embedding], dim=0)
-            item_embedding = torch.cat([item_embedding, semi_item_embedding], dim=0)
-            input['target'] = torch.cat([input['target'], input['semi_target']], dim=0)
+        if self.training:
+            user = input['user']
+            item = input['item']
+            rating = input['rating']
+            if self.info_size is not None:
+                if cfg['data_name'] in ['ML100K', 'ML1M']:
+                    user_profile = input['user_profile']
+                item_attr = input['item_attr']
         else:
-            if 'aug' in input:
-                user_embedding = self.user_embedding(user, input['aug'])
-                item_embedding = self.item_embedding(item, input['aug'])
+            user = input['target_user']
+            item = input['target_item']
+            rating = input['target_rating']
+            if self.info_size is not None:
+                if cfg['data_name'] in ['ML100K', 'ML1M']:
+                    user_profile = input['target_user_profile']
+                item_attr = input['target_item_attr']
+        user_embedding = self.user_embedding(user)
+        item_embedding = self.item_embedding(item)
+        if self.info_size is not None:
+            if cfg['data_name'] in ['ML100K', 'ML1M']:
+                user_profile = self.user_profile(user_profile)
+                item_attr = self.item_attr(item_attr)
+                info = torch.cat([user_profile, item_attr], dim=-1)
             else:
-                user_embedding = self.user_embedding(user)
-                item_embedding = self.item_embedding(item)
-        mlp = torch.cat([user_embedding, item_embedding], dim=-1)
+                item_attr = self.item_attr(item_attr)
+                info = item_attr
+            mlp = torch.cat([user_embedding, item_embedding, info], dim=-1)
+        else:
+            mlp = torch.cat([user_embedding, item_embedding], dim=-1)
         mlp = self.fc(mlp)
-        pred = self.affine(mlp).view(-1)
-        output['target'] = pred
-        if 'target' in input:
-            output['loss'] = loss_fn(output['target'], input['target'])
+        output['target_rating'] = self.affine(mlp).view(-1)
+        output['loss'] = loss_fn(output['target_rating'], rating)
         return output
 
 
 def mlp():
     num_users = cfg['num_users']
     num_items = cfg['num_items']
-    hidden_size = cfg['nmf']['hidden_size']
+    hidden_size = cfg['mlp']['hidden_size']
     model = MLP(num_users, num_items, hidden_size)
     return model

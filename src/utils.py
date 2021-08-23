@@ -127,8 +127,8 @@ def process_control():
     cfg['base'] = {}
     cfg['mf'] = {'hidden_size': 128}
     cfg['gmf'] = {'hidden_size': 128}
-    cfg['mlp'] = {'hidden_size': [128, 64]}
-    cfg['nmf'] = {'hidden_size': [128, 64]}
+    cfg['mlp'] = {'hidden_size': [128, 64, 32, 16]}
+    cfg['nmf'] = {'hidden_size': [128, 64, 32, 16]}
     cfg['ae'] = {'encoder_hidden_size': [128, 256], 'decoder_hidden_size': [256, 128]}
     cfg['num_negatives'] = 4
     cfg['num_random'] = 100

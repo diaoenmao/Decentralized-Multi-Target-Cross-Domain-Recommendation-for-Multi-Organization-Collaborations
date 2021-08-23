@@ -16,8 +16,11 @@ class GMF(nn.Module):
         self.item_weight = nn.Embedding(num_items, hidden_size)
         self.user_bias = nn.Embedding(num_users, 1)
         self.item_bias = nn.Embedding(num_items, 1)
-        self.bias = nn.Parameter(torch.randn(1))
-        self.affine = nn.Linear(hidden_size, 1)
+        if self.info_size is not None:
+            if cfg['data_name'] in ['ML100K', 'ML1M']:
+                self.user_profile = nn.Linear(info_size['user_profile'], hidden_size)
+            self.item_attr = nn.Linear(info_size['item_attr'], hidden_size)
+        self.affine = nn.Linear(hidden_size, 1, )
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -25,53 +28,58 @@ class GMF(nn.Module):
         nn.init.normal_(self.item_weight.weight, 0.0, 0.01)
         nn.init.zeros_(self.user_bias.weight)
         nn.init.zeros_(self.item_bias.weight)
-        nn.init.zeros_(self.bias)
         nn.init.xavier_uniform_(self.affine.weight)
         nn.init.zeros_(self.affine.bias)
         return
 
-    def user_embedding(self, user, aug=None):
+    def user_embedding(self, user):
         embedding = self.user_weight(user) + self.user_bias(user)
-        if aug is not None and cfg['sigma'] > 0:
-            embedding = embedding + cfg['sigma'] ** 2 * torch.randn(embedding.size(), device=embedding.device)
         return embedding
 
-    def item_embedding(self, item, aug=None):
+    def item_embedding(self, item):
         embedding = self.item_weight(item) + self.item_bias(item)
-        if aug is not None and cfg['sigma'] > 0:
-            embedding = embedding + cfg['sigma'] ** 2 * torch.randn(embedding.size(), device=embedding.device)
         return embedding
 
     def forward(self, input):
         output = {}
-        user, item = input['user'], input['item']
-        if 'semi_user' in input:
-            semi_user, semi_item = input['semi_user'], input['semi_item']
-            user_embedding = self.user_embedding(user, input['aug'])
-            item_embedding = self.item_embedding(item, input['aug'])
-            semi_user_embedding = self.user_embedding(semi_user, input['aug'])
-            semi_item_embedding = self.item_embedding(semi_item, input['aug'])
-            user_embedding = torch.cat([user_embedding, semi_user_embedding], dim=0)
-            item_embedding = torch.cat([item_embedding, semi_item_embedding], dim=0)
-            input['target'] = torch.cat([input['target'], input['semi_target']], dim=0)
+        if self.training:
+            user = input['user']
+            item = input['item']
+            rating = input['rating']
+            if self.info_size is not None:
+                if cfg['data_name'] in ['ML100K', 'ML1M']:
+                    user_profile = input['user_profile']
+                item_attr = input['item_attr']
         else:
-            if 'aug' in input:
-                user_embedding = self.user_embedding(user, input['aug'])
-                item_embedding = self.item_embedding(item, input['aug'])
+            user = input['target_user']
+            item = input['target_item']
+            rating = input['target_rating']
+            if self.info_size is not None:
+                if cfg['data_name'] in ['ML100K', 'ML1M']:
+                    user_profile = input['target_user_profile']
+                item_attr = input['target_item_attr']
+        user_embedding = self.user_embedding(user)
+        item_embedding = self.item_embedding(item)
+        pred = user_embedding * item_embedding
+        if self.info_size is not None:
+            if cfg['data_name'] in ['ML100K', 'ML1M']:
+                user_profile = self.user_profile(user_profile)
+                user_profile = user_embedding * user_profile
+                item_attr = self.item_attr(item_attr)
+                item_attr = item_embedding * item_attr
+                pred = pred + user_profile + item_attr
             else:
-                user_embedding = self.user_embedding(user)
-                item_embedding = self.item_embedding(item)
-        mf = (user_embedding * item_embedding) + self.bias
-        pred = self.affine(mf).view(-1)
-        output['target'] = pred
-        if 'target' in input:
-            output['loss'] = loss_fn(output['target'], input['target'])
+                item_attr = self.item_attr(item_attr)
+                item_attr = item_embedding * item_attr
+                pred = pred + item_attr
+        output['target_rating'] = self.affine(pred).view(-1)
+        output['loss'] = loss_fn(output['target_rating'], rating)
         return output
 
 
 def gmf():
     num_users = cfg['num_users']
     num_items = cfg['num_items']
-    hidden_size = cfg['mf']['hidden_size']
+    hidden_size = cfg['gmf']['hidden_size']
     model = GMF(num_users, num_items, hidden_size)
     return model
