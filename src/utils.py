@@ -136,7 +136,7 @@ def process_control():
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
     cfg[model_name]['optimizer_name'] = 'Adam'
     if cfg['data_mode'] == 'explicit':
-        cfg[model_name]['lr'] = 1e-4
+        cfg[model_name]['lr'] = 2e-4
     elif cfg['data_mode'] == 'implicit':
         cfg[model_name]['lr'] = 1e-3
     cfg[model_name]['momentum'] = 0.9
@@ -145,7 +145,7 @@ def process_control():
     cfg[model_name]['weight_decay'] = 0
     cfg[model_name]['scheduler_name'] = 'None'
     cfg[model_name]['num_epochs'] = 200
-    cfg[model_name]['batch_size'] = {'train': 128, 'test': 256}
+    cfg[model_name]['batch_size'] = {'train': 100, 'test': 200}
     return
 
 

@@ -7,27 +7,28 @@ from config import cfg
 
 
 class MLP(nn.Module):
-    def __init__(self, num_users, num_items, hidden_size):
+    def __init__(self, num_users, num_items, hidden_size, info_size):
         super().__init__()
         self.num_users = num_users
         self.num_items = num_items
         self.hidden_size = hidden_size
+        self.info_size = info_size
         self.user_weight = nn.Embedding(num_users, hidden_size[0])
         self.item_weight = nn.Embedding(num_items, hidden_size[0])
         self.user_bias = nn.Embedding(num_users, 1)
         self.item_bias = nn.Embedding(num_items, 1)
         if self.info_size is not None:
             if cfg['data_name'] in ['ML100K', 'ML1M']:
-                self.user_profile = nn.Linear(info_size['user_profile'], hidden_size)
-            self.item_attr = nn.Linear(info_size['item_attr'], hidden_size)
+                self.user_profile = nn.Linear(info_size['user_profile'], hidden_size[0])
+            self.item_attr = nn.Linear(info_size['item_attr'], hidden_size[0])
         fc = []
         for i in range(len(hidden_size) - 1):
             if i == 0:
                 input_size = 2 * hidden_size[i]
                 if self.info_size is not None:
                     if cfg['data_name'] in ['ML100K', 'ML1M']:
-                        input_size = input_size + info_size['user_profile']
-                    input_size = input_size + info_size['item_attr']
+                        input_size = input_size + hidden_size[i]
+                    input_size = input_size + hidden_size[i]
             else:
                 input_size = hidden_size[i]
             fc.append(torch.nn.Linear(input_size, hidden_size[i + 1]))
@@ -43,9 +44,7 @@ class MLP(nn.Module):
         nn.init.zeros_(self.item_bias.weight)
         for m in self.fc:
             if isinstance(m, nn.Linear):
-                nn.init.xavier_uniform_(m.weight)
                 nn.init.zeros_(m.bias)
-        nn.init.xavier_uniform_(self.affine.weight)
         nn.init.zeros_(self.affine.bias)
         return
 
@@ -98,5 +97,6 @@ def mlp():
     num_users = cfg['num_users']
     num_items = cfg['num_items']
     hidden_size = cfg['mlp']['hidden_size']
-    model = MLP(num_users, num_items, hidden_size)
+    info_size = cfg['info_size']
+    model = MLP(num_users, num_items, hidden_size, info_size)
     return model
