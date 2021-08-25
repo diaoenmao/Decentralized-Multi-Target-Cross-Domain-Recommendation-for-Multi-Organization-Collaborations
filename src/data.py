@@ -10,15 +10,16 @@ from torch.utils.data.dataloader import default_collate
 from utils import collate, to_device
 
 
-def fetch_dataset(data_name):
+def fetch_dataset(data_name, model_name=None):
     import datasets
+    model_name = cfg['model_name'] if model_name is None else model_name
     dataset = {}
     print('fetching data {}...'.format(data_name))
     root = './data/{}'.format(data_name)
     if data_name in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
         dataset['train'] = eval('datasets.{}(root=root, split=\'train\', data_mode=cfg["data_mode"])'.format(data_name))
         dataset['test'] = eval('datasets.{}(root=root, split=\'test\', data_mode=cfg["data_mode"])'.format(data_name))
-        if cfg['model_name'] in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
+        if model_name in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
             if cfg['data_mode'] == 'explicit':
                 dataset['train'].transform = datasets.Compose([PairInput()])
                 dataset['test'].transform = datasets.Compose([PairInput()])
@@ -30,7 +31,7 @@ def fetch_dataset(data_name):
                     [PairInput()])
             else:
                 raise ValueError('Not valid data mode')
-        elif cfg['model_name'] in ['ae']:
+        elif model_name in ['ae']:
             if cfg['data_mode'] == 'explicit':
                 dataset['train'].transform = datasets.Compose([FlatInput(dataset['train'].num_items, 0)])
                 dataset['test'].transform = datasets.Compose([FlatInput(dataset['train'].num_items, 0)])

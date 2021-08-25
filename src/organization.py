@@ -9,34 +9,51 @@ from utils import to_device, make_optimizer, make_scheduler, collate
 
 
 class Organization:
-    def __init__(self, organization_id, feature_split, model_name):
+    def __init__(self, organization_id, data_split, model_name):
         self.organization_id = organization_id
-        self.feature_split = feature_split
+        self.data_split = data_split
+        self.num_items = len(data_split)
         self.model_name = model_name
-        self.model_parameters = [None for _ in range(cfg['global']['num_epochs'] + 1)]
+        self.model_state_dict = [None for _ in range(cfg['global']['num_epochs'] + 1)]
 
     def initialize(self, dataset, metric, logger):
-        input, output, initialization = {}, {}, {}
-        train_target = torch.tensor(dataset['train'].target)
-        test_target = torch.tensor(dataset['test'].target)
-        if train_target.dtype == torch.int64:
-            _, _, counts = torch.unique(train_target, sorted=True, return_inverse=True, return_counts=True)
-            x = (counts / counts.sum()).log()
-            initialization['train'] = x.view(1, -1).repeat(train_target.size(0), 1)
-            initialization['test'] = x.view(1, -1).repeat(test_target.size(0), 1)
-        else:
-            x = train_target.mean()
-            initialization['train'] = x.expand_as(train_target).detach().clone()
-            initialization['test'] = x.expand_as(test_target).detach().clone()
-        if 'train' in metric.metric_name:
-            input['target'], output['target'] = train_target, initialization['train']
-            output['loss'] = models.loss_fn(output['target'], input['target'])
-            evaluation = metric.evaluate(metric.metric_name['train'], input, output)
-            logger.append(evaluation, 'train', n=train_target.size(0))
-        input['target'], output['target'] = test_target, initialization['test']
-        output['loss'] = models.loss_fn(output['target'], input['target'])
-        evaluation = metric.evaluate(metric.metric_name['test'], input, output)
-        logger.append(evaluation, 'test', n=test_target.size(0))
+        model = models.Base(cfg['num_users'], num_items).to(cfg['device'])
+        data_loader = make_data_loader(dataset, self.model_name[iter], shuffle={'train': False, 'test': False})
+        model.train(True)
+        if 'train' in dataset:
+            for i, input in enumerate(data_loader['train']):
+                input = collate(input)
+                input = split_input(input, self.data_split)
+                input = to_device(input, cfg['device'])
+                output = model(input)
+            self.model_state_dict[0] = model.state_dict()
+            with torch.no_grad():
+                model.train(False)
+                initialization = {'train':[], 'test':[]}
+                for i, input in enumerate(data_loader['train']):
+                    input = collate(input)
+                    input = split_input(input, self.data_split)
+                    input_size = len(input['user'])
+                    input = to_device(input, cfg['device'])
+                    output = model(input)
+                    output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
+                    evaluation = metric.evaluate(metric.metric_name['train'], input, output)
+                    logger.append(evaluation, 'train', input_size)
+                    initialization['train'].append(output['target_rating'].cpu())
+                initialization['train'] = torch.cat(initialization['train'], dim=0)
+        model.load(self.model_state_dict[0])
+        with torch.no_grad():
+            for i, input in enumerate(data_loader['test']):
+                input = collate(input)
+                input = split_input(input, self.data_split)
+                input_size = len(input['user'])
+                input = to_device(input, cfg['device'])
+                output = model(input)
+                output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
+                evaluation = metric.evaluate(metric.metric_name['test'], input, output)
+                logger.append(evaluation, 'test', input_size)
+                initialization['test'].append(output['target_rating'].cpu())
+            initialization['test'] = torch.cat(initialization['test'], dim=0)
         return initialization
 
     def train(self, iter, data_loader, metric, logger):
@@ -70,13 +87,13 @@ class Organization:
             logger.append(info, 'train', mean=False)
             print(logger.write('train', metric.metric_name['train']), end='\r', flush=True)
         sys.stdout.write('\x1b[2K')
-        self.model_parameters[iter] = model.to('cpu').state_dict()
+        self.model_state_dict[iter] = copy.deepcopy(model.to('cpu').state_dict())
         return
 
     def predict(self, iter, data_loader):
         with torch.no_grad():
             model = eval('models.{}().to(cfg["device"])'.format(self.model_name[iter]))
-            model.load_state_dict(self.model_parameters[iter])
+            model.load_state_dict(self.model_state_dict[iter])
             model.train(False)
             organization_output = {'id': [], 'target': []}
             for i, input in enumerate(data_loader):
@@ -86,12 +103,7 @@ class Organization:
                 output = model(input)
                 organization_output['id'].append(input['id'].cpu())
                 output_target = output['target'].cpu()
-                if cfg['noise'] > 0 and self.organization_id in cfg['noised_organization_id']:
-                    noise = torch.normal(0, cfg['noise'], size=output_target.size())
-                    output_target = output_target + noise
                 organization_output['target'].append(output_target)
-            organization_output['id'] = torch.cat(organization_output['id'], dim=0)
             organization_output['target'] = torch.cat(organization_output['target'], dim=0)
-            organization_output['id'], indices = torch.sort(organization_output['id'])
             organization_output['target'] = organization_output['target'][indices]
         return organization_output
