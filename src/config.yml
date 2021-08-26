@@ -5,7 +5,8 @@ control:
   data_mode: implicit
   model_name: ae
   info: 1
-  exp_mode: assist
+  data_split_mode: genre
+  run_mode: assist
 # experiment
 num_workers: 0
 init_seed: 0

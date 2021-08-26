@@ -124,6 +124,18 @@ def process_control():
     cfg['data_mode'] = cfg['control']['data_mode']
     cfg['model_name'] = cfg['control']['model_name']
     cfg['info'] = float(cfg['control']['info']) if 'info' in cfg['control'] else 0
+    if 'data_split_mode' in cfg['control']:
+        cfg['data_split_mode'] = cfg['control']['data_split_mode']
+        if cfg['data_split_mode'] == 'genre':
+            if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+                cfg['num_organization'] = 18
+            else:
+                raise ValueError('Not valid data name')
+        elif 'random' in cfg['data_split_mode']:
+            cfg['num_organization'] = int(cfg['data_split_mode'].split('-')[1])
+        else:
+            raise ValueError('Not valid data split mode')
+    cfg['run_mode'] = cfg['control']['run_mode'] if 'run_mode' in cfg['control'] else None
     cfg['base'] = {}
     cfg['mf'] = {'hidden_size': 128}
     cfg['gmf'] = {'hidden_size': 128}

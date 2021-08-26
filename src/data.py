@@ -77,38 +77,6 @@ def make_data_loader(dataset, tag, batch_size=None, shuffle=None, sampler=None):
     return data_loader
 
 
-def split_dataset(dataset, num_users, data_split_mode):
-    data_split = {}
-    if data_split_mode == 'iid':
-        data_split['train'], target_split = iid(dataset['train'], num_users)
-        data_split['test'], _ = iid(dataset['test'], num_users)
-    elif 'non-iid' in cfg['data_split_mode']:
-        data_split['train'], target_split = non_iid(dataset['train'], num_users)
-        data_split['test'], _ = non_iid(dataset['test'], num_users)
-    else:
-        raise ValueError('Not valid data split mode')
-    return data_split, target_split
-
-
-def iid(dataset, num_users):
-    num_items = int(len(dataset) / num_users)
-    data_split, idx = {}, list(range(len(dataset)))
-    for i in range(num_users):
-        num_items_i = min(len(idx), num_items)
-        data_split[i] = torch.tensor(idx)[torch.randperm(len(idx))[:num_items_i]].tolist()
-        idx = list(set(idx) - set(data_split[i]))
-    target_split = [list(range(cfg['target_size'])) for i in range(num_users)]
-    return data_split, target_split
-
-
-def separate_dataset(dataset, idx):
-    separated_dataset = copy.deepcopy(dataset)
-    separated_dataset.data = [dataset.data[s] for s in idx]
-    separated_dataset.target = [dataset.target[s] for s in idx]
-    separated_dataset.other['id'] = list(range(len(separated_dataset.data)))
-    return separated_dataset
-
-
 class NegativeSample(torch.nn.Module):
     def __init__(self, item_attr, num_items, num_negatives):
         super().__init__()
@@ -190,3 +158,33 @@ class FlatInput(torch.nn.Module):
             del input['item_attr']
             del input['target_item_attr']
         return input
+
+
+def split_dataset(dataset):
+    if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
+        if cfg['data_split_mode'] == 'genre':
+            num_organizations = cfg['num_organizations']
+            data_split_idx = torch.multinomial(torch.tensor(dataset.item_attr), 1).view(-1).numpy()
+            data_split = []
+            for i in range(num_organizations):
+                data_split_i = np.where(data_split_idx == i).tolist()
+                data_split.append(data_split_i)
+        elif 'random' in cfg['data_split_mode']:
+            num_items = dataset.num_items
+            num_organizations = cfg['num_organizations']
+            data_split = list(torch.randperm(num_organizations).split(num_items // num_organizations))
+            data_split = data_split[:num_organizations - 1] + [torch.cat(data_split[num_organizations - 1:])]
+        else:
+            raise ValueError('Not valid data split mode')
+    else:
+        raise ValueError('Not valid data name')
+    return data_split
+
+
+def make_split_dataset(dataset, data_split):
+    num_items = len(data_split)
+    dataset = copy.deepcopy(dataset)
+    dataset.num_items = num_items
+    dataset.train_data = dataset.train_data.tocsc()[:, data_split].tocsr()
+    dataset.test_data = dataset.test_data.tocsc()[:, data_split].tocsr()
+    return dataset

@@ -43,20 +43,19 @@ class Assist:
             organization[i] = Organization(i, data_split_i, model_name_i)
         return organization
 
-    def make_data_loader(self, dataset, iter):
+    def make_dataset(self, dataset, iter):
+        residual = {}
         for split in dataset:
             self.organization_output[iter - 1][split].requires_grad = True
             loss = models.loss_fn(self.organization_output[iter - 1][split],
                                   self.organization_target[0][split], reduction='sum')
             loss.backward()
-            self.organization_target[iter][split] = - copy.deepcopy(self.organization_output[iter - 1][split].grad)
-            ### Need to fix this
-            dataset[split].target = self.organization_target[iter][split].numpy()
+            residual[split] = - copy.deepcopy(self.organization_output[iter - 1][split].grad)
             self.organization_output[iter - 1][split].detach_()
-        data_loader = [None for _ in range(len(self.feature_split))]
-        for i in range(len(self.feature_split)):
-            data_loader[i] = make_data_loader(dataset, self.model_name[i][iter])
-        return data_loader
+        for split in dataset:
+            dataset[split].train_data.data = residual['train'].numpy()
+            dataset[split].test_data.data = residual['test'].numpy()
+        return dataset
 
     def update(self, organization_outputs, iter):
         _organization_outputs = {split: [] for split in organization_outputs[0]}
@@ -82,8 +81,8 @@ class Assist:
             self.linesearch_state_dict[iter] = copy.deepcopy(model.to('cpu').state_dict())
         with torch.no_grad():
             model = models.linesearch().to(cfg['device'])
-            model.train(False)
             model.load_state_dict(self.linesearch_state_dict[iter])
+            model.train(False)
             for split in organization_outputs[0]:
                 input = {'history': self.organization_output[iter - 1][split],
                          'output': _organization_outputs[split]}

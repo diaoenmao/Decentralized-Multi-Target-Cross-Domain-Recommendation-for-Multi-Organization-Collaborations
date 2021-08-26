@@ -103,8 +103,7 @@ def train(dataset, organization, metric, logger, epoch):
     start_time = time.time()
     num_organizations = len(organization)
     for i in range(num_organizations):
-        data_loader = make_data_loader(dataset, organization[i].model_name[iter])
-        organization[i].train(epoch, data_loader['train'], metric, logger)
+        organization[i].train(epoch, dataset['train'], metric, logger)
         if i % int((num_organizations * cfg['log_interval']) + 1) == 0:
             local_time = (time.time() - start_time) / (i + 1)
             epoch_finished_time = datetime.timedelta(seconds=local_time * (num_organizations - i - 1))
@@ -121,13 +120,13 @@ def train(dataset, organization, metric, logger, epoch):
     return
 
 
-def gather(organization, epoch):
+def gather(dataset, organization, epoch):
     with torch.no_grad():
         num_organizations = len(organization)
-        organization_outputs = [{'train': None, 'test': None} for _ in range(num_organizations)]
+        organization_outputs = [{split: None for split in dataset} for i in range(num_organizations)]
         for i in range(num_organizations):
             for split in organization_outputs[i]:
-                organization_outputs[i][split] = organization[i].predict(epoch, data_loader[i][split])['target_rating']
+                organization_outputs[i][split] = organization[i].predict(epoch, dataset[split])['target_rating']
     return organization_outputs
 
 

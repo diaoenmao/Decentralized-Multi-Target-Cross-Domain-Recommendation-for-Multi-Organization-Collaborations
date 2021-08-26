@@ -48,24 +48,24 @@ import models
 #         print(c)
 #         exit()
 
-if __name__ == "__main__":
-    process_control()
-    cfg['seed'] = 0
-    data_name = 'ML100K'
-    batch_size = {'train': 10, 'test': 10}
-    dataset = fetch_dataset(data_name)
-    data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
-    for i, input in enumerate(data_loader['train']):
-        input = collate(input)
-        # print(input['user'].size(), input['item'].size(), input['rating'].size(),
-        #       input['user_profile'].size(), input['item_attr'].size(),
-        #       input['target_user'].size(), input['target_item'].size(), input['target_rating'].size(),
-        #       input['target_user_profile'].size(), input['target_item_attr'].size())
-        print(input['user'].size(), input['rating'].size(),
-              input['user_profile'].size(), input['item_attr'].size(),
-              input['target_user'].size(), input['target_rating'].size(),
-              input['target_user_profile'].size(), input['target_item_attr'].size())
-        exit()
+# if __name__ == "__main__":
+#     process_control()
+#     cfg['seed'] = 0
+#     data_name = 'ML100K'
+#     batch_size = {'train': 10, 'test': 10}
+#     dataset = fetch_dataset(data_name)
+#     data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
+#     for i, input in enumerate(data_loader['train']):
+#         input = collate(input)
+#         # print(input['user'].size(), input['item'].size(), input['rating'].size(),
+#         #       input['user_profile'].size(), input['item_attr'].size(),
+#         #       input['target_user'].size(), input['target_item'].size(), input['target_rating'].size(),
+#         #       input['target_user_profile'].size(), input['target_item_attr'].size())
+#         print(input['user'].size(), input['rating'].size(),
+#               input['user_profile'].size(), input['item_attr'].size(),
+#               input['target_user'].size(), input['target_rating'].size(),
+#               input['target_user_profile'].size(), input['target_item_attr'].size())
+#         exit()
 
 # if __name__ == "__main__":
 #     process_control()
@@ -119,3 +119,29 @@ if __name__ == "__main__":
 #     x[4, [2, 4]] = 5
 #     x = x[~x.isnan()].reshape(x.size(0), -1)
 #     print(x)
+
+# import numpy as np
+# from scipy.sparse import csr_matrix
+# if __name__ == "__main__":
+#     M = 10
+#     N = 20
+#     row = np.arange(10)
+#     col = np.arange(10)
+#     data = np.ones(10)
+#     csr = csr_matrix((data, (row, col)), shape=(M, N))
+#     print('a', csr)
+#     csr.data = np.ones(10) * 2
+#     print('b', csr)
+
+
+# import numpy as np
+# from scipy.sparse import csc_matrix
+# if __name__ == "__main__":
+#     M = 10
+#     N = 20
+#     row = np.arange(10)
+#     col = np.arange(10)
+#     data = np.ones(10)
+#     csc = csc_matrix((data, (row, col)), shape=(M, N))
+#     print('a', csc.todense())
+#     print('a', csc[:, :3].todense())

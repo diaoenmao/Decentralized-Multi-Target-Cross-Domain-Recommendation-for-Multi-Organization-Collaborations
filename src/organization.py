@@ -5,6 +5,7 @@ import time
 import torch
 import models
 from config import cfg
+from data import make_split_dataset
 from utils import to_device, make_optimizer, make_scheduler, collate
 
 
@@ -17,22 +18,21 @@ class Organization:
         self.model_state_dict = [None for _ in range(cfg['global']['num_epochs'] + 1)]
 
     def initialize(self, dataset, metric, logger):
-        model = models.Base(cfg['num_users'], num_items).to(cfg['device'])
+        dataset = make_split_dataset(dataset, self.data_split)
         data_loader = make_data_loader(dataset, self.model_name[iter], shuffle={'train': False, 'test': False})
-        model.train(True)
+        model = models.Base(cfg['num_users'], num_items).to(cfg['device'])
         if 'train' in dataset:
+            model.train(True)
             for i, input in enumerate(data_loader['train']):
                 input = collate(input)
-                input = split_input(input, self.data_split)
                 input = to_device(input, cfg['device'])
-                output = model(input)
+                model(input)
             self.model_state_dict[0] = model.state_dict()
             with torch.no_grad():
                 model.train(False)
-                initialization = {'train':[], 'test':[]}
+                initialization = {'train': [], 'test': []}
                 for i, input in enumerate(data_loader['train']):
                     input = collate(input)
-                    input = split_input(input, self.data_split)
                     input_size = len(input['user'])
                     input = to_device(input, cfg['device'])
                     output = model(input)
@@ -41,11 +41,11 @@ class Organization:
                     logger.append(evaluation, 'train', input_size)
                     initialization['train'].append(output['target_rating'].cpu())
                 initialization['train'] = torch.cat(initialization['train'], dim=0)
-        model.load(self.model_state_dict[0])
         with torch.no_grad():
+            model.load_state_dict(self.model_state_dict[0])
+            model.train(False)
             for i, input in enumerate(data_loader['test']):
                 input = collate(input)
-                input = split_input(input, self.data_split)
                 input_size = len(input['user'])
                 input = to_device(input, cfg['device'])
                 output = model(input)
@@ -56,7 +56,9 @@ class Organization:
             initialization['test'] = torch.cat(initialization['test'], dim=0)
         return initialization
 
-    def train(self, iter, data_loader, metric, logger):
+    def train(self, iter, dataset, metric, logger):
+        dataset = make_split_dataset(dataset, self.data_split)
+        data_loader = make_data_loader(dataset, self.model_name[iter])
         model = eval('models.{}().to(cfg["device"])'.format(self.model_name[iter]))
         model.train(True)
         optimizer = make_optimizer(model, self.model_name[iter])
@@ -66,7 +68,6 @@ class Organization:
             for i, input in enumerate(data_loader):
                 input = collate(input)
                 input_size = input['data'].size(0)
-                input['feature_split'] = self.feature_split
                 input = to_device(input, cfg['device'])
                 optimizer.zero_grad()
                 output = model(input)
@@ -90,20 +91,19 @@ class Organization:
         self.model_state_dict[iter] = copy.deepcopy(model.to('cpu').state_dict())
         return
 
-    def predict(self, iter, data_loader):
+    def predict(self, iter, dataset):
         with torch.no_grad():
+            dataset = make_split_dataset(dataset, self.data_split)
+            data_loader = make_data_loader(dataset, self.model_name[iter])
             model = eval('models.{}().to(cfg["device"])'.format(self.model_name[iter]))
             model.load_state_dict(self.model_state_dict[iter])
             model.train(False)
-            organization_output = {'id': [], 'target': []}
+            organization_output = {'target_rating': []}
             for i, input in enumerate(data_loader):
                 input = collate(input)
-                input['feature_split'] = self.feature_split
                 input = to_device(input, cfg['device'])
                 output = model(input)
-                organization_output['id'].append(input['id'].cpu())
-                output_target = output['target'].cpu()
-                organization_output['target'].append(output_target)
-            organization_output['target'] = torch.cat(organization_output['target'], dim=0)
-            organization_output['target'] = organization_output['target'][indices]
+                organization_output['target_rating'].append(output['target_rating'].cpu())
+            organization_output['target_rating'] = torch.cat(organization_output['target_rating'], dim=0)
+            organization_output['target_rating'] = organization_output['target_rating'][indices]
         return organization_output
