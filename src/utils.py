@@ -126,13 +126,16 @@ def process_control():
     cfg['info'] = float(cfg['control']['info']) if 'info' in cfg['control'] else 0
     if 'data_split_mode' in cfg['control']:
         cfg['data_split_mode'] = cfg['control']['data_split_mode']
-        if cfg['data_split_mode'] == 'genre':
+        if 'genre' in cfg['data_split_mode']:
             if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
                 cfg['num_organizations'] = 18
             else:
                 raise ValueError('Not valid data name')
+            # 1, 2, 4, 5, 6, 8, 14, 15, 16
+            cfg['sponsor_id'] = int(cfg['data_split_mode'].split('-')[1])
         elif 'random' in cfg['data_split_mode']:
             cfg['num_organizations'] = int(cfg['data_split_mode'].split('-')[1])
+            cfg['sponsor_id'] = 0
         else:
             raise ValueError('Not valid data split mode')
     cfg['run_mode'] = cfg['control']['run_mode'] if 'run_mode' in cfg['control'] else None
@@ -154,7 +157,7 @@ def process_control():
     cfg[model_name]['momentum'] = 0.9
     cfg[model_name]['nesterov'] = True
     cfg[model_name]['betas'] = (0.9, 0.999)
-    cfg[model_name]['weight_decay'] = 0
+    cfg[model_name]['weight_decay'] = 5e-4
     cfg[model_name]['scheduler_name'] = 'None'
     cfg[model_name]['num_epochs'] = 200
     cfg[model_name]['batch_size'] = {'train': 100, 'test': 200}

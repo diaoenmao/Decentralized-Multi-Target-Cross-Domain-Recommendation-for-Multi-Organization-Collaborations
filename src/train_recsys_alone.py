@@ -40,7 +40,7 @@ def runExperiment():
     torch.cuda.manual_seed(cfg['seed'])
     dataset = fetch_dataset(cfg['data_name'])
     data_split = split_dataset(dataset)
-    dataset = make_split_dataset([data_split[1]])[0]
+    dataset = make_split_dataset([data_split[cfg['sponsor_id']]])[0]
     process_dataset(dataset)
     data_loader = make_data_loader(dataset, cfg['model_name'])
     model = eval('models.{}().to(cfg["device"])'.format(cfg['model_name']))
@@ -49,7 +49,7 @@ def runExperiment():
     if cfg['data_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
     elif cfg['data_mode'] == 'implicit':
-        metric = Metric({'train': ['Loss'], 'test': ['Loss', 'HR', 'NDCG']})
+        metric = Metric({'train': ['Loss', 'MAP'], 'test': ['Loss', 'MAP']})
     else:
         raise ValueError('Not valid data mode')
     if cfg['resume_mode'] == 1:
@@ -72,7 +72,7 @@ def runExperiment():
         test(data_loader['test'], model, metric, logger, epoch)
         scheduler.step()
         model_state_dict = model.module.state_dict() if cfg['world_size'] > 1 else model.state_dict()
-        result = {'cfg': cfg, 'epoch': epoch + 1, 'model_state_dict': model_state_dict,
+        result = {'cfg': cfg, 'epoch': epoch + 1, 'data_split': data_split,'model_state_dict': model_state_dict,
                   'optimizer_state_dict': optimizer.state_dict(), 'scheduler_state_dict': scheduler.state_dict(),
                   'logger': logger}
         save(result, './output/model/{}_checkpoint.pt'.format(cfg['model_tag']))
@@ -91,6 +91,8 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
     for i, input in enumerate(data_loader):
         input = collate(input)
         input_size = len(input['user'])
+        if input_size == 0:
+            continue
         input = to_device(input, cfg['device'])
         optimizer.zero_grad()
         output = model(input)
@@ -122,7 +124,9 @@ def test(data_loader, model, metric, logger, epoch):
         model.train(False)
         for i, input in enumerate(data_loader):
             input = collate(input)
-            input_size = len(input['user'])
+            input_size = len(input['target_user'])
+            if input_size == 0:
+                continue
             input = to_device(input, cfg['device'])
             output = model(input)
             output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']

@@ -167,21 +167,43 @@ import models
 #     print(map)
 
 
-def parse_implicit_rating(user, item, output, target):
-    user, user_idx = torch.unique(user, return_inverse=True)
-    item, item_idx = torch.unique(item, return_inverse=True)
-    num_user, num_item = len(user), len(item)
-    output_rating = torch.full((num_user, num_item), -float('inf'), device=output.device)
-    target_rating = torch.full((num_user, num_item), -float('inf'), device=target.device)
-    output_rating[user_idx, item_idx] = output
-    target_rating[user_idx, item_idx] = target
-    return output_rating, target_rating
+# def parse_implicit_rating(user, item, output, target):
+#     user, user_idx = torch.unique(user, return_inverse=True)
+#     item, item_idx = torch.unique(item, return_inverse=True)
+#     num_user, num_item = len(user), len(item)
+#     output_rating = torch.full((num_user, num_item), -float('inf'), device=output.device)
+#     target_rating = torch.full((num_user, num_item), -float('inf'), device=target.device)
+#     output_rating[user_idx, item_idx] = output
+#     target_rating[user_idx, item_idx] = target
+#     return output_rating, target_rating
+#
+# if __name__ == "__main__":
+#     user = torch.arange(10)
+#     item = torch.arange(10)
+#     output = torch.ones(10)
+#     target = torch.zeros(10)
+#     output_rating, target_rating = parse_implicit_rating(user, item, output, target)
+#     print(output_rating)
+#     print(target_rating)
 
-if __name__ == "__main__":
-    user = torch.arange(10)
-    item = torch.arange(10)
-    output = torch.ones(10)
-    target = torch.zeros(10)
-    output_rating, target_rating = parse_implicit_rating(user, item, output, target)
-    print(output_rating)
-    print(target_rating)
+
+# if __name__ == "__main__":
+#     process_control()
+#     cfg['seed'] = 0
+#     data_name = 'NFP'
+#     batch_size = {'train': 10, 'test': 10}
+#     dataset = fetch_dataset(data_name)
+#     data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
+#     for i, input in enumerate(data_loader['train']):
+#         input = collate(input)
+#         # print(input['user'].size(), input['item'].size(), input['rating'].size(),
+#         #       input['user_profile'].size(), input['item_attr'].size(),
+#         #       input['target_user'].size(), input['target_item'].size(), input['target_rating'].size(),
+#         #       input['target_user_profile'].size(), input['target_item_attr'].size())
+#         # print(input['user'].size(), input['item'].size(), input['rating'].size(),
+#         #       input['item_attr'].size(),
+#         #       input['target_user'].size(), input['target_item'].size(), input['target_rating'].size(),
+#         #       input['target_item_attr'].size())
+#         print(input['user'].size(), input['item'].size(), input['rating'].size(),
+#               input['target_user'].size(), input['target_item'].size(), input['target_rating'].size())
+#         exit()

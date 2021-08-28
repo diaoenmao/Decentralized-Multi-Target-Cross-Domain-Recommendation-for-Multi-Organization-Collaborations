@@ -37,13 +37,11 @@ def fetch_dataset(data_name, model_name=None, data_split=None):
                 raise ValueError('Not valid data mode')
         elif model_name in ['ae']:
             if cfg['data_mode'] == 'explicit':
-                dataset['train'].transform = datasets.Compose([FlatInput(dataset['train'].num_items, 0)])
-                dataset['test'].transform = datasets.Compose([FlatInput(dataset['train'].num_items, 0)])
+                dataset['train'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
+                dataset['test'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
             elif cfg['data_mode'] == 'implicit':
-                dataset['train'].transform = datasets.Compose(
-                    [FlatInput(dataset['train'].num_items, -1)])
-                dataset['test'].transform = datasets.Compose(
-                    [FlatInput(dataset['train'].num_items, 0)])
+                dataset['train'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
+                dataset['test'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
             else:
                 raise ValueError('Not valid data mode')
         else:
@@ -90,19 +88,17 @@ class NegativeSample(torch.nn.Module):
 
     def forward(self, input):
         positive_item = input['item']
-        # print('a', positive_item)
         positive_rating = input['rating']
         negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_item.tolist())),
                                      dtype=torch.long)
-        # print('b', negative_item)
         num_negative_random_item = self.num_negatives * len(positive_item)
         negative_item = negative_item[torch.randperm(len(negative_item))][:num_negative_random_item]
         negative_rating = torch.zeros(negative_item.size(0))
         input['item'] = torch.cat([positive_item, negative_item], dim=0)
         input['rating'] = torch.cat([positive_rating, negative_rating], dim=0)
-        negative_item_attr = torch.tensor(self.item_attr[negative_item]).view(-1, input['item_attr'].size(1))
-        # print('c', input['item_attr'].shape, negative_item_attr.shape)
-        input['item_attr'] = torch.cat([input['item_attr'], negative_item_attr], dim=0)
+        if self.item_attr is not None:
+            negative_item_attr = torch.tensor(self.item_attr[negative_item]).view(-1, input['item_attr'].size(1))
+            input['item_attr'] = torch.cat([input['item_attr'], negative_item_attr], dim=0)
         return input
 
 
@@ -129,34 +125,17 @@ class PairInput(torch.nn.Module):
 
 
 class FlatInput(torch.nn.Module):
-    def __init__(self, num_items, num_negatives):
+    def __init__(self, num_items):
         super().__init__()
         self.num_items = num_items
-        self.num_negatives = num_negatives
 
     def forward(self, input):
         rating = torch.zeros(self.num_items)
         rating[input['item']] = input['rating']
         input['rating'] = rating
-        if self.num_negatives == 0:
-            target_rating = torch.full((self.num_items,), float('nan'))
-            target_rating[input['target_item']] = input['target_rating']
-            input['target_rating'] = target_rating
-        elif self.num_negatives == -1:
-            target_rating = torch.zeros(self.num_items)
-            target_rating[input['target_item']] = input['target_rating']
-            input['target_rating'] = target_rating
-        else:
-            target_rating = torch.full((self.num_items,), float('nan'))
-            positive_item = input['item']
-            negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_item.tolist())),
-                                         dtype=torch.long)
-            num_negative_random_item = self.num_negatives * len(positive_item)
-            negative_item = negative_item[torch.randperm(len(negative_item))][:num_negative_random_item]
-            negative_rating = torch.zeros(negative_item.size(0))
-            target_rating[negative_item] = negative_rating
-            target_rating[input['target_item']] = input['target_rating']
-            input['target_rating'] = target_rating
+        target_rating = torch.full((self.num_items,), float('nan'))
+        target_rating[input['target_item']] = input['target_rating']
+        input['target_rating'] = target_rating
         del input['item']
         del input['target_item']
         if cfg['info'] == 1:
@@ -173,12 +152,12 @@ class FlatInput(torch.nn.Module):
 
 def split_dataset(dataset):
     if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
-        if cfg['data_split_mode'] == 'genre':
+        if 'genre' in cfg['data_split_mode']:
             num_organizations = cfg['num_organizations']
-            data_split_idx = torch.multinomial(torch.tensor(dataset['train'].item_attr), 1).view(-1).numpy()
+            data_split_idx = torch.nonzero(torch.tensor(dataset['train'].item_attr))
             data_split = []
             for i in range(num_organizations):
-                data_split_i = np.where(data_split_idx == i)[0].tolist()
+                data_split_i = data_split_idx[:, 0][data_split_idx[:, 1] == i].tolist()
                 data_split.append(data_split_i)
         elif 'random' in cfg['data_split_mode']:
             num_items = dataset['train'].num_items

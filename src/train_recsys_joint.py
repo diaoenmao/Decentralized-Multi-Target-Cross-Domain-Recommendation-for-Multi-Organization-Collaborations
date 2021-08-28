@@ -47,7 +47,7 @@ def runExperiment():
     if cfg['data_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
     elif cfg['data_mode'] == 'implicit':
-        metric = Metric({'train': ['Loss'], 'test': ['Loss', 'HR', 'NDCG']})
+        metric = Metric({'train': ['Loss', 'MAP'], 'test': ['Loss', 'MAP']})
     else:
         raise ValueError('Not valid data mode')
     if cfg['resume_mode'] == 1:
@@ -89,6 +89,8 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
     for i, input in enumerate(data_loader):
         input = collate(input)
         input_size = len(input['user'])
+        if input_size == 0:
+            continue
         input = to_device(input, cfg['device'])
         optimizer.zero_grad()
         output = model(input)
@@ -120,7 +122,9 @@ def test(data_loader, model, metric, logger, epoch):
         model.train(False)
         for i, input in enumerate(data_loader):
             input = collate(input)
-            input_size = len(input['user'])
+            input_size = len(input['target_user'])
+            if input_size == 0:
+                continue
             input = to_device(input, cfg['device'])
             output = model(input)
             output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']

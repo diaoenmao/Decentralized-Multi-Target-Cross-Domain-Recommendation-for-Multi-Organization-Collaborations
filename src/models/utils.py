@@ -14,12 +14,28 @@ def loss_fn(output, target, reduction='mean'):
     return loss
 
 
-def parse_implicit_rating(user, item, output, target):
+def parse_implicit_rating_pair(user, item, output, target):
     user, user_idx = torch.unique(user, return_inverse=True)
     item, item_idx = torch.unique(item, return_inverse=True)
     num_user, num_item = len(user), len(item)
     output_rating = torch.full((num_user, num_item), -float('inf'), device=output.device)
-    target_rating = torch.full((num_user, num_item), -float('inf'), device=target.device)
+    target_rating = torch.full((num_user, num_item), 0., device=target.device)
     output_rating[user_idx, item_idx] = output
     target_rating[user_idx, item_idx] = target
+    return output_rating, target_rating
+
+
+def parse_explicit_rating_flat(output, target):
+    target_mask = ~target.isnan()
+    output_rating = output[target_mask]
+    target_rating = target[target_mask]
+    return output_rating, target_rating
+
+
+def parse_implicit_rating_flat(output, target):
+    target_mask = ~target.isnan()
+    output_rating = torch.full(output.size(), -float('inf'), device=output.device)
+    target_rating = torch.full(target.size(), 0., device=target.device)
+    output_rating[target_mask] = output[target_mask]
+    target_rating[target_mask] = target[target_mask]
     return output_rating, target_rating

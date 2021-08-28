@@ -2,7 +2,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .utils import loss_fn
+from .utils import loss_fn, parse_explicit_rating_flat, parse_implicit_rating_flat
 from config import cfg
 
 
@@ -21,7 +21,7 @@ class Encoder(nn.Module):
                 blocks.append(nn.SELU())
             self.blocks = nn.Sequential(*blocks)
         else:
-            if cfg['data_name'] in ['ML100K', 'ML1M']:
+            if 'user_profile' in info_size:
                 blocks = [nn.Linear(num_items + info_size['user_profile'] + info_size['item_attr'], hidden_size[0]),
                           nn.SELU()]
             else:
@@ -85,10 +85,8 @@ class AE(nn.Module):
     def forward(self, input):
         output = {}
         rating = input['rating']
-        target_rating = input['target_rating']
-        target_mask = ~target_rating.isnan()
         if self.info_size is not None:
-            if cfg['data_name'] in ['ML100K', 'ML1M']:
+            if 'user_profile' in input:
                 user_profile = input['user_profile']
                 item_attr = input['item_attr']
                 x = torch.cat([rating, user_profile, item_attr], dim=-1)
@@ -101,9 +99,17 @@ class AE(nn.Module):
             x = rating
             encoded = self.encoder(x)
         decoded = self.decoder(encoded)
-        output['target_rating'] = decoded[target_mask]
-        input['target_rating'] = input['target_rating'][target_mask]
-        output['loss'] = loss_fn(output['target_rating'], input['target_rating'])
+        output['target_rating'] = decoded
+        target_mask = ~input['target_rating'].isnan()
+        output['loss'] = loss_fn(output['target_rating'][target_mask], input['target_rating'][target_mask])
+        if cfg['data_mode'] == 'explicit':
+            output['target_rating'], input['target_rating'] = parse_explicit_rating_flat(output['target_rating'],
+                                                                                         input['target_rating'])
+        elif cfg['data_mode'] == 'implicit':
+            output['target_rating'], input['target_rating'] = parse_implicit_rating_flat(output['target_rating'],
+                                                                                         input['target_rating'])
+        else:
+            raise ValueError('Not valid data mode')
         return output
 
 

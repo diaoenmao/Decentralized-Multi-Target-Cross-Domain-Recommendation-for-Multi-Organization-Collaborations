@@ -41,7 +41,9 @@ def runExperiment():
     dataset = fetch_dataset(cfg['data_name'])
     if 'data_split_mode' in cfg['control']:
         data_split = split_dataset(dataset)
-        dataset = make_split_dataset([data_split[0]])[0]
+        dataset = make_split_dataset([data_split[cfg['sponsor_id']]])[0]
+    else:
+        data_split = None
     process_dataset(dataset)
     data_loader = make_data_loader(dataset, cfg['model_name'])
     model = eval('models.{}().to(cfg["device"])'.format(cfg['model_name']))
@@ -56,7 +58,8 @@ def runExperiment():
     train(data_loader['train'], model, metric, logger, epoch)
     test(data_loader['test'], model, metric, logger, epoch)
     model_state_dict = model.module.state_dict() if cfg['world_size'] > 1 else model.state_dict()
-    result = {'cfg': cfg, 'epoch': epoch + 1, 'model_state_dict': model_state_dict, 'logger': logger}
+    result = {'cfg': cfg, 'epoch': epoch + 1, 'data_split': data_split, 'model_state_dict': model_state_dict,
+              'logger': logger}
     save(result, './output/model/{}_checkpoint.pt'.format(cfg['model_tag']))
     if metric.compare(logger.mean['test/{}'.format(metric.pivot_name)]):
         metric.update(logger.mean['test/{}'.format(metric.pivot_name)])

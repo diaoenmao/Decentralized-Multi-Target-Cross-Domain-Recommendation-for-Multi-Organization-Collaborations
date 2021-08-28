@@ -35,18 +35,18 @@ def runExperiment():
     torch.manual_seed(cfg['seed'])
     torch.cuda.manual_seed(cfg['seed'])
     dataset = fetch_dataset(cfg['data_name'])
-    data_split = split_dataset(dataset)
-    dataset = make_split_dataset(dataset, data_split[0])
-    process_dataset(dataset)
-    model = eval('models.{}().to(cfg["device"])'.format(cfg['model_name']))
     if cfg['data_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
     elif cfg['data_mode'] == 'implicit':
-        metric = Metric({'train': ['Loss'], 'test': ['Loss', 'HR', 'NDCG']})
+        metric = Metric({'train': ['Loss', 'MAP'], 'test': ['Loss', 'MAP']})
     else:
         raise ValueError('Not valid data mode')
     result = resume(cfg['model_tag'], load_tag='best')
     last_epoch = result['epoch']
+    data_split = result['data_split']
+    dataset = make_split_dataset([data_split[cfg['sponsor_id']]])[0]
+    process_dataset(dataset)
+    model = eval('models.{}().to(cfg["device"])'.format(cfg['model_name']))
     model.load_state_dict(result['model_state_dict'])
     data_loader = make_data_loader(dataset, cfg['model_name'])
     test_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))
@@ -64,7 +64,9 @@ def test(data_loader, model, metric, logger, epoch):
         model.train(False)
         for i, input in enumerate(data_loader):
             input = collate(input)
-            input_size = len(input['user'])
+            input_size = len(input['target_user'])
+            if input_size == 0:
+                continue
             input = to_device(input, cfg['device'])
             output = model(input)
             output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']

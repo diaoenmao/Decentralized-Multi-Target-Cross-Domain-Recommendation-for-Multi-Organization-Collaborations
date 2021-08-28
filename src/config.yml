@@ -3,9 +3,9 @@
 control:
   data_name: ML100K
   data_mode: implicit
-  model_name: ae
+  model_name: mf
   info: 1
-  data_split_mode: genre
+  data_split_mode: random-10
   run_mode: assist
 # experiment
 num_workers: 0

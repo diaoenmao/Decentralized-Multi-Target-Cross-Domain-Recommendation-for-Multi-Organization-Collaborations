@@ -2,7 +2,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .utils import loss_fn
+from .utils import loss_fn, parse_implicit_rating_pair
 from config import cfg
 
 
@@ -22,7 +22,7 @@ class NMF(nn.Module):
         self.user_bias_mf = nn.Embedding(num_users, 1)
         self.item_bias_mf = nn.Embedding(num_items, 1)
         if self.info_size is not None:
-            if cfg['data_name'] in ['ML100K', 'ML1M']:
+            if 'user_profile' in info_size:
                 self.user_profile_mf = nn.Linear(info_size['user_profile'], hidden_size[0])
                 self.user_profile_mlp = nn.Linear(info_size['user_profile'], hidden_size[0])
             self.item_attr_mf = nn.Linear(info_size['item_attr'], hidden_size[0])
@@ -32,7 +32,7 @@ class NMF(nn.Module):
             if i == 0:
                 input_size = 2 * hidden_size[i]
                 if self.info_size is not None:
-                    if cfg['data_name'] in ['ML100K', 'ML1M']:
+                    if 'user_profile' in info_size:
                         input_size = input_size + hidden_size[i]
                     input_size = input_size + hidden_size[i]
             else:
@@ -81,7 +81,7 @@ class NMF(nn.Module):
             item = input['item']
             rating = input['rating']
             if self.info_size is not None:
-                if cfg['data_name'] in ['ML100K', 'ML1M']:
+                if 'user_profile' in input:
                     user_profile = input['user_profile']
                 item_attr = input['item_attr']
         else:
@@ -89,7 +89,7 @@ class NMF(nn.Module):
             item = input['target_item']
             rating = input['target_rating']
             if self.info_size is not None:
-                if cfg['data_name'] in ['ML100K', 'ML1M']:
+                if 'user_profile' in input:
                     user_profile = input['target_user_profile']
                 item_attr = input['target_item_attr']
         user_embedding_mlp = self.user_embedding_mlp(user)
@@ -97,7 +97,7 @@ class NMF(nn.Module):
         item_embedding_mlp = self.item_embedding_mlp(item)
         item_embedding_mf = self.item_embedding_mf(item)
         if self.info_size is not None:
-            if cfg['data_name'] in ['ML100K', 'ML1M']:
+            if 'user_profile' in input:
                 user_profile_mf = self.user_profile_mf(user_profile)
                 user_profile_mf = user_embedding_mf * user_profile_mf
                 item_attr_mf = self.item_attr_mf(item_attr)
@@ -120,6 +120,17 @@ class NMF(nn.Module):
         mlp_mf = torch.cat([mlp, mf], dim=-1)
         output['target_rating'] = self.affine(mlp_mf).view(-1)
         output['loss'] = loss_fn(output['target_rating'], rating)
+        if cfg['data_mode'] == 'implicit':
+            if self.training:
+                output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(input['user'],
+                                                                                        input['item'],
+                                                                                        output['target_rating'],
+                                                                                        input['rating'])
+            else:
+                output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(input['target_user'],
+                                                                                        input['target_item'],
+                                                                                        output['target_rating'],
+                                                                                        input['target_rating'])
         return output
 
 

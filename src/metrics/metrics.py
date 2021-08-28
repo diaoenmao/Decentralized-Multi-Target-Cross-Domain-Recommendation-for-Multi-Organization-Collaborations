@@ -12,15 +12,14 @@ def RMSE(output, target):
 
 
 def MAP(output, target, topk=10):
-    print(output.size(), target.size())
     topk = min(topk, target.size(-1))
     idx = torch.sort(output, dim=-1, descending=True)[1]
     topk_idx = idx[:, :topk]
-    topk_target = target[torch.arange(target.size(0)).view(-1, 1), topk_idx]
-    precision = torch.cumsum(topk_target, dim=-1) / torch.arange(1, topk + 1).float()
+    topk_target = target[torch.arange(target.size(0), device=output.device).view(-1, 1), topk_idx]
+    precision = torch.cumsum(topk_target, dim=-1) / torch.arange(1, topk + 1, device=output.device).float()
     m = torch.sum(topk_target, dim=-1)
-    ap = (precision * topk_target).sum(dim=-1) / m
-    map = ap.mean()
+    ap = (precision * topk_target).sum(dim=-1) / (m + 1e-10)
+    map = ap.mean().item()
     return map
 
 
@@ -44,7 +43,7 @@ class Metric(object):
             elif cfg['data_mode'] == 'implicit':
                 pivot = -float('inf')
                 pivot_direction = 'up'
-                pivot_name = 'HR'
+                pivot_name = 'MAP'
             else:
                 raise ValueError('Not valid data mode')
         else:

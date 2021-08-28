@@ -4,7 +4,7 @@ import torch
 import torch.backends.cudnn as cudnn
 import models
 from config import cfg, process_args
-from data import fetch_dataset, make_data_loader
+from data import fetch_dataset, make_data_loader, split_dataset, make_split_dataset
 from metrics import Metric
 from utils import save, to_device, process_control, process_dataset, resume, collate
 from logger import make_logger
@@ -35,16 +35,19 @@ def runExperiment():
     torch.manual_seed(cfg['seed'])
     torch.cuda.manual_seed(cfg['seed'])
     dataset = fetch_dataset(cfg['data_name'])
-    process_dataset(dataset)
-    model = eval('models.{}().to(cfg["device"])'.format(cfg['model_name']))
     if cfg['data_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
     elif cfg['data_mode'] == 'implicit':
-        metric = Metric({'train': ['Loss'], 'test': ['Loss', 'HR', 'NDCG']})
+        metric = Metric({'train': ['Loss', 'MAP'], 'test': ['Loss', 'MAP']})
     else:
         raise ValueError('Not valid data mode')
     result = resume(cfg['model_tag'], load_tag='best')
     last_epoch = result['epoch']
+    if 'data_split_mode' in cfg['control']:
+        data_split = result['data_split']
+        dataset = make_split_dataset([data_split[cfg['sponsor_id']]])[0]
+    process_dataset(dataset)
+    model = eval('models.{}().to(cfg["device"])'.format(cfg['model_name']))
     model.load_state_dict(result['model_state_dict'])
     data_loader = make_data_loader(dataset, cfg['model_name'])
     test_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))

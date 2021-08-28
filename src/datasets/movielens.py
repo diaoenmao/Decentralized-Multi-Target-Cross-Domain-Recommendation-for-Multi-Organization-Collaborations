@@ -19,8 +19,8 @@ class ML100K(Dataset):
         self.data_mode = data_mode
         self.data_split = data_split
         self.transform = transform
-        # if not check_exists(self.processed_folder):
-        self.process()
+        if not check_exists(self.processed_folder):
+            self.process()
         self.train_data = load(os.path.join(self.processed_folder, self.data_mode, 'train.pt'), mode='pickle')
         self.test_data = load(os.path.join(self.processed_folder, self.data_mode, 'test.pt'), mode='pickle')
         self.user_profile = load(os.path.join(self.processed_folder, 'user_profile.pt'), mode='pickle')
@@ -30,7 +30,6 @@ class ML100K(Dataset):
             self.test_data = self.test_data[:, data_split]
             self.item_attr = self.item_attr[data_split]
         self.num_users, self.num_items = self.train_data.shape
-
 
     def __getitem__(self, index):
         if self.split == 'train':
@@ -175,10 +174,11 @@ class ML1M(Dataset):
     data_name = 'ML1M'
     file = [('https://files.grouplens.org/datasets/movielens/ml-1m.zip', 'c4d9eecfca2ab87c1945afe126590906')]
 
-    def __init__(self, root, split, data_mode, transform=None):
+    def __init__(self, root, split, data_mode, data_split=None, transform=None):
         self.root = os.path.expanduser(root)
         self.split = split
         self.data_mode = data_mode
+        self.data_split = data_split
         self.transform = transform
         if not check_exists(self.processed_folder):
             self.process()
@@ -186,6 +186,10 @@ class ML1M(Dataset):
         self.test_data = load(os.path.join(self.processed_folder, self.data_mode, 'test.pt'), mode='pickle')
         self.user_profile = load(os.path.join(self.processed_folder, 'user_profile.pt'), mode='pickle')
         self.item_attr = load(os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')
+        if data_split is not None:
+            self.train_data = self.train_data[:, data_split]
+            self.test_data = self.test_data[:, data_split]
+            self.item_attr = self.item_attr[data_split]
         self.num_users, self.num_items = self.train_data.shape
 
     def __getitem__(self, index):
@@ -280,8 +284,7 @@ class ML1M(Dataset):
 
     def make_implicit_data(self):
         data = np.genfromtxt(os.path.join(self.raw_folder, 'ml-1m', 'ratings.dat'), delimiter='::')
-        user, item, rating, ts = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(
-            np.float32), data[:, 3].astype(np.float32)
+        user, item, rating = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(np.float32)
         user_id, user_inv = np.unique(user, return_inverse=True)
         item_id, item_inv = np.unique(item, return_inverse=True)
         M, N = len(user_id), len(item_id)
@@ -289,33 +292,16 @@ class ML1M(Dataset):
         item_id_map = {item_id[i]: i for i in range(len(item_id))}
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
-        rating.fill(1)
-        train_user = user
-        train_item = item
-        train_rating = rating
-        train_ts = ts
+        idx = np.random.permutation(user.shape[0])
+        num_train = int(user.shape[0] * 0.9)
+        train_idx, test_idx = idx[:num_train], idx[num_train:]
+        train_user, train_item, train_rating = user[train_idx], item[train_idx], rating[train_idx]
+        train_rating[train_rating < 3.5] = 0
+        train_rating[train_rating >= 3.5] = 1
+        test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
+        test_rating[test_rating < 3.5] = 0
+        test_rating[test_rating >= 3.5] = 1
         train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
-        random_user = np.arange(M).repeat(cfg['num_random'])
-        random_item = []
-        step_size = 10000
-        for i in range(0, M, step_size):
-            valid_step_size = min(i + step_size, M) - i
-            nonzero_user, nonzero_item = train_data[i:i + valid_step_size].nonzero()
-            random_item_i = np.random.rand(valid_step_size, N)
-            random_item_i[nonzero_user, nonzero_item] = np.inf
-            random_item_i = random_item_i.argsort(axis=1)[:, :cfg['num_random']].reshape(-1)
-            random_item.append(random_item_i)
-        random_item = np.concatenate(random_item, axis=0)
-        random_rating = np.zeros(random_user.shape[0], dtype=np.float32)
-        train_ts = csr_matrix((train_ts, (train_user, train_item)), shape=(M, N))
-        withheld_user = np.arange(M)
-        withheld_item = np.asarray(train_ts.argmax(axis=1)).reshape(-1)
-        withheld_rating = np.ones(M, dtype=np.float32)
-        train_data[withheld_user, withheld_item] = 0
-        train_data.eliminate_zeros()
-        test_user = np.concatenate([withheld_user, random_user], axis=0)
-        test_item = np.concatenate([withheld_item, random_item], axis=0)
-        test_rating = np.concatenate([withheld_rating, random_rating], axis=0)
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
 
@@ -353,16 +339,21 @@ class ML10M(Dataset):
     data_name = 'ML10M'
     file = [('https://files.grouplens.org/datasets/movielens/ml-10m.zip', 'ce571fd55effeba0271552578f2648bd')]
 
-    def __init__(self, root, split, data_mode, transform=None):
+    def __init__(self, root, split, data_mode, data_split=None, transform=None):
         self.root = os.path.expanduser(root)
         self.split = split
         self.data_mode = data_mode
+        self.data_split = data_split
         self.transform = transform
         if not check_exists(self.processed_folder):
             self.process()
         self.train_data = load(os.path.join(self.processed_folder, self.data_mode, 'train.pt'), mode='pickle')
         self.test_data = load(os.path.join(self.processed_folder, self.data_mode, 'test.pt'), mode='pickle')
         self.item_attr = load(os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')
+        if data_split is not None:
+            self.train_data = self.train_data[:, data_split]
+            self.test_data = self.test_data[:, data_split]
+            self.item_attr = self.item_attr[data_split]
         self.num_users, self.num_items = self.train_data.shape
 
     def __getitem__(self, index):
@@ -452,8 +443,7 @@ class ML10M(Dataset):
 
     def make_implicit_data(self):
         data = np.genfromtxt(os.path.join(self.raw_folder, 'ml-10M100K', 'ratings.dat'), delimiter='::')
-        user, item, rating, ts = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(
-            np.float32), data[:, 3].astype(np.float32)
+        user, item, rating = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(np.float32)
         user_id, user_inv = np.unique(user, return_inverse=True)
         item_id, item_inv = np.unique(item, return_inverse=True)
         M, N = len(user_id), len(item_id)
@@ -461,33 +451,16 @@ class ML10M(Dataset):
         item_id_map = {item_id[i]: i for i in range(len(item_id))}
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
-        rating.fill(1)
-        train_user = user
-        train_item = item
-        train_rating = rating
-        train_ts = ts
+        idx = np.random.permutation(user.shape[0])
+        num_train = int(user.shape[0] * 0.9)
+        train_idx, test_idx = idx[:num_train], idx[num_train:]
+        train_user, train_item, train_rating = user[train_idx], item[train_idx], rating[train_idx]
+        train_rating[train_rating < 3.5] = 0
+        train_rating[train_rating >= 3.5] = 1
+        test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
+        test_rating[test_rating < 3.5] = 0
+        test_rating[test_rating >= 3.5] = 1
         train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
-        random_user = np.arange(M).repeat(100)
-        random_item = []
-        step_size = 10000
-        for i in range(0, M, step_size):
-            valid_step_size = min(i + step_size, M) - i
-            nonzero_user, nonzero_item = train_data[i:i + valid_step_size].nonzero()
-            random_item_i = np.random.rand(valid_step_size, N)
-            random_item_i[nonzero_user, nonzero_item] = np.inf
-            random_item_i = random_item_i.argsort(axis=1)[:, :100].reshape(-1)
-            random_item.append(random_item_i)
-        random_item = np.concatenate(random_item, axis=0)
-        random_rating = np.zeros(random_user.shape[0], dtype=np.float32)
-        train_ts = csr_matrix((train_ts, (train_user, train_item)), shape=(M, N))
-        withheld_user = np.arange(M)
-        withheld_item = np.asarray(train_ts.argmax(axis=1)).reshape(-1)
-        withheld_rating = np.ones(M, dtype=np.float32)
-        train_data[withheld_user, withheld_item] = 0
-        train_data.eliminate_zeros()
-        test_user = np.concatenate([withheld_user, random_user], axis=0)
-        test_item = np.concatenate([withheld_item, random_item], axis=0)
-        test_rating = np.concatenate([withheld_rating, random_rating], axis=0)
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
 
@@ -514,16 +487,21 @@ class ML20M(Dataset):
     data_name = 'ML20M'
     file = [('https://files.grouplens.org/datasets/movielens/ml-20m.zip', 'cd245b17a1ae2cc31bb14903e1204af3')]
 
-    def __init__(self, root, split, data_mode, transform=None):
+    def __init__(self, root, split, data_mode, data_split=None, transform=None):
         self.root = os.path.expanduser(root)
         self.split = split
         self.data_mode = data_mode
+        self.data_split = data_split
         self.transform = transform
         if not check_exists(self.processed_folder):
             self.process()
         self.train_data = load(os.path.join(self.processed_folder, self.data_mode, 'train.pt'), mode='pickle')
         self.test_data = load(os.path.join(self.processed_folder, self.data_mode, 'test.pt'), mode='pickle')
         self.item_attr = load(os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')
+        if data_split is not None:
+            self.train_data = self.train_data[:, data_split]
+            self.test_data = self.test_data[:, data_split]
+            self.item_attr = self.item_attr[data_split]
         self.num_users, self.num_items = self.train_data.shape
 
     def __getitem__(self, index):
@@ -613,8 +591,7 @@ class ML20M(Dataset):
 
     def make_implicit_data(self):
         data = np.genfromtxt(os.path.join(self.raw_folder, 'ml-20m', 'ratings.csv'), delimiter=',', skip_header=1)
-        user, item, rating, ts = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(
-            np.float32), data[:, 3].astype(np.float32)
+        user, item, rating = data[:, 0].astype(np.int64), data[:, 1].astype(np.int64), data[:, 2].astype(np.float32)
         user_id, user_inv = np.unique(user, return_inverse=True)
         item_id, item_inv = np.unique(item, return_inverse=True)
         M, N = len(user_id), len(item_id)
@@ -622,33 +599,16 @@ class ML20M(Dataset):
         item_id_map = {item_id[i]: i for i in range(len(item_id))}
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
-        rating.fill(1)
-        train_user = user
-        train_item = item
-        train_rating = rating
-        train_ts = ts
+        idx = np.random.permutation(user.shape[0])
+        num_train = int(user.shape[0] * 0.9)
+        train_idx, test_idx = idx[:num_train], idx[num_train:]
+        train_user, train_item, train_rating = user[train_idx], item[train_idx], rating[train_idx]
+        train_rating[train_rating < 3.5] = 0
+        train_rating[train_rating >= 3.5] = 1
+        test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
+        test_rating[test_rating < 3.5] = 0
+        test_rating[test_rating >= 3.5] = 1
         train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
-        random_user = np.arange(M).repeat(100)
-        random_item = []
-        step_size = 10000
-        for i in range(0, M, step_size):
-            valid_step_size = min(i + step_size, M) - i
-            nonzero_user, nonzero_item = train_data[i:i + valid_step_size].nonzero()
-            random_item_i = np.random.rand(valid_step_size, N)
-            random_item_i[nonzero_user, nonzero_item] = np.inf
-            random_item_i = random_item_i.argsort(axis=1)[:, :100].reshape(-1)
-            random_item.append(random_item_i)
-        random_item = np.concatenate(random_item, axis=0)
-        random_rating = np.zeros(random_user.shape[0], dtype=np.float32)
-        train_ts = csr_matrix((train_ts, (train_user, train_item)), shape=(M, N))
-        withheld_user = np.arange(M)
-        withheld_item = np.asarray(train_ts.argmax(axis=1)).reshape(-1)
-        withheld_rating = np.ones(M, dtype=np.float32)
-        train_data[withheld_user, withheld_item] = 0
-        train_data.eliminate_zeros()
-        test_user = np.concatenate([withheld_user, random_user], axis=0)
-        test_item = np.concatenate([withheld_item, random_item], axis=0)
-        test_rating = np.concatenate([withheld_rating, random_rating], axis=0)
         test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return train_data, test_data
 

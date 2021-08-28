@@ -2,7 +2,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .utils import loss_fn
+from .utils import loss_fn, parse_implicit_rating_pair
 from config import cfg
 
 
@@ -19,7 +19,7 @@ class MF(nn.Module):
         self.item_bias = nn.Embedding(num_items, 1)
         self.bias = nn.Parameter(torch.randn(1))
         if self.info_size is not None:
-            if cfg['data_name'] in ['ML100K', 'ML1M']:
+            if 'user_profile' in self.info_size:
                 self.user_profile = nn.Linear(info_size['user_profile'], hidden_size)
             self.item_attr = nn.Linear(info_size['item_attr'], hidden_size)
         self.reset_parameters()
@@ -47,7 +47,7 @@ class MF(nn.Module):
             item = input['item']
             rating = input['rating']
             if self.info_size is not None:
-                if cfg['data_name'] in ['ML100K', 'ML1M']:
+                if 'user_profile' in input:
                     user_profile = input['user_profile']
                 item_attr = input['item_attr']
         else:
@@ -55,14 +55,14 @@ class MF(nn.Module):
             item = input['target_item']
             rating = input['target_rating']
             if self.info_size is not None:
-                if cfg['data_name'] in ['ML100K', 'ML1M']:
+                if 'user_profile' in input:
                     user_profile = input['target_user_profile']
                 item_attr = input['target_item_attr']
         user_embedding = self.user_embedding(user)
         item_embedding = self.item_embedding(item)
         pred = user_embedding * item_embedding
         if self.info_size is not None:
-            if cfg['data_name'] in ['ML100K', 'ML1M']:
+            if 'user_profile' in input:
                 user_profile = self.user_profile(user_profile)
                 user_profile = user_embedding * user_profile
                 item_attr = self.item_attr(item_attr)
@@ -74,6 +74,17 @@ class MF(nn.Module):
                 pred = pred + item_attr
         output['target_rating'] = pred.sum(dim=-1) + self.bias
         output['loss'] = loss_fn(output['target_rating'], rating)
+        if cfg['data_mode'] == 'implicit':
+            if self.training:
+                output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(input['user'],
+                                                                                        input['item'],
+                                                                                        output['target_rating'],
+                                                                                        input['rating'])
+            else:
+                output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(input['target_user'],
+                                                                                        input['target_item'],
+                                                                                        output['target_rating'],
+                                                                                        input['target_rating'])
         return output
 
 
