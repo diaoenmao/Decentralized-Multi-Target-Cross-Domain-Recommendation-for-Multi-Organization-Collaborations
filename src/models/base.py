@@ -32,6 +32,13 @@ class Base(nn.Module):
                 self.count = self.count + torch.unique(input['user']).size(0)
             output['target_rating'] = self.base[input['target_item']] / self.count[input['target_item']]
             output['loss'] = loss_fn(output['target_rating'], input['target_rating'])
+            user, user_idx = torch.unique(input['target_user'], return_inverse=True)
+            item, item_idx = torch.unique(input['target_item'], return_inverse=True)
+            num_user, num_item = len(user), len(item)
+            output['target_rating'] = torch.full((num_user, num_item), -float('inf'), device=output['target_rating'].device)
+            input['target_rating'] = torch.full((num_user, num_item), -float('inf'), device=input['target_rating'].device)
+            output['target_rating'][user_idx, item_idx] = output['target_rating']
+            input['target_rating'][user_idx, item_idx] = input['target_rating']
         else:
             raise ValueError('Not valid data mode')
         return output

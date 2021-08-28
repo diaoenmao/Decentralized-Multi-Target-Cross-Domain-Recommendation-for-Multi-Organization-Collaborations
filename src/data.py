@@ -10,15 +10,19 @@ from torch.utils.data.dataloader import default_collate
 from utils import collate, to_device
 
 
-def fetch_dataset(data_name, model_name=None):
+def fetch_dataset(data_name, model_name=None, data_split=None):
     import datasets
     model_name = cfg['model_name'] if model_name is None else model_name
     dataset = {}
     print('fetching data {}...'.format(data_name))
     root = './data/{}'.format(data_name)
     if data_name in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
-        dataset['train'] = eval('datasets.{}(root=root, split=\'train\', data_mode=cfg["data_mode"])'.format(data_name))
-        dataset['test'] = eval('datasets.{}(root=root, split=\'test\', data_mode=cfg["data_mode"])'.format(data_name))
+        dataset['train'] = eval(
+            'datasets.{}(root=root, split=\'train\', data_mode=cfg["data_mode"], data_split=data_split)'.format(
+                data_name))
+        dataset['test'] = eval(
+            'datasets.{}(root=root, split=\'test\', data_mode=cfg["data_mode"], data_split=data_split)'.format(
+                data_name))
         if model_name in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
             if cfg['data_mode'] == 'explicit':
                 dataset['train'].transform = datasets.Compose([PairInput()])
@@ -37,7 +41,7 @@ def fetch_dataset(data_name, model_name=None):
                 dataset['test'].transform = datasets.Compose([FlatInput(dataset['train'].num_items, 0)])
             elif cfg['data_mode'] == 'implicit':
                 dataset['train'].transform = datasets.Compose(
-                    [FlatInput(dataset['train'].num_items, cfg['num_negatives'])])
+                    [FlatInput(dataset['train'].num_items, -1)])
                 dataset['test'].transform = datasets.Compose(
                     [FlatInput(dataset['train'].num_items, 0)])
             else:
@@ -86,16 +90,19 @@ class NegativeSample(torch.nn.Module):
 
     def forward(self, input):
         positive_item = input['item']
+        # print('a', positive_item)
         positive_rating = input['rating']
         negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_item.tolist())),
                                      dtype=torch.long)
+        # print('b', negative_item)
         num_negative_random_item = self.num_negatives * len(positive_item)
         negative_item = negative_item[torch.randperm(len(negative_item))][:num_negative_random_item]
         negative_rating = torch.zeros(negative_item.size(0))
         input['item'] = torch.cat([positive_item, negative_item], dim=0)
         input['rating'] = torch.cat([positive_rating, negative_rating], dim=0)
-        input['item_attr'] = torch.cat([input['item_attr'], torch.tensor(self.item_attr[negative_item])],
-                                       dim=0)
+        negative_item_attr = torch.tensor(self.item_attr[negative_item]).view(-1, input['item_attr'].size(1))
+        # print('c', input['item_attr'].shape, negative_item_attr.shape)
+        input['item_attr'] = torch.cat([input['item_attr'], negative_item_attr], dim=0)
         return input
 
 
@@ -135,6 +142,10 @@ class FlatInput(torch.nn.Module):
             target_rating = torch.full((self.num_items,), float('nan'))
             target_rating[input['target_item']] = input['target_rating']
             input['target_rating'] = target_rating
+        elif self.num_negatives == -1:
+            target_rating = torch.zeros(self.num_items)
+            target_rating[input['target_item']] = input['target_rating']
+            input['target_rating'] = target_rating
         else:
             target_rating = torch.full((self.num_items,), float('nan'))
             positive_item = input['item']
@@ -164,15 +175,15 @@ def split_dataset(dataset):
     if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
         if cfg['data_split_mode'] == 'genre':
             num_organizations = cfg['num_organizations']
-            data_split_idx = torch.multinomial(torch.tensor(dataset.item_attr), 1).view(-1).numpy()
+            data_split_idx = torch.multinomial(torch.tensor(dataset['train'].item_attr), 1).view(-1).numpy()
             data_split = []
             for i in range(num_organizations):
-                data_split_i = np.where(data_split_idx == i).tolist()
+                data_split_i = np.where(data_split_idx == i)[0].tolist()
                 data_split.append(data_split_i)
         elif 'random' in cfg['data_split_mode']:
-            num_items = dataset.num_items
+            num_items = dataset['train'].num_items
             num_organizations = cfg['num_organizations']
-            data_split = list(torch.randperm(num_organizations).split(num_items // num_organizations))
+            data_split = list(torch.randperm(num_items).split(num_items // num_organizations))
             data_split = data_split[:num_organizations - 1] + [torch.cat(data_split[num_organizations - 1:])]
         else:
             raise ValueError('Not valid data split mode')
@@ -181,10 +192,11 @@ def split_dataset(dataset):
     return data_split
 
 
-def make_split_dataset(dataset, data_split):
-    num_items = len(data_split)
-    dataset = copy.deepcopy(dataset)
-    dataset.num_items = num_items
-    dataset.train_data = dataset.train_data.tocsc()[:, data_split].tocsr()
-    dataset.test_data = dataset.test_data.tocsc()[:, data_split].tocsr()
+def make_split_dataset(data_split):
+    num_organizations = len(data_split)
+    dataset = []
+    for i in range(num_organizations):
+        data_split_i = data_split[i]
+        dataset_i = fetch_dataset(cfg['data_name'], cfg['model_name'], data_split_i)
+        dataset.append(dataset_i)
     return dataset

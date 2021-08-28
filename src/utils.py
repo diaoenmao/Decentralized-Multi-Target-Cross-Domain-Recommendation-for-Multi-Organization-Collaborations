@@ -128,11 +128,11 @@ def process_control():
         cfg['data_split_mode'] = cfg['control']['data_split_mode']
         if cfg['data_split_mode'] == 'genre':
             if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
-                cfg['num_organization'] = 18
+                cfg['num_organizations'] = 18
             else:
                 raise ValueError('Not valid data name')
         elif 'random' in cfg['data_split_mode']:
-            cfg['num_organization'] = int(cfg['data_split_mode'].split('-')[1])
+            cfg['num_organizations'] = int(cfg['data_split_mode'].split('-')[1])
         else:
             raise ValueError('Not valid data split mode')
     cfg['run_mode'] = cfg['control']['run_mode'] if 'run_mode' in cfg['control'] else None

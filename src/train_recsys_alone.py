@@ -40,7 +40,7 @@ def runExperiment():
     torch.cuda.manual_seed(cfg['seed'])
     dataset = fetch_dataset(cfg['data_name'])
     data_split = split_dataset(dataset)
-    dataset = make_split_dataset(dataset, data_split[0])
+    dataset = make_split_dataset([data_split[1]])[0]
     process_dataset(dataset)
     data_loader = make_data_loader(dataset, cfg['model_name'])
     model = eval('models.{}().to(cfg["device"])'.format(cfg['model_name']))

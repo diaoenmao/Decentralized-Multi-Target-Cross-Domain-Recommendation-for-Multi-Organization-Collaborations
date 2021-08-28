@@ -4,6 +4,7 @@ from utils import collate, process_dataset, save_img, process_control, resume, t
 import torch
 import models
 
+
 # if __name__ == "__main__":
 #     process_control()
 #     cfg['seed'] = 0
@@ -145,3 +146,42 @@ import models
 #     csc = csc_matrix((data, (row, col)), shape=(M, N))
 #     print('a', csc.todense())
 #     print('a', csc[:, :3].todense())
+
+# def MAP(output, target, topk):
+#     topk = min(topk, target.size(-1))
+#     idx = torch.sort(output, dim=-1, descending=True)[1]
+#     topk_idx = idx[:, :topk]
+#     topk_target = target[torch.arange(target.size(0)).view(-1, 1), topk_idx]
+#     precision = torch.cumsum(topk_target, dim=-1) / torch.arange(1, topk + 1).float()
+#     m = torch.sum(topk_target, dim=-1)
+#     ap = (precision * topk_target).sum(dim=-1) / m
+#     map = ap.mean()
+#     return map
+#
+#
+# if __name__ == "__main__":
+#     target = torch.tensor([1, 0, 1, 0, 0, 1, 0, 0, 1, 1]).view(1, -1)
+#     output = torch.arange(target.size(-1), 0, -1).float().view(1, -1)
+#     topk = 10
+#     map = MAP(output, target, topk)
+#     print(map)
+
+
+def parse_implicit_rating(user, item, output, target):
+    user, user_idx = torch.unique(user, return_inverse=True)
+    item, item_idx = torch.unique(item, return_inverse=True)
+    num_user, num_item = len(user), len(item)
+    output_rating = torch.full((num_user, num_item), -float('inf'), device=output.device)
+    target_rating = torch.full((num_user, num_item), -float('inf'), device=target.device)
+    output_rating[user_idx, item_idx] = output
+    target_rating[user_idx, item_idx] = target
+    return output_rating, target_rating
+
+if __name__ == "__main__":
+    user = torch.arange(10)
+    item = torch.arange(10)
+    output = torch.ones(10)
+    target = torch.zeros(10)
+    output_rating, target_rating = parse_implicit_rating(user, item, output, target)
+    print(output_rating)
+    print(target_rating)

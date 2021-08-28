@@ -11,33 +11,17 @@ def RMSE(output, target):
     return rmse
 
 
-def HR(output, target, topk=10):
-    output = output.reshape(-1, cfg['num_random'] + 1)
-    target = target.reshape(-1, cfg['num_random'] + 1)
-    output_indices = torch.sort(output, dim=-1, descending=True)[1]
-    topk_output = output_indices[:, :topk]
-    topk_target = target[torch.arange(target.size(0)).view(-1, 1), topk_output]
-    hr = torch.any(topk_target, dim=-1).float().mean().item()
-    return hr
-
-
-def NDCG(output, target, topk=10):
-    output = output.reshape(-1, cfg['num_random'] + 1)
-    target = target.reshape(-1, cfg['num_random'] + 1)
-    output_indices = torch.sort(output, dim=-1, descending=True)[1]
-    topk_output = output_indices[:, :topk]
-    topk_target = target[torch.arange(target.size(0)).view(-1, 1), topk_output]
-    nonzero_items = torch.nonzero(topk_target)
-    ndcg = output.new_zeros(output.size(0))
-    ndcg[nonzero_items[:, 0]] = math.log(2) / torch.log(2 + nonzero_items[:, 1])
-    ndcg = ndcg.mean().item()
-    return ndcg
-
-
-def ConfidenceRate(num_confident, num_unknown):
-    with torch.no_grad():
-        confidence = (num_confident / num_unknown).item()
-    return confidence
+def MAP(output, target, topk=10):
+    print(output.size(), target.size())
+    topk = min(topk, target.size(-1))
+    idx = torch.sort(output, dim=-1, descending=True)[1]
+    topk_idx = idx[:, :topk]
+    topk_target = target[torch.arange(target.size(0)).view(-1, 1), topk_idx]
+    precision = torch.cumsum(topk_target, dim=-1) / torch.arange(1, topk + 1).float()
+    m = torch.sum(topk_target, dim=-1)
+    ap = (precision * topk_target).sum(dim=-1) / m
+    map = ap.mean()
+    return map
 
 
 class Metric(object):
@@ -46,8 +30,7 @@ class Metric(object):
         self.pivot, self.pivot_name, self.pivot_direction = self.make_pivot()
         self.metric = {'Loss': (lambda input, output: output['loss'].item()),
                        'RMSE': (lambda input, output: RMSE(output['target_rating'], input['target_rating'])),
-                       'HR': (lambda input, output: HR(output['target_rating'], input['target_rating'])),
-                       'NDCG': (lambda input, output: NDCG(output['target_rating'], input['target_rating']))}
+                       'MAP': (lambda input, output: MAP(output['target_rating'], input['target_rating']))}
 
     def make_metric_name(self, metric_name):
         return metric_name
