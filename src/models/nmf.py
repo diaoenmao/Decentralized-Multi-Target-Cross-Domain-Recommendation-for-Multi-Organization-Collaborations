@@ -124,13 +124,15 @@ class NMF(nn.Module):
             if self.training:
                 output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(input['user'],
                                                                                         input['item'],
+                                                                                        self.num_items,
                                                                                         output['target_rating'],
                                                                                         input['rating'])
             else:
                 output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(input['target_user'],
-                                                                                        input['target_item'],
-                                                                                        output['target_rating'],
-                                                                                        input['target_rating'])
+                                                                                             input['target_item'],
+                                                                                             self.num_items,
+                                                                                             output['target_rating'],
+                                                                                             input['target_rating'])
         return output
 
 

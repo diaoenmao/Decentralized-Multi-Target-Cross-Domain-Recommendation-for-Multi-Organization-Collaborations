@@ -1,3 +1,4 @@
+import copy
 import datetime
 import numpy as np
 import sys
@@ -5,7 +6,7 @@ import time
 import torch
 import models
 from config import cfg
-from data import make_split_dataset
+from data import make_data_loader, make_pair_transform
 from utils import to_device, make_optimizer, make_scheduler, collate
 
 
@@ -17,17 +18,20 @@ class Organization:
         self.model_name = model_name
         self.model_state_dict = [None for _ in range(cfg['global']['num_epochs'] + 1)]
 
-    def initialize(self, dataset, metric, logger):
-        dataset = make_split_dataset(dataset, self.data_split)
+    def initialize(self, dataset, metric, logger, iter):
+        dataset = copy.deepcopy(dataset)
+        dataset = make_pair_transform(dataset, cfg['data_mode'])
+        model_name = cfg['model_name']
+        cfg['model_name'] = 'base'
         data_loader = make_data_loader(dataset, self.model_name[iter], shuffle={'train': False, 'test': False})
-        model = models.Base(cfg['num_users'], num_items).to(cfg['device'])
+        model = models.base(dataset['train'].num_users, dataset['train'].num_items).to(cfg['device'])
         if 'train' in dataset:
             model.train(True)
             for i, input in enumerate(data_loader['train']):
                 input = collate(input)
                 input = to_device(input, cfg['device'])
                 model(input)
-            self.model_state_dict[0] = model.state_dict()
+            self.model_state_dict[0] = {k: v.cpu() for k, v in model.state_dict().items()}
             with torch.no_grad():
                 model.train(False)
                 initialization = {'train': [], 'test': []}
@@ -35,11 +39,12 @@ class Organization:
                     input = collate(input)
                     input_size = len(input['user'])
                     input = to_device(input, cfg['device'])
+                    input['no_parse'] = True
                     output = model(input)
                     output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
                     evaluation = metric.evaluate(metric.metric_name['train'], input, output)
                     logger.append(evaluation, 'train', input_size)
-                    initialization['train'].append(output['target_rating'].cpu())
+                    initialization['train'].append(output['raw_target_rating'].cpu())
                 initialization['train'] = torch.cat(initialization['train'], dim=0)
         with torch.no_grad():
             model.load_state_dict(self.model_state_dict[0])
@@ -48,15 +53,17 @@ class Organization:
                 input = collate(input)
                 input_size = len(input['user'])
                 input = to_device(input, cfg['device'])
+                input['no_parse'] = True
                 output = model(input)
                 output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
                 evaluation = metric.evaluate(metric.metric_name['test'], input, output)
                 logger.append(evaluation, 'test', input_size)
-                initialization['test'].append(output['target_rating'].cpu())
+                initialization['test'].append(output['raw_target_rating'].cpu())
             initialization['test'] = torch.cat(initialization['test'], dim=0)
+        cfg['model_name'] = model_name
         return initialization
 
-    def train(self, iter, dataset, metric, logger):
+    def train(self, dataset, metric, logger, iter):
         dataset = make_split_dataset(dataset, self.data_split)
         data_loader = make_data_loader(dataset, self.model_name[iter])
         model = eval('models.{}().to(cfg["device"])'.format(self.model_name[iter]))

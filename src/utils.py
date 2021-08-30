@@ -161,6 +161,14 @@ def process_control():
     cfg[model_name]['scheduler_name'] = 'None'
     cfg[model_name]['num_epochs'] = 200
     cfg[model_name]['batch_size'] = {'train': 100, 'test': 200}
+    cfg['local'] = {}
+    cfg['local']['num_epochs'] = 200
+    cfg['global'] = {}
+    cfg['global']['num_epochs'] = 10
+    cfg['linesearch'] = {}
+    cfg['linesearch']['optimizer_name'] = 'LBFGS'
+    cfg['linesearch']['lr'] = 1
+    cfg['linesearch']['num_epochs'] = 10
     return
 
 

@@ -10,11 +10,13 @@ from torch.utils.data.dataloader import default_collate
 from utils import collate, to_device
 
 
-def fetch_dataset(data_name, model_name=None, data_split=None):
+def fetch_dataset(data_name, model_name=None, data_split=None, verbose=True):
     import datasets
+
     model_name = cfg['model_name'] if model_name is None else model_name
     dataset = {}
-    print('fetching data {}...'.format(data_name))
+    if verbose:
+        print('fetching data {}...'.format(data_name))
     root = './data/{}'.format(data_name)
     if data_name in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
         dataset['train'] = eval(
@@ -24,31 +26,44 @@ def fetch_dataset(data_name, model_name=None, data_split=None):
             'datasets.{}(root=root, split=\'test\', data_mode=cfg["data_mode"], data_split=data_split)'.format(
                 data_name))
         if model_name in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
-            if cfg['data_mode'] == 'explicit':
-                dataset['train'].transform = datasets.Compose([PairInput()])
-                dataset['test'].transform = datasets.Compose([PairInput()])
-            elif cfg['data_mode'] == 'implicit':
-                dataset['train'].transform = datasets.Compose(
-                    [NegativeSample(dataset['train'].item_attr, dataset['train'].num_items, cfg['num_negatives']),
-                     PairInput()])
-                dataset['test'].transform = datasets.Compose(
-                    [PairInput()])
-            else:
-                raise ValueError('Not valid data mode')
+            dataset = make_pair_transform(dataset, cfg['data_mode'])
         elif model_name in ['ae']:
-            if cfg['data_mode'] == 'explicit':
-                dataset['train'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
-                dataset['test'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
-            elif cfg['data_mode'] == 'implicit':
-                dataset['train'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
-                dataset['test'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
-            else:
-                raise ValueError('Not valid data mode')
+            dataset = make_flat_transform(dataset, cfg['data_mode'])
         else:
             raise ValueError('Not valid model name')
     else:
         raise ValueError('Not valid dataset name')
-    print('data ready')
+    if verbose:
+        print('data ready')
+    return dataset
+
+
+def make_pair_transform(dataset, data_mode):
+    import datasets
+    if data_mode == 'explicit':
+        dataset['train'].transform = datasets.Compose([PairInput()])
+        dataset['test'].transform = datasets.Compose([PairInput()])
+    elif data_mode == 'implicit':
+        dataset['train'].transform = datasets.Compose(
+            [NegativeSample(dataset['train'].item_attr, dataset['train'].num_items, cfg['num_negatives']),
+             PairInput()])
+        dataset['test'].transform = datasets.Compose(
+            [PairInput()])
+    else:
+        raise ValueError('Not valid data mode')
+    return dataset
+
+
+def make_flat_transform(dataset, data_mode):
+    import datasets
+    if data_mode == 'explicit':
+        dataset['train'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
+        dataset['test'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
+    elif data_mode == 'implicit':
+        dataset['train'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
+        dataset['test'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
+    else:
+        raise ValueError('Not valid data mode')
     return dataset
 
 
@@ -176,6 +191,7 @@ def make_split_dataset(data_split):
     dataset = []
     for i in range(num_organizations):
         data_split_i = data_split[i]
-        dataset_i = fetch_dataset(cfg['data_name'], cfg['model_name'], data_split_i)
+        dataset_i = fetch_dataset(cfg['data_name'], model_name=cfg['model_name'], data_split=data_split_i,
+                                  verbose=False)
         dataset.append(dataset_i)
     return dataset

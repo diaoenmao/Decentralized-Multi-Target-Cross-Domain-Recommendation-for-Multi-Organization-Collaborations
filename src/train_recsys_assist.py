@@ -8,10 +8,11 @@ import time
 import torch
 import torch.backends.cudnn as cudnn
 from config import cfg, process_args
-from data import fetch_dataset, make_data_loader, split_dataset
+from data import fetch_dataset, make_data_loader, split_dataset, make_split_dataset
 from metrics import Metric
 from utils import save, to_device, process_control, process_dataset, make_optimizer, make_scheduler, resume, collate
 from logger import make_logger
+from assist import Assist
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 cudnn.benchmark = True
@@ -41,12 +42,13 @@ def runExperiment():
     dataset = fetch_dataset(cfg['data_name'])
     process_dataset(dataset)
     data_split = split_dataset(dataset)
+    dataset = make_split_dataset(data_split)
     assist = Assist(data_split)
     organization = assist.make_organization()
     if cfg['data_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
     elif cfg['data_mode'] == 'implicit':
-        metric = Metric({'train': ['Loss'], 'test': ['Loss', 'HR', 'NDCG']})
+        metric = Metric({'train': ['Loss', 'MAP'], 'test': ['Loss', 'MAP']})
     else:
         raise ValueError('Not valid data mode')
     if cfg['resume_mode'] == 1:
@@ -63,10 +65,11 @@ def runExperiment():
         logger = make_logger('output/runs/train_{}'.format(cfg['model_tag']))
     if last_epoch == 1:
         initialize(dataset, assist, organization, metric, logger, 0)
-    for epoch in range(last_epoch, cfg[cfg['global']]['num_epochs'] + 1):
+    for epoch in range(last_epoch, cfg['global']['num_epochs'] + 1):
         dataset = assist.make_dataset(dataset, epoch)
+        exit()
         train(dataset, organization, metric, logger, epoch)
-        organization_outputs = gather(organization, epoch)
+        organization_outputs = gather(dataset, organization, epoch)
         assist.update(organization_outputs, epoch)
         test(assist, metric, logger, epoch)
         result = {'cfg': cfg, 'epoch': epoch + 1, 'assist': assist, 'organization': organization, 'logger': logger}
@@ -81,18 +84,18 @@ def runExperiment():
 
 def initialize(dataset, assist, organization, metric, logger, epoch):
     logger.safe(True)
-    initialization = organization[0].initialize(dataset, metric, logger)
+    initialization = organization[cfg['sponsor_id']].initialize(dataset[cfg['sponsor_id']], metric, logger, epoch)
     info = {'info': ['Model: {}'.format(cfg['model_tag']),
-                     'Train Epoch: {}'.format(epoch), 'ID: 1']}
+                     'Train Epoch: {}'.format(epoch), 'ID: {}'.format(cfg['sponsor_id'] + 1)]}
     logger.append(info, 'train', mean=False)
     print(logger.write('train', metric.metric_name['train']))
     info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
     logger.append(info, 'test', mean=False)
     print(logger.write('test', metric.metric_name['test']))
     assist.organization_output[0]['train'] = initialization['train']
-    assist.organization_target[0]['train'] = torch.tensor(dataset['train'].train_data.data)
+    assist.organization_target[0]['train'] = torch.tensor(dataset[cfg['sponsor_id']]['train'].train_data.data)
     assist.organization_output[0]['test'] = initialization['test']
-    assist.organization_target[0]['test'] = torch.tensor(dataset['test'].test_data.data)
+    assist.organization_target[0]['test'] = torch.tensor(dataset[cfg['sponsor_id']]['test'].test_data.data)
     logger.safe(False)
     logger.reset()
     return

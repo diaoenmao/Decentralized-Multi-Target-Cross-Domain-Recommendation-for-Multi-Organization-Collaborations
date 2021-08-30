@@ -609,8 +609,10 @@ class ML20M(Dataset):
         test_rating[test_rating < 3.5] = 0
         test_rating[test_rating >= 3.5] = 1
         train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
-        test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
-        return train_data, test_data
+        train_target = train_data
+        test_data = train_data
+        test_target = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
+        return (train_data, train_target), (test_data, test_target)
 
     def make_info(self):
         import pandas as pd

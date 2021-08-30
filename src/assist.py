@@ -45,16 +45,20 @@ class Assist:
 
     def make_dataset(self, dataset, iter):
         residual = {}
-        for split in dataset:
+        for split in dataset[0]:
             self.organization_output[iter - 1][split].requires_grad = True
+            print(self.organization_output[iter - 1][split].size())
+            print(self.organization_target[0][split].size())
+            exit()
             loss = models.loss_fn(self.organization_output[iter - 1][split],
                                   self.organization_target[0][split], reduction='sum')
             loss.backward()
             residual[split] = - copy.deepcopy(self.organization_output[iter - 1][split].grad)
             self.organization_output[iter - 1][split].detach_()
-        for split in dataset:
-            dataset[split].train_data.data = residual['train'].numpy()
-            dataset[split].test_data.data = residual['test'].numpy()
+        for i in range(len(dataset)):
+            for split in dataset[i]:
+                dataset[split].train_data.data = residual['train'].numpy()
+                dataset[split].test_data.data = residual['test'].numpy()
         return dataset
 
     def update(self, organization_outputs, iter):

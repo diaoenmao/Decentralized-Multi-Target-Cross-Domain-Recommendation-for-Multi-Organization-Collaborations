@@ -33,16 +33,17 @@ class Base(nn.Module):
             output['target_rating'] = self.base[input['target_item']] / self.count[input['target_item']]
             output['loss'] = loss_fn(output['target_rating'], input['target_rating'])
             output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(input['target_user'],
-                                                                                    input['target_item'],
-                                                                                    output['target_rating'],
-                                                                                    input['target_rating'])
+                                                                                         input['target_item'],
+                                                                                         self.num_items,
+                                                                                         output['target_rating'],
+                                                                                         input['target_rating'])
         else:
             raise ValueError('Not valid data mode')
         return output
 
 
-def base():
-    num_users = cfg['num_users']
-    num_items = cfg['num_items']
+def base(num_users=None, num_items=None):
+    num_users = cfg['num_users'] if num_users is None else num_users
+    num_items = cfg['num_items'] if num_items is None else num_items
     model = Base(num_users, num_items)
     return model
