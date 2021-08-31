@@ -76,11 +76,12 @@ class Decoder(nn.Module):
 
 
 class AE(nn.Module):
-    def __init__(self, num_users, num_items, encoder_hidden_size, decoder_hidden_size, info_size):
+    def __init__(self, encoder_num_users, encoder_num_items, decoder_num_users, decoder_num_items, encoder_hidden_size,
+                 decoder_hidden_size, info_size):
         super().__init__()
         self.info_size = info_size
-        self.encoder = Encoder(num_users, num_items, encoder_hidden_size, info_size)
-        self.decoder = Decoder(num_users, num_items, decoder_hidden_size)
+        self.encoder = Encoder(encoder_num_users, encoder_num_items, encoder_hidden_size, info_size)
+        self.decoder = Decoder(decoder_num_users, decoder_num_items, decoder_hidden_size)
 
     def forward(self, input):
         output = {}
@@ -113,11 +114,14 @@ class AE(nn.Module):
         return output
 
 
-def ae():
-    num_users = cfg['num_users']
-    num_items = cfg['num_items']
+def ae(encoder_num_users=None, encoder_num_items=None, decoder_num_users=None, decoder_num_items=None):
+    encoder_num_users = cfg['num_users'] if encoder_num_users is None else encoder_num_users
+    encoder_num_items = cfg['num_items'] if encoder_num_items is None else encoder_num_items
+    decoder_num_users = cfg['num_users'] if decoder_num_users is None else decoder_num_users
+    decoder_num_items = cfg['num_items'] if decoder_num_items is None else decoder_num_items
     encoder_hidden_size = cfg['ae']['encoder_hidden_size']
     decoder_hidden_size = cfg['ae']['decoder_hidden_size']
     info_size = cfg['info_size']
-    model = AE(num_users, num_items, encoder_hidden_size, decoder_hidden_size, info_size)
+    model = AE(encoder_num_users, encoder_num_items, decoder_num_users, decoder_num_items, encoder_hidden_size,
+               decoder_hidden_size, info_size)
     return model

@@ -39,13 +39,14 @@ class Organization:
                     input = collate(input)
                     input_size = len(input['user'])
                     input = to_device(input, cfg['device'])
-                    input['no_parse'] = True
                     output = model(input)
                     output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
                     evaluation = metric.evaluate(metric.metric_name['train'], input, output)
                     logger.append(evaluation, 'train', input_size)
-                    initialization['train'].append(output['raw_target_rating'].cpu())
+                    print(output['target_rating'].size())
+                    initialization['train'].append(output['target_rating'].cpu())
                 initialization['train'] = torch.cat(initialization['train'], dim=0)
+            exit()
         with torch.no_grad():
             model.load_state_dict(self.model_state_dict[0])
             model.train(False)

@@ -65,6 +65,7 @@ def runExperiment():
         logger = make_logger('output/runs/train_{}'.format(cfg['model_tag']))
     if last_epoch == 1:
         initialize(dataset, assist, organization, metric, logger, 0)
+    exit()
     for epoch in range(last_epoch, cfg['global']['num_epochs'] + 1):
         dataset = assist.make_dataset(dataset, epoch)
         exit()

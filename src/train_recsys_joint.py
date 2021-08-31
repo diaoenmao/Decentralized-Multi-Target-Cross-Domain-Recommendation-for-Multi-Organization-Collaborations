@@ -42,8 +42,12 @@ def runExperiment():
     process_dataset(dataset)
     data_loader = make_data_loader(dataset, cfg['model_name'])
     model = eval('models.{}().to(cfg["device"])'.format(cfg['model_name']))
-    optimizer = make_optimizer(model, cfg['model_name'])
-    scheduler = make_scheduler(optimizer, cfg['model_name'])
+    if cfg['model_name'] != 'base':
+        optimizer = make_optimizer(model, cfg['model_name'])
+        scheduler = make_scheduler(optimizer, cfg['model_name'])
+    else:
+        optimizer = None
+        scheduler = None
     if cfg['data_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
     elif cfg['data_mode'] == 'implicit':
@@ -55,8 +59,9 @@ def runExperiment():
         last_epoch = result['epoch']
         if last_epoch > 1:
             model.load_state_dict(result['model_state_dict'])
-            optimizer.load_state_dict(result['optimizer_state_dict'])
-            scheduler.load_state_dict(result['scheduler_state_dict'])
+            if cfg['model_name'] != 'base':
+                optimizer.load_state_dict(result['optimizer_state_dict'])
+                scheduler.load_state_dict(result['scheduler_state_dict'])
             logger = result['logger']
         else:
             logger = make_logger('output/runs/train_{}'.format(cfg['model_tag']))
@@ -68,11 +73,15 @@ def runExperiment():
     for epoch in range(last_epoch, cfg[cfg['model_name']]['num_epochs'] + 1):
         train(data_loader['train'], model, optimizer, metric, logger, epoch)
         test(data_loader['test'], model, metric, logger, epoch)
-        scheduler.step()
+        if scheduler is not None:
+            scheduler.step()
         model_state_dict = model.module.state_dict() if cfg['world_size'] > 1 else model.state_dict()
-        result = {'cfg': cfg, 'epoch': epoch + 1, 'model_state_dict': model_state_dict,
-                  'optimizer_state_dict': optimizer.state_dict(), 'scheduler_state_dict': scheduler.state_dict(),
-                  'logger': logger}
+        if cfg['model_name'] != 'base':
+            result = {'cfg': cfg, 'epoch': epoch + 1, 'model_state_dict': model_state_dict,
+                      'optimizer_state_dict': optimizer.state_dict(), 'scheduler_state_dict': scheduler.state_dict(),
+                      'logger': logger}
+        else:
+            result = {'cfg': cfg, 'epoch': epoch + 1, 'model_state_dict': model_state_dict, 'logger': logger}
         save(result, './output/model/{}_checkpoint.pt'.format(cfg['model_tag']))
         if metric.compare(logger.mean['test/{}'.format(metric.pivot_name)]):
             metric.update(logger.mean['test/{}'.format(metric.pivot_name)])
@@ -92,17 +101,18 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
         if input_size == 0:
             continue
         input = to_device(input, cfg['device'])
-        optimizer.zero_grad()
         output = model(input)
         output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
-        output['loss'].backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
-        optimizer.step()
+        if optimizer is not None:
+            optimizer.zero_grad()
+            output['loss'].backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
+            optimizer.step()
         evaluation = metric.evaluate(metric.metric_name['train'], input, output)
         logger.append(evaluation, 'train', n=input_size)
         if i % int((len(data_loader) * cfg['log_interval']) + 1) == 0:
             _time = (time.time() - start_time) / (i + 1)
-            lr = optimizer.param_groups[0]['lr']
+            lr = optimizer.param_groups[0]['lr'] if optimizer is not None else 0
             epoch_finished_time = datetime.timedelta(seconds=round(_time * (len(data_loader) - i - 1)))
             exp_finished_time = epoch_finished_time + datetime.timedelta(
                 seconds=round((cfg[cfg['model_name']]['num_epochs'] - epoch) * _time * len(data_loader)))
