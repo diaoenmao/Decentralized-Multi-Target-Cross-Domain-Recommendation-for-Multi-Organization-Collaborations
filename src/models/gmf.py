@@ -90,9 +90,9 @@ class GMF(nn.Module):
         return output
 
 
-def gmf():
-    num_users = cfg['num_users']
-    num_items = cfg['num_items']
+def gmf(num_users=None, num_items=None):
+    num_users = cfg['num_users'] if num_users is None else num_users
+    num_items = cfg['num_items'] if num_items is None else num_items
     hidden_size = cfg['gmf']['hidden_size']
     info_size = cfg['info_size']
     model = GMF(num_users, num_items, hidden_size, info_size)

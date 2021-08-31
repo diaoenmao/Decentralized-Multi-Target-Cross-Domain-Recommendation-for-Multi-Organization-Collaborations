@@ -131,11 +131,8 @@ def process_control():
                 cfg['num_organizations'] = 18
             else:
                 raise ValueError('Not valid data name')
-            # 1, 2, 4, 5, 6, 8, 14, 15, 16
-            cfg['sponsor_id'] = int(cfg['data_split_mode'].split('-')[1])
         elif 'random' in cfg['data_split_mode']:
             cfg['num_organizations'] = int(cfg['data_split_mode'].split('-')[1])
-            cfg['sponsor_id'] = 0
         else:
             raise ValueError('Not valid data split mode')
     cfg['run_mode'] = cfg['control']['run_mode'] if 'run_mode' in cfg['control'] else None

@@ -36,6 +36,7 @@ def runExperiment():
     torch.cuda.manual_seed(cfg['seed'])
     dataset = fetch_dataset(cfg['data_name'])
     process_dataset(dataset)
+    data_loader = make_data_loader(dataset, cfg['model_name'])
     model = eval('models.{}().to(cfg["device"])'.format(cfg['model_name']))
     if cfg['data_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
@@ -46,7 +47,6 @@ def runExperiment():
     result = resume(cfg['model_tag'], load_tag='best')
     last_epoch = result['epoch']
     model.load_state_dict(result['model_state_dict'])
-    data_loader = make_data_loader(dataset, cfg['model_name'])
     test_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))
     test(data_loader['test'], model, metric, test_logger, last_epoch)
     result = resume(cfg['model_tag'], load_tag='checkpoint')

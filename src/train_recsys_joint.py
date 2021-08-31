@@ -77,8 +77,10 @@ def runExperiment():
             scheduler.step()
         model_state_dict = model.module.state_dict() if cfg['world_size'] > 1 else model.state_dict()
         if cfg['model_name'] != 'base':
+            optimizer_state_dict = optimizer.state_dict()
+            scheduler_state_dict = scheduler.state_dict()
             result = {'cfg': cfg, 'epoch': epoch + 1, 'model_state_dict': model_state_dict,
-                      'optimizer_state_dict': optimizer.state_dict(), 'scheduler_state_dict': scheduler.state_dict(),
+                      'optimizer_state_dict': optimizer_state_dict, 'scheduler_state_dict': scheduler_state_dict,
                       'logger': logger}
         else:
             result = {'cfg': cfg, 'epoch': epoch + 1, 'model_state_dict': model_state_dict, 'logger': logger}
