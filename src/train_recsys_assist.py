@@ -5,6 +5,7 @@ import models
 import os
 import shutil
 import time
+import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 from config import cfg, process_args
@@ -13,6 +14,7 @@ from metrics import Metric
 from utils import save, to_device, process_control, process_dataset, make_optimizer, make_scheduler, resume, collate
 from logger import make_logger
 from assist import Assist
+from scipy.sparse import csr_matrix
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 cudnn.benchmark = True
@@ -65,13 +67,12 @@ def runExperiment():
         logger = make_logger('output/runs/train_{}'.format(cfg['model_tag']))
     if last_epoch == 1:
         initialize(dataset, assist, organization, metric, logger, 0)
-    exit()
     for epoch in range(last_epoch, cfg['global']['num_epochs'] + 1):
         dataset = assist.make_dataset(dataset, epoch)
-        exit()
         train(dataset, organization, metric, logger, epoch)
         organization_outputs = gather(dataset, organization, epoch)
         assist.update(organization_outputs, epoch)
+        exit()
         test(assist, metric, logger, epoch)
         result = {'cfg': cfg, 'epoch': epoch + 1, 'assist': assist, 'organization': organization, 'logger': logger}
         save(result, './output/model/{}_checkpoint.pt'.format(cfg['model_tag']))
@@ -83,20 +84,68 @@ def runExperiment():
     return
 
 
+# def initialize(dataset, assist, organization, metric, logger, epoch):
+#     logger.safe(True)
+#     output = {'train': 0, 'test': 0}
+#     target = {'train': 0, 'test': 0}
+#     count = {'train': 0, 'test': 0}
+#     for i in range(len(dataset)):
+#         output_i, target_i, count_i = organization[i].initialize(dataset[i], metric, logger, epoch)
+#         info = {'info': ['Model: {}'.format(cfg['model_tag']),
+#                          'Train Epoch: {}'.format(epoch), 'ID: {}'.format(i + 1)]}
+#         logger.append(info, 'train', mean=False)
+#         print(logger.write('train', metric.metric_name['train']))
+#         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
+#         logger.append(info, 'test', mean=False)
+#         print(logger.write('test', metric.metric_name['test']))
+#         for k in output:
+#             output[k] = output[k] + output_i[k]
+#             target[k] = target[k] + target_i[k]
+#             count[k] = count[k] + count_i[k]
+#     for k in output:
+#         coo = count[k].tocoo()
+#         row, col = coo.row, coo.col
+#         assist.organization_output[0][k] = csr_matrix((output[k].data / count[k].data, (row, col)),
+#                                                       shape=(cfg['num_users'], cfg['num_items']))
+#         assist.organization_target[0][k] = csr_matrix((target[k].data / count[k].data, (row, col)),
+#                                                       shape=(cfg['num_users'], cfg['num_items']))
+#     logger.safe(False)
+#     logger.reset()
+#     return
+
 def initialize(dataset, assist, organization, metric, logger, epoch):
     logger.safe(True)
-    initialization = organization[cfg['sponsor_id']].initialize(dataset[cfg['sponsor_id']], metric, logger, epoch)
-    info = {'info': ['Model: {}'.format(cfg['model_tag']),
-                     'Train Epoch: {}'.format(epoch), 'ID: {}'.format(cfg['sponsor_id'] + 1)]}
-    logger.append(info, 'train', mean=False)
-    print(logger.write('train', metric.metric_name['train']))
-    info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
-    logger.append(info, 'test', mean=False)
-    print(logger.write('test', metric.metric_name['test']))
-    assist.organization_output[0]['train'] = initialization['train']
-    assist.organization_target[0]['train'] = torch.tensor(dataset[cfg['sponsor_id']]['train'].train_data.data)
-    assist.organization_output[0]['test'] = initialization['test']
-    assist.organization_target[0]['test'] = torch.tensor(dataset[cfg['sponsor_id']]['test'].test_data.data)
+    output_data = {'train': [], 'test': []}
+    output_row = {'train': [], 'test': []}
+    output_col = {'train': [], 'test': []}
+    target_data = {'train': [], 'test': []}
+    target_row = {'train': [], 'test': []}
+    target_col = {'train': [], 'test': []}
+    for i in range(len(dataset)):
+        output_i, target_i = organization[i].initialize(dataset[i], metric, logger, epoch)
+        info = {'info': ['Model: {}'.format(cfg['model_tag']),
+                         'Train Epoch: {}'.format(epoch), 'ID: {}'.format(i + 1)]}
+        logger.append(info, 'train', mean=False)
+        print(logger.write('train', metric.metric_name['train']))
+        info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
+        logger.append(info, 'test', mean=False)
+        print(logger.write('test', metric.metric_name['test']))
+        for k in dataset[0]:
+            output_coo_i_k = output_i[k].tocoo()
+            output_data[k].append(output_coo_i_k.data)
+            output_row[k].append(output_coo_i_k.row)
+            output_col[k].append(output_coo_i_k.col)
+            target_coo_i_k = target_i[k].tocoo()
+            target_data[k].append(target_coo_i_k.data)
+            target_row[k].append(target_coo_i_k.row)
+            target_col[k].append(target_coo_i_k.col)
+    for k in dataset[0]:
+        assist.organization_output[0][k] = csr_matrix(
+            (np.concatenate(output_data[k]), (np.concatenate(output_row[k]), np.concatenate(output_col[k]))),
+            shape=(cfg['num_users'], cfg['num_items']))
+        assist.organization_target[0][k] = csr_matrix(
+            (np.concatenate(target_data[k]), (np.concatenate(target_row[k]), np.concatenate(target_col[k]))),
+            shape=(cfg['num_users'], cfg['num_items']))
     logger.safe(False)
     logger.reset()
     return
@@ -107,7 +156,7 @@ def train(dataset, organization, metric, logger, epoch):
     start_time = time.time()
     num_organizations = len(organization)
     for i in range(num_organizations):
-        organization[i].train(epoch, dataset['train'], metric, logger)
+        organization[i].train(dataset[i]['train'], metric, logger, epoch)
         if i % int((num_organizations * cfg['log_interval']) + 1) == 0:
             local_time = (time.time() - start_time) / (i + 1)
             epoch_finished_time = datetime.timedelta(seconds=local_time * (num_organizations - i - 1))
@@ -119,18 +168,17 @@ def train(dataset, organization, metric, logger, epoch):
                              'Epoch Finished Time: {}'.format(epoch_finished_time),
                              'Experiment Finished Time: {}'.format(exp_finished_time)]}
             logger.append(info, 'train', mean=False)
-            print(logger.write('train', metric.metric_name['train']))
+            print(logger.write('train', [metric.metric_name['train'][0]]))
     logger.safe(False)
     return
 
 
 def gather(dataset, organization, epoch):
     with torch.no_grad():
-        num_organizations = len(organization)
-        organization_outputs = [{split: None for split in dataset} for i in range(num_organizations)]
-        for i in range(num_organizations):
+        organization_outputs = [{split: None for split in dataset[i]} for i in range(len(dataset))]
+        for i in range(len(dataset)):
             for split in organization_outputs[i]:
-                organization_outputs[i][split] = organization[i].predict(epoch, dataset[split])['target_rating']
+                organization_outputs[i][split] = organization[i].predict(dataset[i][split], epoch)
     return organization_outputs
 
 

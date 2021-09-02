@@ -57,11 +57,15 @@ def make_pair_transform(dataset, data_mode):
 def make_flat_transform(dataset, data_mode):
     import datasets
     if data_mode == 'explicit':
-        dataset['train'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
-        dataset['test'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
+        dataset['train'].transform = datasets.Compose(
+            [FlatInput(dataset['train'].num_items, dataset['train'].num_items)])
+        dataset['test'].transform = datasets.Compose(
+            [FlatInput(dataset['train'].num_items, dataset['train'].num_items)])
     elif data_mode == 'implicit':
-        dataset['train'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
-        dataset['test'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
+        dataset['train'].transform = datasets.Compose(
+            [FlatInput(dataset['train'].num_items, dataset['train'].num_items)])
+        dataset['test'].transform = datasets.Compose(
+            [FlatInput(dataset['train'].num_items, dataset['train'].num_items)])
     else:
         raise ValueError('Not valid data mode')
     return dataset
@@ -135,33 +139,35 @@ class PairInput(torch.nn.Module):
                 del input['target_user_profile']
             if 'item_attr' in input:
                 del input['item_attr']
-                del input['target_item_attr']
+                if 'target_item_attr' in input:
+                    del input['target_item_attr']
         return input
 
 
 class FlatInput(torch.nn.Module):
-    def __init__(self, num_items):
+    def __init__(self, data_num_items, target_num_items):
         super().__init__()
-        self.num_items = num_items
+        self.data_num_items = data_num_items
+        self.target_num_items = target_num_items
 
     def forward(self, input):
-        rating = torch.zeros(self.num_items)
+        input['user'] = input['user'].repeat(input['item'].size(0))
+        input['target_user'] = input['target_user'].repeat(input['target_item'].size(0))
+        rating = torch.zeros(self.data_num_items)
         rating[input['item']] = input['rating']
         input['rating'] = rating
-        target_rating = torch.full((self.num_items,), float('nan'))
+        target_rating = torch.full((self.target_num_items,), float('nan'))
         target_rating[input['target_item']] = input['target_rating']
         input['target_rating'] = target_rating
-        del input['item']
-        del input['target_item']
+        if 'target_item_attr' in input:
+            del input['target_item_attr']
         if cfg['info'] == 1:
             input['item_attr'] = input['item_attr'].sum(dim=0)
-            input['target_item_attr'] = input['target_item_attr'].sum(dim=0)
         else:
             if 'user_profile' in input:
                 del input['user_profile']
                 del input['target_user_profile']
             del input['item_attr']
-            del input['target_item_attr']
         return input
 
 
@@ -169,7 +175,7 @@ def split_dataset(dataset):
     if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
         if 'genre' in cfg['data_split_mode']:
             num_organizations = cfg['num_organizations']
-            data_split_idx = torch.nonzero(torch.tensor(dataset['train'].item_attr))
+            data_split_idx = torch.multinomial(torch.tensor(dataset.item_attr), 1).view(-1).numpy()
             data_split = []
             for i in range(num_organizations):
                 data_split_i = data_split_idx[:, 0][data_split_idx[:, 1] == i].tolist()

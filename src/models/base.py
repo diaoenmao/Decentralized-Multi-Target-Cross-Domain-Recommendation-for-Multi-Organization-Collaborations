@@ -23,6 +23,8 @@ class Base(nn.Module):
                 self.base = self.base + base.sum(dim=-1)
                 self.count = self.count + (base > 0).float().sum(dim=-1)
             output['target_rating'] = self.base[input['target_item']] / (self.count[input['target_item']] + 1e-10)
+            output['target_rating'][self.count[input['target_item']] == 0] = (
+                        self.base[self.count != 0] / self.count[self.count != 0]).mean()
             output['loss'] = loss_fn(output['target_rating'], input['target_rating'])
         elif cfg['data_mode'] == 'implicit':
             if self.training:

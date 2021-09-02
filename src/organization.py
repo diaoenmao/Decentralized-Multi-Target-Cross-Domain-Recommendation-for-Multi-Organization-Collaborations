@@ -5,9 +5,24 @@ import sys
 import time
 import torch
 import models
+from scipy.sparse import csr_matrix
 from config import cfg
 from data import make_data_loader, make_pair_transform
 from utils import to_device, make_optimizer, make_scheduler, collate
+
+
+def process_output(target_user, target_item, target_rating):
+    target_user_i = target_user.cpu()
+    if cfg['data_mode'] == 'explicit':
+        target_item_i = target_item.cpu()
+        target_rating_i = target_rating.cpu()
+    elif cfg['data_mode'] == 'implicit':
+        mask = target_rating != -float('inf')
+        target_item_i = torch.nonzero(mask)[:, 1].cpu()
+        target_rating_i = target_rating[mask].cpu()
+    else:
+        raise ValueError('Not valid data mode')
+    return target_user_i, target_item_i, target_rating_i
 
 
 class Organization:
@@ -23,8 +38,10 @@ class Organization:
         dataset = make_pair_transform(dataset, cfg['data_mode'])
         model_name = cfg['model_name']
         cfg['model_name'] = 'base'
-        data_loader = make_data_loader(dataset, self.model_name[iter], shuffle={'train': False, 'test': False})
+        data_loader = make_data_loader(dataset, self.model_name[iter])
         model = models.base(dataset['train'].num_users, dataset['train'].num_items).to(cfg['device'])
+        output = {}
+        target = {}
         if 'train' in dataset:
             model.train(True)
             for i, input in enumerate(data_loader['train']):
@@ -34,84 +51,136 @@ class Organization:
             self.model_state_dict[0] = {k: v.cpu() for k, v in model.state_dict().items()}
             with torch.no_grad():
                 model.train(False)
-                initialization = {'train': [], 'test': []}
+                target_user = []
+                target_item = []
+                target_rating = []
                 for i, input in enumerate(data_loader['train']):
                     input = collate(input)
                     input_size = len(input['user'])
+                    if input_size == 0:
+                        continue
                     input = to_device(input, cfg['device'])
-                    output = model(input)
-                    output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
-                    evaluation = metric.evaluate(metric.metric_name['train'], input, output)
+                    output_ = model(input)
+                    output_['loss'] = output_['loss'].mean() if cfg['world_size'] > 1 else output_['loss']
+                    evaluation = metric.evaluate(metric.metric_name['train'], input, output_)
                     logger.append(evaluation, 'train', input_size)
-                    print(output['target_rating'].size())
-                    initialization['train'].append(output['target_rating'].cpu())
-                initialization['train'] = torch.cat(initialization['train'], dim=0)
-            exit()
+                    target_user_i, target_item_i, target_rating_i = process_output(input['target_user'],
+                                                                                   input['target_item'],
+                                                                                   output_['target_rating'])
+                    target_user.append(target_user_i)
+                    target_item.append(target_item_i)
+                    target_rating.append(target_rating_i)
+                target_user = torch.cat(target_user, dim=0).numpy()
+                target_item = torch.cat(target_item, dim=0).numpy()
+                target_item = np.array(self.data_split)[target_item]
+                target_rating = torch.cat(target_rating, dim=0).numpy()
+            output['train'] = csr_matrix((target_rating, (target_user, target_item)),
+                                         shape=(cfg['num_users'], cfg['num_items']))
+            dataset_coo = dataset['train'].target.tocoo()
+            row, col = dataset_coo.row, dataset_coo.col
+            target['train'] = csr_matrix((dataset['train'].target.data,
+                                          (row, np.array(self.data_split)[col])),
+                                         shape=(cfg['num_users'], cfg['num_items']))
         with torch.no_grad():
             model.load_state_dict(self.model_state_dict[0])
             model.train(False)
+            target_user = []
+            target_item = []
+            target_rating = []
             for i, input in enumerate(data_loader['test']):
                 input = collate(input)
-                input_size = len(input['user'])
+                input_size = len(input['target_user'])
+                if input_size == 0:
+                    continue
                 input = to_device(input, cfg['device'])
-                input['no_parse'] = True
-                output = model(input)
-                output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
-                evaluation = metric.evaluate(metric.metric_name['test'], input, output)
+                output_ = model(input)
+                output_['loss'] = output_['loss'].mean() if cfg['world_size'] > 1 else output_['loss']
+                evaluation = metric.evaluate(metric.metric_name['test'], input, output_)
                 logger.append(evaluation, 'test', input_size)
-                initialization['test'].append(output['raw_target_rating'].cpu())
-            initialization['test'] = torch.cat(initialization['test'], dim=0)
+                target_user_i, target_item_i, target_rating_i = process_output(input['target_user'],
+                                                                               input['target_item'],
+                                                                               output_['target_rating'])
+                target_user.append(target_user_i)
+                target_item.append(target_item_i)
+                target_rating.append(target_rating_i)
+            target_user = torch.cat(target_user, dim=0).numpy()
+            target_item = torch.cat(target_item, dim=0).numpy()
+            target_item = np.array(self.data_split)[target_item]
+            target_rating = torch.cat(target_rating, dim=0).numpy()
+            output['test'] = csr_matrix((target_rating, (target_user, target_item)),
+                                        shape=(cfg['num_users'], cfg['num_items']))
+            dataset_coo = dataset['test'].target.tocoo()
+            row, col = dataset_coo.row, dataset_coo.col
+            target['test'] = csr_matrix((dataset['test'].target.data,
+                                         (row, np.array(self.data_split)[col])),
+                                        shape=(cfg['num_users'], cfg['num_items']))
         cfg['model_name'] = model_name
-        return initialization
+        return output, target
 
     def train(self, dataset, metric, logger, iter):
-        dataset = make_split_dataset(dataset, self.data_split)
-        data_loader = make_data_loader(dataset, self.model_name[iter])
-        model = eval('models.{}().to(cfg["device"])'.format(self.model_name[iter]))
+        data_loader = make_data_loader({'train': dataset}, 'local')['train']
+        model = eval('models.{}(dataset.num_users, dataset.num_items, dataset.num_users, '
+                     'cfg["num_items"]).to(cfg["device"])'.format(self.model_name[iter]))
         model.train(True)
-        optimizer = make_optimizer(model, self.model_name[iter])
-        scheduler = make_scheduler(optimizer, self.model_name[iter])
-        for local_epoch in range(1, cfg[self.model_name[iter]]['num_epochs'] + 1):
+        optimizer = make_optimizer(model, 'local')
+        scheduler = make_scheduler(optimizer, 'local')
+        for local_epoch in range(1, cfg['local']['num_epochs'] + 1):
             start_time = time.time()
             for i, input in enumerate(data_loader):
                 input = collate(input)
-                input_size = input['data'].size(0)
+                input_size = input['user'].size(0)
+                if input_size == 0:
+                    continue
                 input = to_device(input, cfg['device'])
+                input['local'] = True
                 optimizer.zero_grad()
                 output = model(input)
                 output['loss'].backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
                 optimizer.step()
-                evaluation = metric.evaluate(metric.metric_name['train'], input, output)
+                evaluation = metric.evaluate([metric.metric_name['train'][0]], input, output)
                 logger.append(evaluation, 'train', n=input_size)
             scheduler.step()
             local_time = (time.time() - start_time)
             local_finished_time = datetime.timedelta(
-                seconds=round((cfg[self.model_name[iter]]['num_epochs'] - local_epoch) * local_time))
+                seconds=round((cfg['local']['num_epochs'] - local_epoch) * local_time))
             info = {'info': ['Model: {}'.format(cfg['model_tag']),
                              'Train Local Epoch: {}({:.0f}%)'.format(local_epoch, 100. * local_epoch /
-                                                                     cfg[self.model_name[iter]]['num_epochs']),
+                                                                     cfg['local']['num_epochs']),
                              'ID: {}'.format(self.organization_id),
                              'Local Finished Time: {}'.format(local_finished_time)]}
             logger.append(info, 'train', mean=False)
-            print(logger.write('train', metric.metric_name['train']), end='\r', flush=True)
+            print(logger.write('train', [metric.metric_name['train'][0]]), end='\r', flush=True)
         sys.stdout.write('\x1b[2K')
-        self.model_state_dict[iter] = copy.deepcopy(model.to('cpu').state_dict())
+        self.model_state_dict[iter] = {k: v.cpu() for k, v in model.state_dict().items()}
         return
 
-    def predict(self, iter, dataset):
+    def predict(self, dataset, iter):
         with torch.no_grad():
-            dataset = make_split_dataset(dataset, self.data_split)
-            data_loader = make_data_loader(dataset, self.model_name[iter])
-            model = eval('models.{}().to(cfg["device"])'.format(self.model_name[iter]))
+            data_loader = make_data_loader({'train': dataset}, 'local')['train']
+            model = eval('models.{}(dataset.num_users, dataset.num_items, dataset.num_users, '
+                         'cfg["num_items"]).to(cfg["device"])'.format(self.model_name[iter]))
             model.load_state_dict(self.model_state_dict[iter])
             model.train(False)
-            organization_output = {'target_rating': []}
+            target_user = []
+            target_item = []
+            target_rating = []
             for i, input in enumerate(data_loader):
                 input = collate(input)
+                input_size = len(input['target_user'])
+                if input_size == 0:
+                    continue
                 input = to_device(input, cfg['device'])
-                output = model(input)
-                organization_output['target_rating'].append(output['target_rating'].cpu())
-            organization_output['target_rating'] = torch.cat(organization_output['target_rating'], dim=0)
-            organization_output['target_rating'] = organization_output['target_rating'][indices]
-        return organization_output
+                output_ = model(input)
+                target_user_i, target_item_i, target_rating_i = process_output(input['target_user'],
+                                                                               input['target_item'],
+                                                                               output_['target_rating'])
+                target_user.append(target_user_i)
+                target_item.append(target_item_i)
+                target_rating.append(target_rating_i)
+            target_user = torch.cat(target_user, dim=0).numpy()
+            target_item = torch.cat(target_item, dim=0).numpy()
+            target_rating = torch.cat(target_rating, dim=0).numpy()
+            output = csr_matrix((target_rating, (target_user, target_item)),
+                                shape=(cfg['num_users'], cfg['num_items']))
+        return output

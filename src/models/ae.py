@@ -102,7 +102,10 @@ class AE(nn.Module):
         decoded = self.decoder(encoded)
         output['target_rating'] = decoded
         target_mask = ~input['target_rating'].isnan()
-        output['loss'] = loss_fn(output['target_rating'][target_mask], input['target_rating'][target_mask])
+        if 'local' in input and input['local']:
+            output['loss'] = F.mse_loss(output['target_rating'][target_mask], input['target_rating'][target_mask])
+        else:
+            output['loss'] = loss_fn(output['target_rating'][target_mask], input['target_rating'][target_mask])
         if cfg['data_mode'] == 'explicit':
             output['target_rating'], input['target_rating'] = parse_explicit_rating_flat(output['target_rating'],
                                                                                          input['target_rating'])

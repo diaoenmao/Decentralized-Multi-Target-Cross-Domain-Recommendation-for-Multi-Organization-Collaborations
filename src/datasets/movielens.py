@@ -28,7 +28,8 @@ class ML100K(Dataset):
         if data_split is not None:
             self.data = self.data[:, data_split]
             self.target = self.target[:, data_split]
-            self.item_attr = self.item_attr[data_split]
+            self.data_item_attr = self.item_attr[data_split]
+        self.target_item_attr_flag = True
         self.num_users, self.num_items = self.data.shape
 
     def __getitem__(self, index):
@@ -42,14 +43,15 @@ class ML100K(Dataset):
                  'target_user': torch.tensor(np.array([index]), dtype=torch.long),
                  'target_item': torch.tensor(target.col, dtype=torch.long),
                  'target_rating': torch.tensor(target.data),
-                 'target_user_profile': torch.tensor(self.user_profile[index]),
-                 'target_item_attr': torch.tensor(self.item_attr[target.col])}
+                 'target_user_profile': torch.tensor(self.user_profile[index])}
+        if self.target_item_attr_flag:
+            input['target_item_attr'] = torch.tensor(self.item_attr[target.col])
         if self.transform is not None:
             input = self.transform(input)
         return input
 
     def __len__(self):
-        return self.num_users
+        return self.data.shape[0]
 
     @property
     def processed_folder(self):

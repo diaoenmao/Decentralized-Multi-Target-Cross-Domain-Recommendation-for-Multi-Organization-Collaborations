@@ -159,7 +159,16 @@ def process_control():
     cfg[model_name]['num_epochs'] = 200 if model_name != 'base' else 1
     cfg[model_name]['batch_size'] = {'train': 100, 'test': 200}
     cfg['local'] = {}
-    cfg['local']['num_epochs'] = 200
+    cfg['local']['shuffle'] = {'train': True, 'test': False}
+    cfg['local']['optimizer_name'] = 'Adam'
+    cfg['local']['lr'] = 1e-3
+    cfg['local']['momentum'] = 0.9
+    cfg['local']['nesterov'] = True
+    cfg['local']['betas'] = (0.9, 0.999)
+    cfg['local']['weight_decay'] = 5e-4
+    cfg['local']['scheduler_name'] = 'None'
+    cfg['local']['batch_size'] = {'train': 100, 'test': 200}
+    cfg['local']['num_epochs'] = 1
     cfg['global'] = {}
     cfg['global']['num_epochs'] = 10
     cfg['linesearch'] = {}
@@ -269,7 +278,10 @@ def collate(input):
             input[k] = torch.cat(input[k], 0)
     elif cfg['model_name'] in ['ae']:
         for k in input:
-            input[k] = torch.stack(input[k], 0)
+            if k in ['user', 'item', 'target_user', 'target_item']:
+                input[k] = torch.cat(input[k], 0)
+            else:
+                input[k] = torch.stack(input[k], 0)
     else:
         raise ValueError('Not valid model name')
     return input

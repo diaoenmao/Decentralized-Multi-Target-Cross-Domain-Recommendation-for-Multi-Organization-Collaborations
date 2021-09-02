@@ -1,6 +1,7 @@
 import copy
 import torch
 import models
+from scipy.sparse import csr_matrix
 from config import cfg
 from data import make_data_loader
 from organization import Organization
@@ -12,7 +13,7 @@ class Assist:
         self.data_split = data_split
         self.num_organizations = len(data_split)
         self.model_name = self.make_model_name()
-        self.linesearch_state_dict =[None for _ in range(cfg['global']['num_epochs'] + 1)]
+        self.linesearch_state_dict = [None for _ in range(cfg['global']['num_epochs'] + 1)]
         self.reset()
 
     def reset(self):
@@ -23,15 +24,8 @@ class Assist:
         return
 
     def make_model_name(self):
-        model_name_list = cfg['model_name'].split('-')
-        if len(model_name_list) == 1:
-            model_name = [model_name_list[0] for _ in range(cfg['global']['num_epochs'] + 1)]
-            model_name = [model_name for _ in range(self.num_organizations)]
-        elif len(model_name_list) == 2:
-            model_name = [model_name_list[0]] + [model_name_list[1] for _ in range(cfg['global']['num_epochs'])]
-            model_name = [model_name for _ in range(self.num_organizations)]
-        else:
-            raise ValueError('Not valid model name')
+        model_name = [cfg['model_name'] for _ in range(cfg['global']['num_epochs'] + 1)]
+        model_name = [model_name for _ in range(self.num_organizations)]
         return model_name
 
     def make_organization(self):
@@ -44,32 +38,32 @@ class Assist:
         return organization
 
     def make_dataset(self, dataset, iter):
-        residual = {}
-        for split in dataset[0]:
-            self.organization_output[iter - 1][split].requires_grad = True
-            print(self.organization_output[iter - 1][split].size())
-            print(self.organization_target[0][split].size())
-            exit()
-            loss = models.loss_fn(self.organization_output[iter - 1][split],
-                                  self.organization_target[0][split], reduction='sum')
+        for k in dataset[0]:
+            output_k = torch.tensor(self.organization_output[iter - 1][k].data, dtype=torch.float32)
+            target_k = torch.tensor(self.organization_target[0][k].data, dtype=torch.float32)
+            output_k.requires_grad = True
+            loss = models.loss_fn(output_k, target_k, reduction='sum')
             loss.backward()
-            residual[split] = - copy.deepcopy(self.organization_output[iter - 1][split].grad)
-            self.organization_output[iter - 1][split].detach_()
-        for i in range(len(dataset)):
-            for split in dataset[i]:
-                dataset[split].train_data.data = residual['train'].numpy()
-                dataset[split].test_data.data = residual['test'].numpy()
+            residual_k = - copy.deepcopy(output_k.grad)
+            output_k.detach_()
+            for i in range(len(dataset)):
+                dataset[i][k].target = csr_matrix((residual_k, self.organization_target[0][k].nonzero()),
+                                                  shape=(cfg['num_users'], cfg['num_items']))
+                dataset[i][k].target_item_attr_flag = False
+                dataset[i][k].transform.transforms[0].target_num_items = cfg['num_items']
         return dataset
 
     def update(self, organization_outputs, iter):
-        _organization_outputs = {split: [] for split in organization_outputs[0]}
+        organization_outputs_ = {k: [] for k in organization_outputs[0]}
         for split in organization_outputs[0]:
             for i in range(len(organization_outputs)):
-                _organization_outputs[split].append(organization_outputs[i][split])
-            _organization_outputs[split] = torch.stack(_organization_outputs[split], dim=-1)
+                print(organization_outputs[i][split])
+                exit()
+                organization_outputs_[split].append(organization_outputs[i][split])
+            organization_outputs_[split] = torch.stack(organization_outputs_[split], dim=-1)
         if 'train' in organization_outputs[0]:
             input = {'history': self.organization_output[iter - 1]['train'],
-                     'output': _organization_outputs['train'],
+                     'output': organization_outputs_['train'],
                      'target': self.organization_target[0]['train']}
             input = to_device(input, cfg['device'])
             model = models.linesearch().to(cfg['device'])
@@ -81,6 +75,7 @@ class Assist:
                     optimizer.zero_grad()
                     output['loss'].backward()
                     return output['loss']
+
                 optimizer.step(closure)
             self.linesearch_state_dict[iter] = copy.deepcopy(model.to('cpu').state_dict())
         with torch.no_grad():
@@ -89,7 +84,7 @@ class Assist:
             model.train(False)
             for split in organization_outputs[0]:
                 input = {'history': self.organization_output[iter - 1][split],
-                         'output': _organization_outputs[split]}
+                         'output': organization_outputs_[split]}
                 output = model(input)
                 self.organization_output[iter][split] = output['target']
         return

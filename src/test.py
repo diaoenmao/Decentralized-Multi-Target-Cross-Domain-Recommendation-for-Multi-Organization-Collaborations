@@ -4,7 +4,6 @@ from utils import collate, process_dataset, save_img, process_control, resume, t
 import torch
 import models
 
-
 # if __name__ == "__main__":
 #     process_control()
 #     cfg['seed'] = 0
@@ -207,3 +206,42 @@ import models
 #         print(input['user'].size(), input['item'].size(), input['rating'].size(),
 #               input['target_user'].size(), input['target_item'].size(), input['target_rating'].size())
 #         exit()
+
+# if __name__ == "__main__":
+#     import numpy as np
+#     from scipy.sparse import csr_matrix
+#
+#     row = np.arange(5)
+#     col = np.arange(5)
+#     data = np.ones(5)
+#     t_1 = csr_matrix((data, (row, col)), shape=(10, 10))
+#     row = np.arange(10)
+#     col = np.arange(10)
+#     data = np.ones(10)
+#     data[-1] = 0
+#     t_2 = csr_matrix((data, (row, col)), shape=(10, 10))
+#     t_3 = 0 + t_1 + t_2
+#     t_4 = 0 + t_2 + t_2
+#     t_3[-1, -1] = 0
+#     print(t_3)
+#     print(t_4)
+#     exit()
+#     data = t_3.data / t_4.data
+#     row = np.arange(10)
+#     col = np.arange(10)
+#     t_5 = csr_matrix((data, (row, col)), shape=(10, 10))
+#     print(t_5)
+#     exit()
+
+# if __name__ == "__main__":
+#     import numpy as np
+#     from scipy.sparse import csr_matrix
+#
+#     row = np.arange(5)
+#     col = np.arange(5)
+#     data = np.ones(5)
+#     t_1 = csr_matrix((data, (row, col)), shape=(10, 10))
+#     print(t_1)
+#     data = -np.ones(5)
+#     t_1.data = data
+#     print(t_1)
