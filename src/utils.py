@@ -170,7 +170,7 @@ def process_control():
     cfg['local']['batch_size'] = {'train': 100, 'test': 200}
     cfg['local']['num_epochs'] = 1
     cfg['global'] = {}
-    cfg['global']['num_epochs'] = 10
+    cfg['global']['num_epochs'] = 2
     cfg['linesearch'] = {}
     cfg['linesearch']['optimizer_name'] = 'LBFGS'
     cfg['linesearch']['lr'] = 1

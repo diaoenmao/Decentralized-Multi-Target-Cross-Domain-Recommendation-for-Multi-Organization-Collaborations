@@ -47,7 +47,9 @@ class Assist:
             residual_k = - copy.deepcopy(output_k.grad)
             output_k.detach_()
             for i in range(len(dataset)):
-                dataset[i][k].target = csr_matrix((residual_k, self.organization_target[0][k].nonzero()),
+                coo = self.organization_target[0][k].tocoo()
+                row, col = coo.row, coo.col
+                dataset[i][k].target = csr_matrix((residual_k, (row, col)),
                                                   shape=(cfg['num_users'], cfg['num_items']))
                 dataset[i][k].target_item_attr_flag = False
                 dataset[i][k].transform.transforms[0].target_num_items = cfg['num_items']
@@ -55,16 +57,14 @@ class Assist:
 
     def update(self, organization_outputs, iter):
         organization_outputs_ = {k: [] for k in organization_outputs[0]}
-        for split in organization_outputs[0]:
+        for k in organization_outputs[0]:
             for i in range(len(organization_outputs)):
-                print(organization_outputs[i][split])
-                exit()
-                organization_outputs_[split].append(organization_outputs[i][split])
-            organization_outputs_[split] = torch.stack(organization_outputs_[split], dim=-1)
+                organization_outputs_[k].append(torch.tensor(organization_outputs[i][k].data))
+            organization_outputs_[k] = torch.stack(organization_outputs_[k], dim=-1)
         if 'train' in organization_outputs[0]:
-            input = {'history': self.organization_output[iter - 1]['train'],
+            input = {'history': torch.tensor(self.organization_output[iter - 1]['train'].data),
                      'output': organization_outputs_['train'],
-                     'target': self.organization_target[0]['train']}
+                     'target': torch.tensor(self.organization_target[0]['train'].data)}
             input = to_device(input, cfg['device'])
             model = models.linesearch().to(cfg['device'])
             model.train(True)
@@ -77,14 +77,19 @@ class Assist:
                     return output['loss']
 
                 optimizer.step(closure)
-            self.linesearch_state_dict[iter] = copy.deepcopy(model.to('cpu').state_dict())
+            self.linesearch_state_dict[iter] = {k: v.cpu() for k, v in model.state_dict().items()}
         with torch.no_grad():
             model = models.linesearch().to(cfg['device'])
             model.load_state_dict(self.linesearch_state_dict[iter])
             model.train(False)
-            for split in organization_outputs[0]:
-                input = {'history': self.organization_output[iter - 1][split],
-                         'output': organization_outputs_[split]}
+            for k in organization_outputs[0]:
+                input = {'history': torch.tensor(self.organization_output[iter - 1][k].data),
+                         'output': organization_outputs_[k]}
+                input = to_device(input, cfg['device'])
                 output = model(input)
-                self.organization_output[iter][split] = output['target']
+                coo = self.organization_output[iter - 1][k].tocoo()
+                row, col = coo.row, coo.col
+                self.organization_output[iter][k] = csr_matrix(
+                    (output['target'].cpu().numpy(), (row, col)),
+                    shape=(cfg['num_users'], cfg['num_items']))
         return

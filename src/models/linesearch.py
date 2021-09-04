@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from .utils import loss_fn
+from config import cfg
 
 
 class LineSearch(nn.Module):
@@ -10,7 +11,7 @@ class LineSearch(nn.Module):
 
     def forward(self, input):
         output = {}
-        output['target'] = (input['history'] + self.assist_rate.view(-1, 1) * input['output']).sum(dim=0)
+        output['target'] = (input['history'].view(-1, 1) + self.assist_rate * input['output']).sum(dim=-1)
         if 'target' in input:
             output['loss'] = loss_fn(output['target'], input['target'])
         return output

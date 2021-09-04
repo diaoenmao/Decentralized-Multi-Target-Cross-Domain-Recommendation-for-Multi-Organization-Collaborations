@@ -38,7 +38,7 @@ class Organization:
         dataset = make_pair_transform(dataset, cfg['data_mode'])
         model_name = cfg['model_name']
         cfg['model_name'] = 'base'
-        data_loader = make_data_loader(dataset, self.model_name[iter])
+        data_loader = make_data_loader(dataset, self.model_name[iter], shuffle={'train': False, 'test': False})
         model = models.base(dataset['train'].num_users, dataset['train'].num_items).to(cfg['device'])
         output = {}
         target = {}
