@@ -43,47 +43,44 @@ def runExperiment():
     torch.cuda.manual_seed(cfg['seed'])
     dataset = fetch_dataset(cfg['data_name'])
     process_dataset(dataset)
-    data_split = split_dataset(dataset)
-    dataset = make_split_dataset(data_split)
-    assist = Assist(data_split)
-    organization = assist.make_organization()
     if cfg['data_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
     elif cfg['data_mode'] == 'implicit':
         metric = Metric({'train': ['Loss', 'MAP'], 'test': ['Loss', 'MAP']})
     else:
         raise ValueError('Not valid data mode')
-    if cfg['resume_mode'] == 1:
-        result = resume(cfg['model_tag'])
-        last_epoch = result['epoch']
-        if last_epoch > 1:
-            assist = result['assist']
-            organization = result['organization']
-            logger = result['logger']
-        else:
-            logger = make_logger('output/runs/train_{}'.format(cfg['model_tag']))
-    else:
-        last_epoch = 1
-        logger = make_logger('output/runs/train_{}'.format(cfg['model_tag']))
-    if last_epoch == 1:
-        initialize(dataset, assist, organization, metric, logger, 0)
-    for epoch in range(last_epoch, cfg['global']['num_epochs'] + 1):
+    result = resume(cfg['model_tag'])
+    last_epoch = result['epoch']
+    data_split = result['data_split']
+    dataset = make_split_dataset(data_split)
+    dataset = [{'test': dataset[i]['test']} for i in range(len(dataset))]
+    assist = result['assist']
+    assist.reset()
+    organization = result['organization']
+    test_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))
+    test_each_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))
+    initialize(dataset, assist, organization, metric, test_logger, 0, test_each_logger)
+    for epoch in range(1, last_epoch):
+        test_logger.safe(True)
+        test_each_logger.safe(True)
         dataset = assist.make_dataset(dataset, epoch)
-        train(dataset, organization, metric, logger, epoch)
         organization_outputs = gather(dataset, organization, epoch)
         assist.update(organization_outputs, epoch)
-        test(assist, metric, logger, epoch)
-        result = {'cfg': cfg, 'epoch': epoch + 1, 'assist': assist, 'organization': organization, 'logger': logger}
-        save(result, './output/model/{}_checkpoint.pt'.format(cfg['model_tag']))
-        if metric.compare(logger.mean['test/{}'.format(metric.pivot_name)]):
-            metric.update(logger.mean['test/{}'.format(metric.pivot_name)])
-            shutil.copy('./output/model/{}_checkpoint.pt'.format(cfg['model_tag']),
-                        './output/model/{}_best.pt'.format(cfg['model_tag']))
-        logger.reset()
+        test(assist, metric, test_logger, epoch, test_each_logger)
+        test_logger.safe(False)
+        test_each_logger.safe(False)
+        test_logger.reset()
+        test_each_logger.reset()
+    assist.reset()
+    result = resume(cfg['model_tag'], load_tag='checkpoint')
+    train_logger = result['logger'] if 'logger' in result else None
+    save_result = {'cfg': cfg, 'epoch': last_epoch, 'assist': assist,
+                   'logger': {'train': train_logger, 'test': test_logger, 'test_each': test_each_logger}}
+    save(save_result, './output/result/{}.pt'.format(cfg['model_tag']))
     return
 
 
-def initialize(dataset, assist, organization, metric, logger, epoch):
+def initialize(dataset, assist, organization, metric, logger, epoch, each_logger):
     logger.safe(True)
     output_data = {'train': [], 'test': []}
     output_row = {'train': [], 'test': []}
@@ -92,14 +89,8 @@ def initialize(dataset, assist, organization, metric, logger, epoch):
     target_row = {'train': [], 'test': []}
     target_col = {'train': [], 'test': []}
     for i in range(len(dataset)):
-        output_i, target_i = organization[i].initialize(dataset[i], metric, logger, epoch)
-        info = {'info': ['Model: {}'.format(cfg['model_tag']),
-                         'Train Epoch: {}'.format(epoch), 'ID: {}'.format(i + 1)]}
-        logger.append(info, 'train', mean=False)
-        print(logger.write('train', metric.metric_name['train']))
-        info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
-        logger.append(info, 'test', mean=False)
-        print(logger.write('test', metric.metric_name['test']))
+        each_logger.safe(True)
+        output_i, target_i = organization[i].initialize(dataset[i], metric, logger, epoch, each_logger)
         for k in dataset[0]:
             output_coo_i_k = output_i[k].tocoo()
             output_data[k].append(output_coo_i_k.data)
@@ -109,6 +100,12 @@ def initialize(dataset, assist, organization, metric, logger, epoch):
             target_data[k].append(target_coo_i_k.data)
             target_row[k].append(target_coo_i_k.row)
             target_col[k].append(target_coo_i_k.col)
+        info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.),
+                         'ID: {}/{}'.format(i + 1,len(dataset))]}
+        each_logger.append(info, 'test', mean=False)
+        print(each_logger.write('test', metric.metric_name['test']))
+        each_logger.safe(False)
+        each_logger.reset()
     for k in dataset[0]:
         assist.organization_output[0][k] = csr_matrix(
             (np.concatenate(output_data[k]), (np.concatenate(output_row[k]), np.concatenate(output_col[k]))),
@@ -116,30 +113,11 @@ def initialize(dataset, assist, organization, metric, logger, epoch):
         assist.organization_target[0][k] = csr_matrix(
             (np.concatenate(target_data[k]), (np.concatenate(target_row[k]), np.concatenate(target_col[k]))),
             shape=(cfg['num_users'], cfg['num_items']))
+    info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
+    logger.append(info, 'test', mean=False)
+    print(logger.write('test', metric.metric_name['test']))
     logger.safe(False)
     logger.reset()
-    return
-
-
-def train(dataset, organization, metric, logger, epoch):
-    logger.safe(True)
-    start_time = time.time()
-    num_organizations = len(organization)
-    for i in range(num_organizations):
-        organization[i].train(dataset[i]['train'], metric, logger, epoch)
-        if i % int((num_organizations * cfg['log_interval']) + 1) == 0:
-            local_time = (time.time() - start_time) / (i + 1)
-            epoch_finished_time = datetime.timedelta(seconds=local_time * (num_organizations - i - 1))
-            exp_finished_time = epoch_finished_time + datetime.timedelta(
-                seconds=round((cfg['global']['num_epochs'] - epoch) * local_time * num_organizations))
-            info = {'info': ['Model: {}'.format(cfg['model_tag']),
-                             'Train Epoch: {}({:.0f}%)'.format(epoch, 100. * i / num_organizations),
-                             'ID: {}/{}'.format(i + 1, num_organizations),
-                             'Epoch Finished Time: {}'.format(epoch_finished_time),
-                             'Experiment Finished Time: {}'.format(exp_finished_time)]}
-            logger.append(info, 'train', mean=False)
-            print(logger.write('train', [metric.metric_name['train'][0]]))
-    logger.safe(False)
     return
 
 
@@ -152,39 +130,50 @@ def gather(dataset, organization, epoch):
     return organization_outputs
 
 
-def test(assist, metric, logger, epoch):
+def test(assist, metric, logger, epoch, each_logger):
     logger.safe(True)
     with torch.no_grad():
         organization_output = assist.organization_output[epoch]['test']
         organization_target = assist.organization_target[0]['test']
         batch_size = cfg[cfg['model_name']]['batch_size']['test']
-        for i in range(0, cfg['num_users'], batch_size):
-            output_i = organization_output[i:i + batch_size]
-            target_i = organization_target[i:i + batch_size]
-            if cfg['data_mode'] == 'explicit':
-                output = {'target_rating': torch.tensor(output_i.data)}
-                input = {'target_rating': torch.tensor(target_i.data)}
-            elif cfg['data_mode'] == 'implicit':
-                output_i_coo = output_i.tocoo()
-                output_i_coo_row, output_i_coo_col = torch.tensor(output_i_coo.row, dtype=torch.long), torch.tensor(
-                    output_i_coo.col, dtype=torch.long)
-                target_i_coo = target_i.tocoo()
-                target_i_coo_row, target_i_coo_col = torch.tensor(target_i_coo.row, dtype=torch.long), torch.tensor(
-                    target_i_coo.col, dtype=torch.long)
-                output_rating = torch.full(output_i.shape, -float('inf'))
-                target_rating = torch.full(target_i.shape, 0.)
-                output_rating[output_i_coo_row, output_i_coo_col] = torch.tensor(output_i_coo.data)
-                target_rating[target_i_coo_row, target_i_coo_col] = torch.tensor(target_i_coo.data)
-                output = {'target_rating': output_rating}
-                input = {'target_rating': target_rating}
-            else:
-                raise ValueError('Not valid data mode')
-            output['loss'] = models.loss_fn(torch.tensor(output_i.data), torch.tensor(target_i.data))
-            output = to_device(output, cfg['device'])
-            input = to_device(input, cfg['device'])
-            input_size = len(input['target_rating'])
-            evaluation = metric.evaluate(metric.metric_name['test'], input, output)
-            logger.append(evaluation, 'test', n=input_size)
+        for i in range(len(assist.data_split)):
+            each_logger.safe(True)
+            output_i = organization_output[:, assist.data_split[i]]
+            target_i = organization_target[:, assist.data_split[i]]
+            for j in range(0, cfg['num_users'], batch_size):
+                output_i_j = output_i[j:j + batch_size]
+                target_i_j = target_i[j:j + batch_size]
+                if cfg['data_mode'] == 'explicit':
+                    output = {'target_rating': torch.tensor(output_i_j.data)}
+                    input = {'target_rating': torch.tensor(target_i_j.data)}
+                elif cfg['data_mode'] == 'implicit':
+                    output_i_coo = output_i_j.tocoo()
+                    output_i_coo_row, output_i_coo_col = torch.tensor(output_i_coo.row, dtype=torch.long), torch.tensor(
+                        output_i_coo.col, dtype=torch.long)
+                    target_i_coo = target_i_j.tocoo()
+                    target_i_coo_row, target_i_coo_col = torch.tensor(target_i_coo.row, dtype=torch.long), torch.tensor(
+                        target_i_coo.col, dtype=torch.long)
+                    output_rating = torch.full(output_i.shape, -float('inf'))
+                    target_rating = torch.full(target_i.shape, 0.)
+                    output_rating[output_i_coo_row, output_i_coo_col] = torch.tensor(output_i_coo.data)
+                    target_rating[target_i_coo_row, target_i_coo_col] = torch.tensor(target_i_coo.data)
+                    output = {'target_rating': output_rating}
+                    input = {'target_rating': target_rating}
+                else:
+                    raise ValueError('Not valid data mode')
+                output['loss'] = models.loss_fn(torch.tensor(output_i_j.data), torch.tensor(target_i_j.data))
+                output = to_device(output, cfg['device'])
+                input = to_device(input, cfg['device'])
+                input_size = len(input['target_rating'])
+                evaluation = metric.evaluate(metric.metric_name['test'], input, output)
+                logger.append(evaluation, 'test', n=input_size)
+                each_logger.append(evaluation, 'test', n=input_size)
+            info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.),
+                             'ID: {}/{}'.format(i + 1, len(assist.data_split))]}
+            each_logger.append(info, 'test', mean=False)
+            print(each_logger.write('test', metric.metric_name['test']))
+            each_logger.safe(False)
+            each_logger.reset()
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
         logger.append(info, 'test', mean=False)
         print(logger.write('test', metric.metric_name['test']))

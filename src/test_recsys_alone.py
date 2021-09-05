@@ -36,7 +36,15 @@ def runExperiment():
     torch.cuda.manual_seed(cfg['seed'])
     dataset = fetch_dataset(cfg['data_name'])
     process_dataset(dataset)
-    data_split = split_dataset(dataset)
+    if cfg['data_mode'] == 'explicit':
+        metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
+    elif cfg['data_mode'] == 'implicit':
+        metric = Metric({'train': ['Loss', 'MAP'], 'test': ['Loss', 'MAP']})
+    else:
+        raise ValueError('Not valid data mode')
+    result = resume(cfg['model_tag'], load_tag='best')
+    last_epoch = result['epoch']
+    data_split = result['data_split']
     dataset = make_split_dataset(data_split)
     data_loader = {'train': [], 'test': []}
     model = []
@@ -53,21 +61,11 @@ def runExperiment():
         data_loader['train'].append(data_loader_i['train'])
         data_loader['test'].append(data_loader_i['test'])
         model.append(model_i)
-
-    if cfg['data_mode'] == 'explicit':
-        metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
-    elif cfg['data_mode'] == 'implicit':
-        metric = Metric({'train': ['Loss', 'MAP'], 'test': ['Loss', 'MAP']})
-    else:
-        raise ValueError('Not valid data mode')
-    result = resume(cfg['model_tag'], load_tag='best')
-    last_epoch = result['epoch']
     for i in range(len(dataset)):
         model[i].load_state_dict(result['model_state_dict'][i])
     test_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))
     test_each_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))
-    test(data_loader['test'], model, metric, test_logger, last_epoch)
-    test_each(data_loader['test'], model, metric, test_each_logger, last_epoch)
+    test(data_loader['test'], model, metric, test_logger, last_epoch, test_each_logger)
     result = resume(cfg['model_tag'], load_tag='checkpoint')
     train_logger = result['logger'] if 'logger' in result else None
     result = {'cfg': cfg, 'epoch': last_epoch,
@@ -76,10 +74,11 @@ def runExperiment():
     return
 
 
-def test(data_loader, model, metric, logger, epoch):
+def test(data_loader, model, metric, logger, epoch, each_logger):
     logger.safe(True)
     with torch.no_grad():
         for m in range(len(data_loader)):
+            each_logger.safe(True)
             model[m].train(False)
             for i, input in enumerate(data_loader[m]):
                 input = collate(input)
@@ -91,37 +90,18 @@ def test(data_loader, model, metric, logger, epoch):
                 output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
                 evaluation = metric.evaluate(metric.metric_name['test'], input, output)
                 logger.append(evaluation, 'test', input_size)
+                each_logger.append(evaluation, 'test', input_size)
             info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.),
-                             'ID: {}/{}'.format(m + 1, len(data_loader)), ]}
-            logger.append(info, 'test', mean=False)
-            print(logger.write('test', metric.metric_name['test']))
+                             'ID: {}/{}'.format(m + 1, len(data_loader))]}
+            each_logger.append(info, 'test', mean=False)
+            print(each_logger.write('test', metric.metric_name['test']))
+            each_logger.safe(False)
+            each_logger.reset()
+        info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
+        logger.append(info, 'test', mean=False)
+        print(logger.write('test', metric.metric_name['test']))
     logger.safe(False)
     return
-
-
-def test_each(data_loader, model, metric, logger, epoch):
-    with torch.no_grad():
-        for m in range(len(data_loader)):
-            logger.safe(True)
-            model[m].train(False)
-            for i, input in enumerate(data_loader[m]):
-                input = collate(input)
-                input_size = len(input['target_user'])
-                if input_size == 0:
-                    continue
-                input = to_device(input, cfg['device'])
-                output = model[m](input)
-                output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
-                evaluation = metric.evaluate(metric.metric_name['test'], input, output)
-                logger.append(evaluation, 'test', input_size)
-            info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.),
-                             'ID: {}/{}'.format(m + 1, len(data_loader)), ]}
-            logger.append(info, 'test', mean=False)
-            print(logger.write('test', metric.metric_name['test']))
-            logger.safe(False)
-            logger.reset()
-    return
-
 
 if __name__ == "__main__":
     main()

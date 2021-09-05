@@ -41,14 +41,18 @@ def fetch_dataset(data_name, model_name=None, data_split=None, verbose=True):
 def make_pair_transform(dataset, data_mode):
     import datasets
     if data_mode == 'explicit':
-        dataset['train'].transform = datasets.Compose([PairInput()])
-        dataset['test'].transform = datasets.Compose([PairInput()])
+        if 'train' in dataset:
+            dataset['train'].transform = datasets.Compose([PairInput()])
+        if 'test' in dataset:
+            dataset['test'].transform = datasets.Compose([PairInput()])
     elif data_mode == 'implicit':
-        dataset['train'].transform = datasets.Compose(
-            [NegativeSample(dataset['train'].item_attr, dataset['train'].num_items, cfg['num_negatives']),
-             PairInput()])
-        dataset['test'].transform = datasets.Compose(
-            [PairInput()])
+        if 'train' in dataset:
+            dataset['train'].transform = datasets.Compose(
+                [NegativeSample(dataset['train'].item_attr, dataset['train'].num_items, cfg['num_negatives']),
+                 PairInput()])
+        if 'test' in dataset:
+            dataset['test'].transform = datasets.Compose(
+                [PairInput()])
     else:
         raise ValueError('Not valid data mode')
     return dataset

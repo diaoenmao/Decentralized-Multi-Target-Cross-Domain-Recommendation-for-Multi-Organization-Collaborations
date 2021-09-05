@@ -73,7 +73,8 @@ def runExperiment():
         organization_outputs = gather(dataset, organization, epoch)
         assist.update(organization_outputs, epoch)
         test(assist, metric, logger, epoch)
-        result = {'cfg': cfg, 'epoch': epoch + 1, 'assist': assist, 'organization': organization, 'logger': logger}
+        result = {'cfg': cfg, 'epoch': epoch + 1, 'data_split': data_split, 'assist': assist,
+                  'organization': organization, 'logger': logger}
         save(result, './output/model/{}_checkpoint.pt'.format(cfg['model_tag']))
         if metric.compare(logger.mean['test/{}'.format(metric.pivot_name)]):
             metric.update(logger.mean['test/{}'.format(metric.pivot_name)])
@@ -93,11 +94,12 @@ def initialize(dataset, assist, organization, metric, logger, epoch):
     target_col = {'train': [], 'test': []}
     for i in range(len(dataset)):
         output_i, target_i = organization[i].initialize(dataset[i], metric, logger, epoch)
-        info = {'info': ['Model: {}'.format(cfg['model_tag']),
-                         'Train Epoch: {}'.format(epoch), 'ID: {}'.format(i + 1)]}
+        info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Train Epoch: {}({:.0f}%)'.format(epoch, 100.),
+                         'ID: {}/{}'.format(i + 1, len(dataset))]}
         logger.append(info, 'train', mean=False)
         print(logger.write('train', metric.metric_name['train']))
-        info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
+        info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.),
+                         'ID: {}/{}'.format(i + 1, len(dataset))]}
         logger.append(info, 'test', mean=False)
         print(logger.write('test', metric.metric_name['test']))
         for k in dataset[0]:

@@ -33,16 +33,16 @@ class Organization:
         self.model_name = model_name
         self.model_state_dict = [None for _ in range(cfg['global']['num_epochs'] + 1)]
 
-    def initialize(self, dataset, metric, logger, iter):
+    def initialize(self, dataset, metric, logger, iter, each_logger=None):
         dataset = copy.deepcopy(dataset)
         dataset = make_pair_transform(dataset, cfg['data_mode'])
         model_name = cfg['model_name']
         cfg['model_name'] = 'base'
         data_loader = make_data_loader(dataset, self.model_name[iter], shuffle={'train': False, 'test': False})
-        model = models.base(dataset['train'].num_users, dataset['train'].num_items).to(cfg['device'])
         output = {}
         target = {}
         if 'train' in dataset:
+            model = models.base(dataset['train'].num_users, dataset['train'].num_items).to(cfg['device'])
             model.train(True)
             for i, input in enumerate(data_loader['train']):
                 input = collate(input)
@@ -82,6 +82,7 @@ class Organization:
                                           (row, np.array(self.data_split)[col])),
                                          shape=(cfg['num_users'], cfg['num_items']))
         with torch.no_grad():
+            model = models.base(dataset['test'].num_users, dataset['test'].num_items).to(cfg['device'])
             model.load_state_dict(self.model_state_dict[0])
             model.train(False)
             target_user = []
@@ -97,6 +98,8 @@ class Organization:
                 output_['loss'] = output_['loss'].mean() if cfg['world_size'] > 1 else output_['loss']
                 evaluation = metric.evaluate(metric.metric_name['test'], input, output_)
                 logger.append(evaluation, 'test', input_size)
+                if each_logger is not None:
+                    each_logger.append(evaluation, 'test', input_size)
                 target_user_i, target_item_i, target_rating_i = process_output(input['target_user'],
                                                                                input['target_item'],
                                                                                output_['target_rating'])
