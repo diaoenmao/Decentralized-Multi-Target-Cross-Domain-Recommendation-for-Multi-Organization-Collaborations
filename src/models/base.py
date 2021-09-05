@@ -22,6 +22,7 @@ class Base(nn.Module):
                 base.scatter_(0, input['item'].view(1, -1), input['rating'].view(1, -1))
                 self.base = self.base + base.sum(dim=-1)
                 self.count = self.count + (base > 0).float().sum(dim=-1)
+            # base = torch.full(self.base.size(), self.base.mean(), device=self.base.device)
             output['target_rating'] = self.base[input['target_item']] / (self.count[input['target_item']] + 1e-10)
             output['target_rating'][self.count[input['target_item']] == 0] = (
                         self.base[self.count != 0] / self.count[self.count != 0]).mean()
@@ -32,6 +33,7 @@ class Base(nn.Module):
                 base.scatter_(0, input['item'].view(1, -1), input['rating'].view(1, -1))
                 self.base = self.base + base.sum(dim=-1)
                 self.count = self.count + torch.unique(input['user']).size(0)
+            # base = torch.full(self.base.size(), self.base.mean(), device=self.base.device)
             output['target_rating'] = self.base[input['target_item']] / self.count[input['target_item']]
             output['loss'] = loss_fn(output['target_rating'], input['target_rating'])
             output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(input['target_user'],

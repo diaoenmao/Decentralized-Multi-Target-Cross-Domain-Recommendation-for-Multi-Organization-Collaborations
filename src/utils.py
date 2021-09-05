@@ -168,9 +168,9 @@ def process_control():
     cfg['local']['weight_decay'] = 5e-4
     cfg['local']['scheduler_name'] = 'None'
     cfg['local']['batch_size'] = {'train': 100, 'test': 200}
-    cfg['local']['num_epochs'] = 1
+    cfg['local']['num_epochs'] = 100
     cfg['global'] = {}
-    cfg['global']['num_epochs'] = 10
+    cfg['global']['num_epochs'] = 5
     cfg['linesearch'] = {}
     cfg['linesearch']['optimizer_name'] = 'LBFGS'
     cfg['linesearch']['lr'] = 1

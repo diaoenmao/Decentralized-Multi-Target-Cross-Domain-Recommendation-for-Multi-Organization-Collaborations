@@ -43,8 +43,8 @@ class Assist:
             target_k = torch.tensor(self.organization_target[0][k].data, dtype=torch.float32)
             output_k.requires_grad = True
             loss = models.loss_fn(output_k, target_k, reduction='sum')
-            print(loss)
             loss.backward()
+            print(loss)
             residual_k = - copy.deepcopy(output_k.grad)
             output_k.detach_()
             for i in range(len(dataset)):
@@ -75,6 +75,7 @@ class Assist:
                     output = model(input)
                     optimizer.zero_grad()
                     output['loss'].backward()
+                    print(output['loss'])
                     return output['loss']
 
                 optimizer.step(closure)
