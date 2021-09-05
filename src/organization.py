@@ -160,7 +160,7 @@ class Organization:
 
     def predict(self, dataset, iter):
         with torch.no_grad():
-            data_loader = make_data_loader({'train': dataset}, 'local')['train']
+            data_loader = make_data_loader({'train': dataset}, 'local', shuffle={'train': False})['train']
             model = eval('models.{}(dataset.num_users, dataset.num_items, dataset.num_users, '
                          'cfg["num_items"]).to(cfg["device"])'.format(self.model_name[iter]))
             model.load_state_dict(self.model_state_dict[iter])

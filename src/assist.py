@@ -43,6 +43,7 @@ class Assist:
             target_k = torch.tensor(self.organization_target[0][k].data, dtype=torch.float32)
             output_k.requires_grad = True
             loss = models.loss_fn(output_k, target_k, reduction='sum')
+            print(loss)
             loss.backward()
             residual_k = - copy.deepcopy(output_k.grad)
             output_k.detach_()
@@ -89,7 +90,6 @@ class Assist:
                 output = model(input)
                 coo = self.organization_output[iter - 1][k].tocoo()
                 row, col = coo.row, coo.col
-                self.organization_output[iter][k] = csr_matrix(
-                    (output['target'].cpu().numpy(), (row, col)),
-                    shape=(cfg['num_users'], cfg['num_items']))
+                self.organization_output[iter][k] = csr_matrix((output['target'].cpu().numpy(), (row, col)),
+                                                               shape=(cfg['num_users'], cfg['num_items']))
         return

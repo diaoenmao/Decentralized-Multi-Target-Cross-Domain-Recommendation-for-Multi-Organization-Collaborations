@@ -55,6 +55,7 @@ def runExperiment():
     dataset = make_split_dataset(data_split)
     dataset = [{'test': dataset[i]['test']} for i in range(len(dataset))]
     assist = result['assist']
+    print(assist.linesearch_state_dict)
     assist.reset()
     organization = result['organization']
     test_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))
@@ -101,7 +102,7 @@ def initialize(dataset, assist, organization, metric, logger, epoch, each_logger
             target_row[k].append(target_coo_i_k.row)
             target_col[k].append(target_coo_i_k.col)
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.),
-                         'ID: {}/{}'.format(i + 1,len(dataset))]}
+                         'ID: {}/{}'.format(i + 1, len(dataset))]}
         each_logger.append(info, 'test', mean=False)
         print(each_logger.write('test', metric.metric_name['test']))
         each_logger.safe(False)
@@ -147,16 +148,16 @@ def test(assist, metric, logger, epoch, each_logger):
                     output = {'target_rating': torch.tensor(output_i_j.data)}
                     input = {'target_rating': torch.tensor(target_i_j.data)}
                 elif cfg['data_mode'] == 'implicit':
-                    output_i_coo = output_i_j.tocoo()
-                    output_i_coo_row, output_i_coo_col = torch.tensor(output_i_coo.row, dtype=torch.long), torch.tensor(
-                        output_i_coo.col, dtype=torch.long)
-                    target_i_coo = target_i_j.tocoo()
-                    target_i_coo_row, target_i_coo_col = torch.tensor(target_i_coo.row, dtype=torch.long), torch.tensor(
-                        target_i_coo.col, dtype=torch.long)
-                    output_rating = torch.full(output_i.shape, -float('inf'))
-                    target_rating = torch.full(target_i.shape, 0.)
-                    output_rating[output_i_coo_row, output_i_coo_col] = torch.tensor(output_i_coo.data)
-                    target_rating[target_i_coo_row, target_i_coo_col] = torch.tensor(target_i_coo.data)
+                    output_i_j_coo = output_i_j.tocoo()
+                    output_i_j_coo_row = torch.tensor(output_i_j_coo.row, dtype=torch.long)
+                    output_i_j_coo_col = torch.tensor(output_i_j_coo.col, dtype=torch.long)
+                    target_i_j_coo = target_i_j.tocoo()
+                    target_i_j_coo_row = torch.tensor(target_i_j_coo.row, dtype=torch.long)
+                    target_i_j_coo_col = torch.tensor(target_i_j_coo.col, dtype=torch.long)
+                    output_rating = torch.full(output_i_j.shape, -float('inf'))
+                    target_rating = torch.full(target_i_j.shape, 0.)
+                    output_rating[output_i_j_coo_row, output_i_j_coo_col] = torch.tensor(output_i_j_coo.data)
+                    target_rating[target_i_j_coo_row, target_i_j_coo_col] = torch.tensor(target_i_j_coo.data)
                     output = {'target_rating': output_rating}
                     input = {'target_rating': target_rating}
                 else:
