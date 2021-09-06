@@ -141,34 +141,31 @@ def process_control():
     cfg['gmf'] = {'hidden_size': 128}
     cfg['mlp'] = {'hidden_size': [128, 64, 32, 16]}
     cfg['nmf'] = {'hidden_size': [128, 64, 32, 16]}
-    cfg['ae'] = {'encoder_hidden_size': [128, 256], 'decoder_hidden_size': [256, 128]}
+    cfg['ae'] = {'encoder_hidden_size': [256, 128], 'decoder_hidden_size': [128, 256]}
     cfg['num_negatives'] = 4
     cfg['num_random'] = 100
     model_name = cfg['model_name']
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
-    cfg[model_name]['optimizer_name'] = 'Adam'
-    if cfg['data_mode'] == 'explicit':
-        cfg[model_name]['lr'] = 2e-4
-    elif cfg['data_mode'] == 'implicit':
-        cfg[model_name]['lr'] = 1e-3
+    cfg[model_name]['optimizer_name'] = 'SGD'
+    cfg[model_name]['lr'] = 1e-1
+    cfg[model_name]['scheduler_name'] = 'CosineAnnealingLR'
     cfg[model_name]['momentum'] = 0.9
     cfg[model_name]['nesterov'] = True
     cfg[model_name]['betas'] = (0.9, 0.999)
     cfg[model_name]['weight_decay'] = 5e-4
-    cfg[model_name]['scheduler_name'] = 'None'
     cfg[model_name]['num_epochs'] = 200 if model_name != 'base' else 1
     cfg[model_name]['batch_size'] = {'train': 100, 'test': 200}
     cfg['local'] = {}
     cfg['local']['shuffle'] = {'train': True, 'test': False}
-    cfg['local']['optimizer_name'] = 'Adam'
-    cfg['local']['lr'] = 1e-3
+    cfg['local']['optimizer_name'] = 'SGD'
+    cfg['local']['lr'] = 1e-1
     cfg['local']['momentum'] = 0.9
     cfg['local']['nesterov'] = True
     cfg['local']['betas'] = (0.9, 0.999)
     cfg['local']['weight_decay'] = 5e-4
-    cfg['local']['scheduler_name'] = 'None'
+    cfg['local']['scheduler_name'] = 'CosineAnnealingLR'
     cfg['local']['batch_size'] = {'train': 100, 'test': 200}
-    cfg['local']['num_epochs'] = 100
+    cfg['local']['num_epochs'] = 200
     cfg['global'] = {}
     cfg['global']['num_epochs'] = 5
     cfg['linesearch'] = {}

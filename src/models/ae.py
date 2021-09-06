@@ -15,23 +15,23 @@ class Encoder(nn.Module):
         self.info_size = info_size
         if info_size is None:
             blocks = [nn.Linear(num_items, hidden_size[0]),
-                      nn.SELU()]
+                      nn.Tanh()]
             for i in range(len(hidden_size) - 1):
                 blocks.append(nn.Linear(hidden_size[i], hidden_size[i + 1]))
-                blocks.append(nn.SELU())
+                blocks.append(nn.Tanh())
             self.blocks = nn.Sequential(*blocks)
         else:
             if 'user_profile' in info_size:
                 blocks = [nn.Linear(num_items + info_size['user_profile'] + info_size['item_attr'], hidden_size[0]),
-                          nn.SELU()]
+                          nn.Tanh()]
             else:
                 blocks = [nn.Linear(num_items + info_size['item_attr'], hidden_size[0]),
-                          nn.SELU()]
+                          nn.Tanh()]
             for i in range(len(hidden_size) - 1):
                 blocks.append(nn.Linear(hidden_size[i], hidden_size[i + 1]))
-                blocks.append(nn.SELU())
+                blocks.append(nn.Tanh())
             self.blocks = nn.Sequential(*blocks)
-        self.dropout = nn.Dropout(p=0.8)
+        self.dropout = nn.Dropout(p=0.5)
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -57,7 +57,7 @@ class Decoder(nn.Module):
         blocks = []
         for i in range(len(hidden_size) - 1):
             blocks.append(nn.Linear(hidden_size[i], hidden_size[i + 1]))
-            blocks.append(nn.SELU())
+            blocks.append(nn.Tanh())
         blocks.append(nn.Linear(hidden_size[-1], num_items))
         self.blocks = nn.Sequential(*blocks)
         self.reset_parameters()

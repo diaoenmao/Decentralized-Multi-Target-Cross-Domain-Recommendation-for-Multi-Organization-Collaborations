@@ -10,6 +10,10 @@ def RMSE(output, target):
         rmse = F.mse_loss(output, target).sqrt().item()
     return rmse
 
+def MAD(output, target):
+    with torch.no_grad():
+        mad = F.l1_loss(output, target).item()
+    return mad
 
 def MAP(output, target, topk=10):
     topk = min(topk, target.size(-1))
@@ -28,6 +32,7 @@ class Metric(object):
         self.metric_name = self.make_metric_name(metric_name)
         self.pivot, self.pivot_name, self.pivot_direction = self.make_pivot()
         self.metric = {'Loss': (lambda input, output: output['loss'].item()),
+                       'MAD': (lambda input, output: MAD(output['target_rating'], input['target_rating'])),
                        'RMSE': (lambda input, output: RMSE(output['target_rating'], input['target_rating'])),
                        'MAP': (lambda input, output: MAP(output['target_rating'], input['target_rating']))}
 
