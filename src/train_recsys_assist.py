@@ -86,12 +86,6 @@ def runExperiment():
 
 def initialize(dataset, assist, organization, metric, logger, epoch):
     logger.safe(True)
-    output_data = {'train': [], 'test': []}
-    output_row = {'train': [], 'test': []}
-    output_col = {'train': [], 'test': []}
-    target_data = {'train': [], 'test': []}
-    target_row = {'train': [], 'test': []}
-    target_col = {'train': [], 'test': []}
     for i in range(len(dataset)):
         output_i, target_i = organization[i].initialize(dataset[i], metric, logger, epoch)
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Train Epoch: {}({:.0f}%)'.format(epoch, 100.),
@@ -103,21 +97,8 @@ def initialize(dataset, assist, organization, metric, logger, epoch):
         logger.append(info, 'test', mean=False)
         print(logger.write('test', metric.metric_name['test']))
         for k in dataset[0]:
-            output_coo_i_k = output_i[k].tocoo()
-            output_data[k].append(output_coo_i_k.data)
-            output_row[k].append(output_coo_i_k.row)
-            output_col[k].append(output_coo_i_k.col)
-            target_coo_i_k = target_i[k].tocoo()
-            target_data[k].append(target_coo_i_k.data)
-            target_row[k].append(target_coo_i_k.row)
-            target_col[k].append(target_coo_i_k.col)
-    for k in dataset[0]:
-        assist.organization_output[0][k] = csr_matrix(
-            (np.concatenate(output_data[k]), (np.concatenate(output_row[k]), np.concatenate(output_col[k]))),
-            shape=(cfg['num_users'], cfg['num_items']))
-        assist.organization_target[0][k] = csr_matrix(
-            (np.concatenate(target_data[k]), (np.concatenate(target_row[k]), np.concatenate(target_col[k]))),
-            shape=(cfg['num_users'], cfg['num_items']))
+            assist.organization_output[0][k][i] = output_i[k]
+            assist.organization_target[0][k][i] = target_i[k]
     logger.safe(False)
     logger.reset()
     return
@@ -147,22 +128,20 @@ def train(dataset, organization, metric, logger, epoch):
 
 def gather(dataset, organization, epoch):
     with torch.no_grad():
-        organization_outputs = [{split: None for split in dataset[i]} for i in range(len(dataset))]
+        organization_outputs = [{k: None for k in dataset[i]} for i in range(len(dataset))]
         for i in range(len(dataset)):
-            for split in organization_outputs[i]:
-                organization_outputs[i][split] = organization[i].predict(dataset[i][split], epoch)
+            for k in organization_outputs[i]:
+                organization_outputs[i][k] = organization[i].predict(dataset[i][k], epoch)
     return organization_outputs
 
 
 def test(assist, metric, logger, epoch):
     logger.safe(True)
     with torch.no_grad():
-        organization_output = assist.organization_output[epoch]['test']
-        organization_target = assist.organization_target[0]['test']
         batch_size = cfg[cfg['model_name']]['batch_size']['test']
         for i in range(len(assist.data_split)):
-            output_i = organization_output[:, assist.data_split[i]]
-            target_i = organization_target[:, assist.data_split[i]]
+            output_i = assist.organization_output[epoch]['test'][i]
+            target_i = assist.organization_target[0]['test'][i]
             for j in range(0, cfg['num_users'], batch_size):
                 output_i_j = output_i[j:j + batch_size]
                 target_i_j = target_i[j:j + batch_size]

@@ -42,6 +42,11 @@ class Organization:
         output = {}
         target = {}
         if 'train' in dataset:
+            # data_num_users, data_num_items = dataset['train'].data.shape
+            # target_num_users, target_num_items = dataset['train'].target.shape
+            # model = eval('models.{}(data_num_users, data_num_items, target_num_users, target_num_items)'
+            #              '.to(cfg["device"])'.format(self.model_name[iter]))
+            # self.model_state_dict[0] = {k: v.cpu() for k, v in model.state_dict().items()}
             model = models.base(dataset['train'].num_users, dataset['train'].num_items).to(cfg['device'])
             model.train(True)
             for i, input in enumerate(data_loader['train']):
@@ -72,16 +77,18 @@ class Organization:
                     target_rating.append(target_rating_i)
                 target_user = torch.cat(target_user, dim=0).numpy()
                 target_item = torch.cat(target_item, dim=0).numpy()
-                target_item = np.array(self.data_split)[target_item]
                 target_rating = torch.cat(target_rating, dim=0).numpy()
             output['train'] = csr_matrix((target_rating, (target_user, target_item)),
-                                         shape=(cfg['num_users'], cfg['num_items']))
+                                         shape=(dataset['train'].num_users, dataset['train'].num_items))
             dataset_coo = dataset['train'].target.tocoo()
             row, col = dataset_coo.row, dataset_coo.col
-            target['train'] = csr_matrix((dataset['train'].target.data,
-                                          (row, np.array(self.data_split)[col])),
-                                         shape=(cfg['num_users'], cfg['num_items']))
+            target['train'] = csr_matrix((dataset['train'].target.data, (row, col)),
+                                         shape=(dataset['train'].num_users, dataset['train'].num_items))
         with torch.no_grad():
+            # data_num_users, data_num_items = dataset['test'].data.shape
+            # target_num_users, target_num_items = dataset['test'].target.shape
+            # model = eval('models.{}(data_num_users, data_num_items, target_num_users, target_num_items)'
+            #              '.to(cfg["device"])'.format(self.model_name[iter]))
             model = models.base(dataset['test'].num_users, dataset['test'].num_items).to(cfg['device'])
             model.load_state_dict(self.model_state_dict[0])
             model.train(False)
@@ -108,22 +115,22 @@ class Organization:
                 target_rating.append(target_rating_i)
             target_user = torch.cat(target_user, dim=0).numpy()
             target_item = torch.cat(target_item, dim=0).numpy()
-            target_item = np.array(self.data_split)[target_item]
             target_rating = torch.cat(target_rating, dim=0).numpy()
             output['test'] = csr_matrix((target_rating, (target_user, target_item)),
-                                        shape=(cfg['num_users'], cfg['num_items']))
+                                        shape=(dataset['test'].num_users, dataset['test'].num_items))
             dataset_coo = dataset['test'].target.tocoo()
             row, col = dataset_coo.row, dataset_coo.col
-            target['test'] = csr_matrix((dataset['test'].target.data,
-                                         (row, np.array(self.data_split)[col])),
-                                        shape=(cfg['num_users'], cfg['num_items']))
+            target['test'] = csr_matrix((dataset['test'].target.data, (row, col)),
+                                        shape=(dataset['test'].num_users, dataset['test'].num_items))
         cfg['model_name'] = model_name
         return output, target
 
     def train(self, dataset, metric, logger, iter):
         data_loader = make_data_loader({'train': dataset}, 'local')['train']
-        model = eval('models.{}(dataset.num_users, dataset.num_items, dataset.num_users, '
-                     'cfg["num_items"]).to(cfg["device"])'.format(self.model_name[iter]))
+        data_num_users, data_num_items = dataset.data.shape
+        target_num_users, target_num_items = dataset.target.shape
+        model = eval('models.{}(data_num_users, data_num_items, target_num_users, target_num_items)'
+                     '.to(cfg["device"])'.format(self.model_name[iter]))
         model.train(True)
         optimizer = make_optimizer(model, 'local')
         scheduler = make_scheduler(optimizer, 'local')
@@ -161,8 +168,10 @@ class Organization:
     def predict(self, dataset, iter):
         with torch.no_grad():
             data_loader = make_data_loader({'train': dataset}, 'local', shuffle={'train': False})['train']
-            model = eval('models.{}(dataset.num_users, dataset.num_items, dataset.num_users, '
-                         'cfg["num_items"]).to(cfg["device"])'.format(self.model_name[iter]))
+            data_num_users, data_num_items = dataset.data.shape
+            target_num_users, target_num_items = dataset.target.shape
+            model = eval('models.{}(data_num_users, data_num_items, target_num_users, target_num_items)'
+                         '.to(cfg["device"])'.format(self.model_name[iter]))
             model.load_state_dict(self.model_state_dict[iter])
             model.train(False)
             target_user = []
