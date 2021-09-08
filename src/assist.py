@@ -66,7 +66,7 @@ class Assist:
                              'output': torch.tensor(organization_outputs_i_k),
                              'target': torch.tensor(self.organization_target[0]['train'][i].data)}
                     input = to_device(input, cfg['device'])
-                    model = models.linesearch(iter).to(cfg['device'])
+                    model = models.ar(iter).to(cfg['device'])
                     # model.train(True)
                     # optimizer = make_optimizer(model, 'linesearch')
                     # for linesearch_epoch in range(1, cfg['linesearch']['num_epochs'] + 1):
@@ -83,7 +83,7 @@ class Assist:
                     print(model.assist_rate)
                     self.linesearch_state_dict[iter][i] = {k: v.cpu() for k, v in model.state_dict().items()}
                 with torch.no_grad():
-                    model = models.linesearch(iter).to(cfg['device'])
+                    model = models.ar(iter).to(cfg['device'])
                     model.load_state_dict(self.linesearch_state_dict[iter][i])
                     model.train(False)
                     input = {'history': torch.tensor(self.organization_output[iter - 1][k][i].data),

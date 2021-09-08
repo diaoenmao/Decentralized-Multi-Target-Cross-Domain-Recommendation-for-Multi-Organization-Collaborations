@@ -10,7 +10,7 @@ from torch.utils.data.dataloader import default_collate
 from utils import collate, to_device
 
 
-def fetch_dataset(data_name, model_name=None, data_split=None, verbose=True):
+def fetch_dataset(data_name, model_name=None, verbose=True):
     import datasets
 
     model_name = cfg['model_name'] if model_name is None else model_name
@@ -20,11 +20,9 @@ def fetch_dataset(data_name, model_name=None, data_split=None, verbose=True):
     root = './data/{}'.format(data_name)
     if data_name in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
         dataset['train'] = eval(
-            'datasets.{}(root=root, split=\'train\', data_mode=cfg["data_mode"], data_split=data_split)'.format(
-                data_name))
+            'datasets.{}(root=root, split=\'train\', data_mode=cfg["data_mode"])'.format(data_name))
         dataset['test'] = eval(
-            'datasets.{}(root=root, split=\'test\', data_mode=cfg["data_mode"], data_split=data_split)'.format(
-                data_name))
+            'datasets.{}(root=root, split=\'test\', data_mode=cfg["data_mode"])'.format(data_name))
         if model_name in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
             dataset = make_pair_transform(dataset, cfg['data_mode'])
         elif model_name in ['ae']:
@@ -48,11 +46,10 @@ def make_pair_transform(dataset, data_mode):
     elif data_mode == 'implicit':
         if 'train' in dataset:
             dataset['train'].transform = datasets.Compose(
-                [NegativeSample(dataset['train'].item_attr, dataset['train'].num_items, cfg['num_negatives']),
-                 PairInput()])
+                [NegativeSample(dataset['train'].item_attr['data'], dataset['train'].num_items['data'],
+                                cfg['num_negatives']), PairInput()])
         if 'test' in dataset:
-            dataset['test'].transform = datasets.Compose(
-                [PairInput()])
+            dataset['test'].transform = datasets.Compose([PairInput()])
     else:
         raise ValueError('Not valid data mode')
     return dataset
@@ -61,15 +58,19 @@ def make_pair_transform(dataset, data_mode):
 def make_flat_transform(dataset, data_mode):
     import datasets
     if data_mode == 'explicit':
-        dataset['train'].transform = datasets.Compose(
-            [FlatInput(dataset['train'].num_items, dataset['train'].num_items)])
-        dataset['test'].transform = datasets.Compose(
-            [FlatInput(dataset['train'].num_items, dataset['train'].num_items)])
+        if 'train' in dataset:
+            dataset['train'].transform = datasets.Compose(
+                [FlatInput(dataset['train'].num_items)])
+        if 'test' in dataset:
+            dataset['test'].transform = datasets.Compose(
+                [FlatInput(dataset['test'].num_items)])
     elif data_mode == 'implicit':
-        dataset['train'].transform = datasets.Compose(
-            [FlatInput(dataset['train'].num_items, dataset['train'].num_items)])
-        dataset['test'].transform = datasets.Compose(
-            [FlatInput(dataset['train'].num_items, dataset['train'].num_items)])
+        if 'train' in dataset:
+            dataset['train'].transform = datasets.Compose(
+                [FlatInput(dataset['train'].num_items)])
+        if 'test' in dataset:
+            dataset['test'].transform = datasets.Compose(
+                [FlatInput(dataset['test'].num_items)])
     else:
         raise ValueError('Not valid data mode')
     return dataset
@@ -119,7 +120,7 @@ class NegativeSample(torch.nn.Module):
         negative_rating = torch.zeros(negative_item.size(0))
         input['item'] = torch.cat([positive_item, negative_item], dim=0)
         input['rating'] = torch.cat([positive_rating, negative_rating], dim=0)
-        if self.item_attr is not None:
+        if 'item_attr' in input is not None and self.item_attr is not None:
             negative_item_attr = torch.tensor(self.item_attr[negative_item]).view(-1, input['item_attr'].size(1))
             input['item_attr'] = torch.cat([input['item_attr'], negative_item_attr], dim=0)
         return input
@@ -135,43 +136,50 @@ class PairInput(torch.nn.Module):
         if cfg['info'] == 1:
             if 'user_profile' in input:
                 input['user_profile'] = input['user_profile'].view(1, -1).repeat(input['item'].size(0), 1)
+            if 'target_user_profile' in input:
                 input['target_user_profile'] = input['target_user_profile'].view(1, -1).repeat(
                     input['target_item'].size(0), 1)
         else:
             if 'user_profile' in input:
                 del input['user_profile']
+            if 'target_user_profile' in input:
                 del input['target_user_profile']
             if 'item_attr' in input:
                 del input['item_attr']
-                if 'target_item_attr' in input:
-                    del input['target_item_attr']
+            if 'target_item_attr' in input:
+                del input['target_item_attr']
         return input
 
 
 class FlatInput(torch.nn.Module):
-    def __init__(self, data_num_items, target_num_items):
+    def __init__(self, num_items):
         super().__init__()
-        self.data_num_items = data_num_items
-        self.target_num_items = target_num_items
+        self.num_items = num_items
 
     def forward(self, input):
         input['user'] = input['user'].repeat(input['item'].size(0))
         input['target_user'] = input['target_user'].repeat(input['target_item'].size(0))
-        rating = torch.zeros(self.data_num_items)
+        rating = torch.zeros(self.num_items['data'])
         rating[input['item']] = input['rating']
         input['rating'] = rating
-        target_rating = torch.full((self.target_num_items,), float('nan'))
+        target_rating = torch.full((self.num_items['target'],), float('nan'))
         target_rating[input['target_item']] = input['target_rating']
         input['target_rating'] = target_rating
-        if 'target_item_attr' in input:
-            del input['target_item_attr']
         if cfg['info'] == 1:
             input['item_attr'] = input['item_attr'].sum(dim=0)
+            if 'target_user_profile' in input:
+                del input['target_user_profile']
+            if 'target_item_attr' in input:
+                del input['target_item_attr']
         else:
             if 'user_profile' in input:
                 del input['user_profile']
+            if 'target_user_profile' in input:
                 del input['target_user_profile']
-            del input['item_attr']
+            if 'item_attr' in input:
+                del input['item_attr']
+            if 'target_item_attr' in input:
+                del input['target_item_attr']
         return input
 
 
@@ -179,13 +187,13 @@ def split_dataset(dataset):
     if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
         if 'genre' in cfg['data_split_mode']:
             num_organizations = cfg['num_organizations']
-            data_split_idx = torch.multinomial(torch.tensor(dataset.item_attr), 1).view(-1).numpy()
+            data_split_idx = torch.multinomial(torch.tensor(dataset['train'].item_attr), 1).view(-1).numpy()
             data_split = []
             for i in range(num_organizations):
-                data_split_i = data_split_idx[:, 0][data_split_idx[:, 1] == i].tolist()
+                data_split_i = np.where(data_split_idx == i)[0].tolist()
                 data_split.append(data_split_i)
         elif 'random' in cfg['data_split_mode']:
-            num_items = dataset['train'].num_items
+            num_items = dataset['train'].num_items['data']
             num_organizations = cfg['num_organizations']
             data_split = list(torch.randperm(num_items).split(num_items // num_organizations))
             data_split = data_split[:num_organizations - 1] + [torch.cat(data_split[num_organizations - 1:])]
@@ -201,7 +209,15 @@ def make_split_dataset(data_split):
     dataset = []
     for i in range(num_organizations):
         data_split_i = data_split[i]
-        dataset_i = fetch_dataset(cfg['data_name'], model_name=cfg['model_name'], data_split=data_split_i,
-                                  verbose=False)
+        dataset_i = fetch_dataset(cfg['data_name'], model_name=cfg['model_name'], verbose=False)
+        for k in dataset_i:
+            dataset_i[k].data = dataset_i[k].data[:, data_split_i]
+            dataset_i[k].target = dataset_i[k].target[:, data_split_i]
+            dataset_i[k].item_attr['data'] = dataset_i[k].item_attr['data'][data_split_i]
+            dataset_i[k].item_attr['target'] = dataset_i[k].item_attr['target'][data_split_i]
+        if cfg['model_name'] in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
+            dataset_i = make_pair_transform(dataset_i, cfg['data_mode'])
+        elif cfg['model_name'] in ['ae']:
+            dataset_i = make_flat_transform(dataset_i, cfg['data_mode'])
         dataset.append(dataset_i)
     return dataset

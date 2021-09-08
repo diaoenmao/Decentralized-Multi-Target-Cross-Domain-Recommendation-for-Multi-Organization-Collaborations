@@ -48,11 +48,11 @@ def runExperiment():
     scheduler = []
     for i in range(len(dataset)):
         data_loader_i = make_data_loader(dataset[i], cfg['model_name'])
-        num_users = dataset[i]["train"].num_users
-        num_items = dataset[i]["train"].num_items
+        num_users = dataset[i]["train"].num_users['data']
+        num_items = dataset[i]["train"].num_items['data']
         if cfg['model_name'] == 'ae':
             model_i = eval(
-                'models.{}(num_users, num_items, num_users, num_items).to(cfg["device"])'.format(cfg['model_name']))
+                'models.{}( num_items, num_items).to(cfg["device"])'.format(cfg['model_name']))
         else:
             model_i = eval(
                 'models.{}(num_users, num_items).to(cfg["device"])'.format(cfg['model_name']))
@@ -137,20 +137,19 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
                 optimizer[m].step()
             evaluation = metric.evaluate(metric.metric_name['train'], input, output)
             logger.append(evaluation, 'train', n=input_size)
-            if i % int((len(data_loader[m]) * cfg['log_interval']) + 1) == 0:
-                _time = (time.time() - start_time) / (i + 1)
-                lr = optimizer[m].param_groups[0]['lr'] if optimizer[m] is not None else 0
-                epoch_finished_time = datetime.timedelta(seconds=round(_time * (len(data_loader[m]) - i - 1)))
-                exp_finished_time = epoch_finished_time + datetime.timedelta(
-                    seconds=round((cfg[cfg['model_name']]['num_epochs'] - epoch) * _time * len(data_loader[m])))
-                info = {'info': ['Model: {}'.format(cfg['model_tag']),
-                                 'Train Epoch: {}({:.0f}%)'.format(epoch, 100. * i / len(data_loader[m])),
-                                 'ID: {}/{}'.format(m + 1, len(data_loader)),
-                                 'Learning rate: {:.6f}'.format(lr),
-                                 'Epoch Finished Time: {}'.format(epoch_finished_time),
-                                 'Experiment Finished Time: {}'.format(exp_finished_time)]}
-                logger.append(info, 'train', mean=False)
-                print(logger.write('train', metric.metric_name['train']))
+        _time = (time.time() - start_time) / (m + 1)
+        lr = optimizer[m].param_groups[0]['lr'] if optimizer[m] is not None else 0
+        epoch_finished_time = datetime.timedelta(seconds=round(_time * (len(data_loader) - m - 1)))
+        exp_finished_time = epoch_finished_time + datetime.timedelta(
+            seconds=round((cfg[cfg['model_name']]['num_epochs'] - epoch) * _time * len(data_loader[m])))
+        info = {'info': ['Model: {}'.format(cfg['model_tag']),
+                         'Train Epoch: {}({:.0f}%)'.format(epoch, 100. * m / len(data_loader)),
+                         'ID: {}/{}'.format(m + 1, len(data_loader)),
+                         'Learning rate: {:.6f}'.format(lr),
+                         'Epoch Finished Time: {}'.format(epoch_finished_time),
+                         'Experiment Finished Time: {}'.format(exp_finished_time)]}
+        logger.append(info, 'train', mean=False)
+        print(logger.write('train', metric.metric_name['train']))
     logger.safe(False)
     return
 

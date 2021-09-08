@@ -50,11 +50,11 @@ def runExperiment():
     model = []
     for i in range(len(dataset)):
         data_loader_i = make_data_loader(dataset[i], cfg['model_name'])
-        num_users = dataset[i]["train"].num_users
-        num_items = dataset[i]["train"].num_items
+        num_users = dataset[i]["train"].num_users['data']
+        num_items = dataset[i]["train"].num_items['data']
         if cfg['model_name'] == 'ae':
             model_i = eval(
-                'models.{}(num_users, num_items, num_users, num_items).to(cfg["device"])'.format(cfg['model_name']))
+                'models.{}(num_items, num_items).to(cfg["device"])'.format(cfg['model_name']))
         else:
             model_i = eval(
                 'models.{}(num_users, num_items).to(cfg["device"])'.format(cfg['model_name']))

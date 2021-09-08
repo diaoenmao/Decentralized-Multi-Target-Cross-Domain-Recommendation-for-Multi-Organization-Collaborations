@@ -22,7 +22,6 @@ class Base(nn.Module):
                 base.scatter_(0, input['item'].view(1, -1), input['rating'].view(1, -1))
                 self.base = self.base + base.sum(dim=-1)
                 self.count = self.count + (base > 0).float().sum(dim=-1)
-            # base = torch.full(self.base.size(), self.base.mean(), device=self.base.device)
             output['target_rating'] = self.base[input['target_item']] / (self.count[input['target_item']] + 1e-10)
             output['target_rating'][self.count[input['target_item']] == 0] = (
                         self.base[self.count != 0] / self.count[self.count != 0]).mean()
@@ -33,12 +32,11 @@ class Base(nn.Module):
                 base.scatter_(0, input['item'].view(1, -1), input['rating'].view(1, -1))
                 self.base = self.base + base.sum(dim=-1)
                 self.count = self.count + torch.unique(input['user']).size(0)
-            # base = torch.full(self.base.size(), self.base.mean(), device=self.base.device)
             output['target_rating'] = self.base[input['target_item']] / self.count[input['target_item']]
             output['loss'] = loss_fn(output['target_rating'], input['target_rating'])
-            output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(input['target_user'],
+            output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(self.num_items,
+                                                                                         input['target_user'],
                                                                                          input['target_item'],
-                                                                                         self.num_items,
                                                                                          output['target_rating'],
                                                                                          input['target_rating'])
         else:
@@ -47,7 +45,7 @@ class Base(nn.Module):
 
 
 def base(num_users=None, num_items=None):
-    num_users = cfg['num_users'] if num_users is None else num_users
-    num_items = cfg['num_items'] if num_items is None else num_items
+    num_users = cfg['num_users']['data'] if num_users is None else num_users
+    num_items = cfg['num_items']['data'] if num_items is None else num_items
     model = Base(num_users, num_items)
     return model

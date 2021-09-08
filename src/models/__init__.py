@@ -5,4 +5,4 @@ from .gmf import *
 from .mlp import *
 from .nmf import *
 from .ae import *
-from .linesearch import *
+from .ar import *

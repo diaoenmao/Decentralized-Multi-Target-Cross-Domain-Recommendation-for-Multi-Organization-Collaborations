@@ -14,7 +14,7 @@ def loss_fn(output, target, reduction='mean'):
     return loss
 
 
-def parse_implicit_rating_pair(user, item, num_items, output, target):
+def parse_implicit_rating_pair(num_items, user, item, output, target):
     user, user_idx = torch.unique(user, return_inverse=True)
     item_idx = item
     num_users = len(user)

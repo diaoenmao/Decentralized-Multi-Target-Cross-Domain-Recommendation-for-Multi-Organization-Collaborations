@@ -112,8 +112,8 @@ def process_dataset(dataset):
     if cfg['info'] == 1:
         cfg['info_size'] = {}
         if cfg['data_name'] in ['ML100K', 'ML1M']:
-            cfg['info_size']['user_profile'] = dataset['train'].user_profile.shape[1]
-        cfg['info_size']['item_attr'] = dataset['train'].item_attr.shape[1]
+            cfg['info_size']['user_profile'] = dataset['train'].user_profile['data'].shape[1]
+        cfg['info_size']['item_attr'] = dataset['train'].item_attr['data'].shape[1]
     else:
         cfg['info_size'] = None
     return
@@ -168,10 +168,11 @@ def process_control():
     cfg['local']['num_epochs'] = 200
     cfg['global'] = {}
     cfg['global']['num_epochs'] = 20
-    cfg['linesearch'] = {}
-    cfg['linesearch']['optimizer_name'] = 'LBFGS'
-    cfg['linesearch']['lr'] = 1
-    cfg['linesearch']['num_epochs'] = 10
+    cfg['ar'] = {}
+    cfg['ar']['lr'] = 0.1
+    cfg['ar']['factor'] = 0.1
+    cfg['ar']['milestones'] = [5, 10]
+    cfg['ar']['num_epochs'] = 20
     return
 
 

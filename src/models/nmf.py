@@ -25,8 +25,9 @@ class NMF(nn.Module):
             if 'user_profile' in info_size:
                 self.user_profile_mf = nn.Linear(info_size['user_profile'], hidden_size[0])
                 self.user_profile_mlp = nn.Linear(info_size['user_profile'], hidden_size[0])
-            self.item_attr_mf = nn.Linear(info_size['item_attr'], hidden_size[0])
-            self.item_attr_mlp = nn.Linear(info_size['item_attr'], hidden_size[0])
+            if 'item_attr' in self.info_size:
+                self.item_attr_mf = nn.Linear(info_size['item_attr'], hidden_size[0])
+                self.item_attr_mlp = nn.Linear(info_size['item_attr'], hidden_size[0])
         fc = []
         for i in range(len(hidden_size) - 1):
             if i == 0:
@@ -34,7 +35,8 @@ class NMF(nn.Module):
                 if self.info_size is not None:
                     if 'user_profile' in info_size:
                         input_size = input_size + hidden_size[i]
-                    input_size = input_size + hidden_size[i]
+                    if 'item_attr' in self.info_size:
+                        input_size = input_size + hidden_size[i]
             else:
                 input_size = hidden_size[i]
             fc.append(torch.nn.Linear(input_size, hidden_size[i + 1]))
@@ -81,64 +83,58 @@ class NMF(nn.Module):
             item = input['item']
             rating = input['rating']
             if self.info_size is not None:
-                if 'user_profile' in input:
-                    user_profile = input['user_profile']
-                item_attr = input['item_attr']
+                user_profile = input['user_profile'] if 'user_profile' in input else None
+                item_attr = input['item_attr'] if 'item_attr' in input else None
+            else:
+                user_profile = None
+                item_attr = None
         else:
             user = input['target_user']
             item = input['target_item']
             rating = input['target_rating']
             if self.info_size is not None:
-                if 'user_profile' in input:
-                    user_profile = input['target_user_profile']
-                item_attr = input['target_item_attr']
+                user_profile = input['target_user_profile'] if 'target_user_profile' in input else None
+                item_attr = input['target_item_attr'] if 'target_item_attr' in input else None
+            else:
+                user_profile = None
+                item_attr = None
         user_embedding_mlp = self.user_embedding_mlp(user)
         user_embedding_mf = self.user_embedding_mf(user)
         item_embedding_mlp = self.item_embedding_mlp(item)
         item_embedding_mf = self.item_embedding_mf(item)
+        mf = user_embedding_mf * item_embedding_mf
+        mlp = torch.cat([user_embedding_mlp, item_embedding_mlp], dim=-1)
         if self.info_size is not None:
-            if 'user_profile' in input:
+            info = torch.tensor([], device=user.device)
+            if user_profile is not None:
                 user_profile_mf = self.user_profile_mf(user_profile)
                 user_profile_mf = user_embedding_mf * user_profile_mf
-                item_attr_mf = self.item_attr_mf(item_attr)
-                item_attr_mf = item_embedding_mf * item_attr_mf
+                mf = mf + user_profile_mf
                 user_profile_mlp = self.user_profile_mlp(user_profile)
-                item_attr_mlp = self.item_attr_mlp(item_attr)
-                mf = user_embedding_mf * item_embedding_mf + user_profile_mf + item_attr_mf
-                info_mlp = torch.cat([user_profile_mlp, item_attr_mlp], dim=-1)
-            else:
+                info = torch.cat([info, user_profile_mlp], dim=-1)
+            if item_attr is not None:
                 item_attr_mf = self.item_attr_mf(item_attr)
                 item_attr_mf = item_embedding_mf * item_attr_mf
+                mf = mf + item_attr_mf
                 item_attr_mlp = self.item_attr_mlp(item_attr)
-                info_mlp = item_attr_mlp
-                mf = user_embedding_mf * item_embedding_mf + item_attr_mf
-            mlp = torch.cat([user_embedding_mlp, item_embedding_mlp, info_mlp], dim=-1)
-        else:
-            mf = user_embedding_mf * item_embedding_mf
-            mlp = torch.cat([user_embedding_mlp, item_embedding_mlp], dim=-1)
+                info = torch.cat([info, item_attr_mlp], dim=-1)
+            mlp = torch.cat([mlp, info], dim=-1)
         mlp = self.fc(mlp)
         mlp_mf = torch.cat([mlp, mf], dim=-1)
         output['target_rating'] = self.affine(mlp_mf).view(-1)
         output['loss'] = loss_fn(output['target_rating'], rating)
         if cfg['data_mode'] == 'implicit':
-            if self.training:
-                output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(input['user'],
-                                                                                        input['item'],
-                                                                                        self.num_items,
-                                                                                        output['target_rating'],
-                                                                                        input['rating'])
-            else:
-                output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(input['target_user'],
-                                                                                             input['target_item'],
-                                                                                             self.num_items,
-                                                                                             output['target_rating'],
-                                                                                             input['target_rating'])
+            output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(self.num_items,
+                                                                                         user,
+                                                                                         item,
+                                                                                         output['target_rating'],
+                                                                                         rating)
         return output
 
 
 def nmf(num_users=None, num_items=None):
-    num_users = cfg['num_users'] if num_users is None else num_users
-    num_items = cfg['num_items'] if num_items is None else num_items
+    num_users = cfg['num_users']['data'] if num_users is None else num_users
+    num_items = cfg['num_items']['data'] if num_items is None else num_items
     hidden_size = cfg['nmf']['hidden_size']
     info_size = cfg['info_size']
     model = NMF(num_users, num_items, hidden_size, info_size)

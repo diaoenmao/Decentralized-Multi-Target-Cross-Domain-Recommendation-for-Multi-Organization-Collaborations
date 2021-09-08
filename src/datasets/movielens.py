@@ -13,24 +13,19 @@ class ML100K(Dataset):
     data_name = 'ML100K'
     file = [('https://files.grouplens.org/datasets/movielens/ml-100k.zip', '0e33842e24a9c977be4e0107933c0723')]
 
-    def __init__(self, root, split, data_mode, data_split=None, transform=None):
+    def __init__(self, root, split, data_mode, transform=None):
         self.root = os.path.expanduser(root)
         self.split = split
         self.data_mode = data_mode
-        self.data_split = data_split
         self.transform = transform
         if not check_exists(self.processed_folder):
             self.process()
         self.data, self.target = load(os.path.join(self.processed_folder, self.data_mode, '{}.pt'.format(self.split)),
                                       mode='pickle')
-        self.user_profile = load(os.path.join(self.processed_folder, 'user_profile.pt'), mode='pickle')
-        self.item_attr = load(os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')
-        if data_split is not None:
-            self.data = self.data[:, data_split]
-            self.target = self.target[:, data_split]
-            self.data_item_attr = self.item_attr[data_split]
-        self.target_item_attr_flag = True
-        self.num_users, self.num_items = self.data.shape
+        user_profile = load(os.path.join(self.processed_folder, 'user_profile.pt'), mode='pickle')
+        self.user_profile = {'data': user_profile, 'target': user_profile}
+        item_attr = load(os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')
+        self.item_attr = {'data': item_attr, 'target': item_attr}
 
     def __getitem__(self, index):
         data = self.data[index].tocoo()
@@ -38,20 +33,31 @@ class ML100K(Dataset):
         input = {'user': torch.tensor(np.array([index]), dtype=torch.long),
                  'item': torch.tensor(data.col, dtype=torch.long),
                  'rating': torch.tensor(data.data),
-                 'user_profile': torch.tensor(self.user_profile[index]),
-                 'item_attr': torch.tensor(self.item_attr[data.col]),
                  'target_user': torch.tensor(np.array([index]), dtype=torch.long),
                  'target_item': torch.tensor(target.col, dtype=torch.long),
-                 'target_rating': torch.tensor(target.data),
-                 'target_user_profile': torch.tensor(self.user_profile[index])}
-        if self.target_item_attr_flag:
-            input['target_item_attr'] = torch.tensor(self.item_attr[target.col])
+                 'target_rating': torch.tensor(target.data)}
+        if 'data' in self.user_profile:
+            input['user_profile'] = torch.tensor(self.user_profile['data'][index])
+        if 'target' in self.user_profile:
+            input['target_user_profile'] = torch.tensor(self.user_profile['target'][index])
+        if 'data' in self.item_attr:
+            input['item_attr'] = torch.tensor(self.item_attr['data'][data.col])
+        if 'target' in self.item_attr:
+            input['target_item_attr'] = torch.tensor(self.item_attr['target'][target.col])
         if self.transform is not None:
             input = self.transform(input)
         return input
 
     def __len__(self):
-        return self.data.shape[0]
+        return self.num_users['data']
+
+    @property
+    def num_users(self):
+        return {'data': self.data.shape[0], 'target': self.target.shape[0]}
+
+    @property
+    def num_items(self):
+        return {'data': self.data.shape[1], 'target': self.target.shape[1]}
 
     @property
     def processed_folder(self):
@@ -164,24 +170,19 @@ class ML1M(Dataset):
     data_name = 'ML1M'
     file = [('https://files.grouplens.org/datasets/movielens/ml-1m.zip', 'c4d9eecfca2ab87c1945afe126590906')]
 
-    def __init__(self, root, split, data_mode, data_split=None, transform=None):
+    def __init__(self, root, split, data_mode, transform=None):
         self.root = os.path.expanduser(root)
         self.split = split
         self.data_mode = data_mode
-        self.data_split = data_split
         self.transform = transform
         if not check_exists(self.processed_folder):
             self.process()
         self.data, self.target = load(os.path.join(self.processed_folder, self.data_mode, '{}.pt'.format(self.split)),
                                       mode='pickle')
-        self.user_profile = load(os.path.join(self.processed_folder, 'user_profile.pt'), mode='pickle')
-        self.item_attr = load(os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')
-        if data_split is not None:
-            self.data = self.data[:, data_split]
-            self.target = self.target[:, data_split]
-            self.data_item_attr = self.item_attr[data_split]
-        self.target_item_attr_flag = True
-        self.num_users, self.num_items = self.data.shape
+        user_profile = load(os.path.join(self.processed_folder, 'user_profile.pt'), mode='pickle')
+        self.user_profile = {'data': user_profile, 'target': user_profile}
+        item_attr = load(os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')
+        self.item_attr = {'data': item_attr, 'target': item_attr}
 
     def __getitem__(self, index):
         data = self.data[index].tocoo()
@@ -189,20 +190,31 @@ class ML1M(Dataset):
         input = {'user': torch.tensor(np.array([index]), dtype=torch.long),
                  'item': torch.tensor(data.col, dtype=torch.long),
                  'rating': torch.tensor(data.data),
-                 'user_profile': torch.tensor(self.user_profile[index]),
-                 'item_attr': torch.tensor(self.item_attr[data.col]),
                  'target_user': torch.tensor(np.array([index]), dtype=torch.long),
                  'target_item': torch.tensor(target.col, dtype=torch.long),
-                 'target_rating': torch.tensor(target.data),
-                 'target_user_profile': torch.tensor(self.user_profile[index])}
-        if self.target_item_attr_flag:
-            input['target_item_attr'] = torch.tensor(self.item_attr[target.col])
+                 'target_rating': torch.tensor(target.data)}
+        if 'data' in self.user_profile:
+            input['user_profile'] = torch.tensor(self.user_profile['data'][index])
+        if 'target' in self.user_profile:
+            input['target_user_profile'] = torch.tensor(self.user_profile['target'][index])
+        if 'data' in self.item_attr:
+            input['item_attr'] = torch.tensor(self.item_attr['data'][data.col])
+        if 'target' in self.item_attr:
+            input['target_item_attr'] = torch.tensor(self.item_attr['target'][target.col])
         if self.transform is not None:
             input = self.transform(input)
         return input
 
     def __len__(self):
-        return self.data.shape[0]
+        return self.num_users['data']
+
+    @property
+    def num_users(self):
+        return {'data': self.data.shape[0], 'target': self.target.shape[0]}
+
+    @property
+    def num_items(self):
+        return {'data': self.data.shape[1], 'target': self.target.shape[1]}
 
     @property
     def processed_folder(self):

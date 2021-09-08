@@ -20,7 +20,8 @@ class MLP(nn.Module):
         if self.info_size is not None:
             if 'user_profile' in info_size:
                 self.user_profile = nn.Linear(info_size['user_profile'], hidden_size[0])
-            self.item_attr = nn.Linear(info_size['item_attr'], hidden_size[0])
+            if 'item_attr' in info_size:
+                self.item_attr = nn.Linear(info_size['item_attr'], hidden_size[0])
         fc = []
         for i in range(len(hidden_size) - 1):
             if i == 0:
@@ -28,7 +29,8 @@ class MLP(nn.Module):
                 if self.info_size is not None:
                     if 'user_profile' in info_size:
                         input_size = input_size + hidden_size[i]
-                    input_size = input_size + hidden_size[i]
+                    if 'item_attr' in info_size:
+                        input_size = input_size + hidden_size[i]
             else:
                 input_size = hidden_size[i]
             fc.append(torch.nn.Linear(input_size, hidden_size[i + 1]))
@@ -63,52 +65,48 @@ class MLP(nn.Module):
             item = input['item']
             rating = input['rating']
             if self.info_size is not None:
-                if 'user_profile' in input:
-                    user_profile = input['user_profile']
-                item_attr = input['item_attr']
+                user_profile = input['user_profile'] if 'user_profile' in input else None
+                item_attr = input['item_attr'] if 'item_attr' in input else None
+            else:
+                user_profile = None
+                item_attr = None
         else:
             user = input['target_user']
             item = input['target_item']
             rating = input['target_rating']
             if self.info_size is not None:
-                if 'user_profile' in input:
-                    user_profile = input['target_user_profile']
-                item_attr = input['target_item_attr']
+                user_profile = input['target_user_profile'] if 'target_user_profile' in input else None
+                item_attr = input['target_item_attr'] if 'target_item_attr' in input else None
+            else:
+                user_profile = None
+                item_attr = None
         user_embedding = self.user_embedding(user)
         item_embedding = self.item_embedding(item)
+        mlp = torch.cat([user_embedding, item_embedding], dim=-1)
         if self.info_size is not None:
-            if 'user_profile' in input:
+            info = torch.tensor([], device=user.device)
+            if user_profile is not None:
                 user_profile = self.user_profile(user_profile)
+                info = torch.cat([info, user_profile], dim=-1)
+            if item_attr is not None:
                 item_attr = self.item_attr(item_attr)
-                info = torch.cat([user_profile, item_attr], dim=-1)
-            else:
-                item_attr = self.item_attr(item_attr)
-                info = item_attr
-            mlp = torch.cat([user_embedding, item_embedding, info], dim=-1)
-        else:
-            mlp = torch.cat([user_embedding, item_embedding], dim=-1)
+                info = torch.cat([info, item_attr], dim=-1)
+            mlp = torch.cat([mlp, info], dim=-1)
         mlp = self.fc(mlp)
         output['target_rating'] = self.affine(mlp).view(-1)
         output['loss'] = loss_fn(output['target_rating'], rating)
         if cfg['data_mode'] == 'implicit':
-            if self.training:
-                output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(input['user'],
-                                                                                        input['item'],
-                                                                                        self.num_items,
-                                                                                        output['target_rating'],
-                                                                                        input['rating'])
-            else:
-                output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(input['target_user'],
-                                                                                             input['target_item'],
-                                                                                             self.num_items,
-                                                                                             output['target_rating'],
-                                                                                             input['target_rating'])
+            output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(self.num_items,
+                                                                                         user,
+                                                                                         item,
+                                                                                         output['target_rating'],
+                                                                                         rating)
         return output
 
 
 def mlp(num_users=None, num_items=None):
-    num_users = cfg['num_users'] if num_users is None else num_users
-    num_items = cfg['num_items'] if num_items is None else num_items
+    num_users = cfg['num_users']['data'] if num_users is None else num_users
+    num_items = cfg['num_items']['data'] if num_items is None else num_items
     hidden_size = cfg['mlp']['hidden_size']
     info_size = cfg['info_size']
     model = MLP(num_users, num_items, hidden_size, info_size)

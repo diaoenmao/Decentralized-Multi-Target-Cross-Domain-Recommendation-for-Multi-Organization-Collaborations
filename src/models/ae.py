@@ -7,31 +7,16 @@ from config import cfg
 
 
 class Encoder(nn.Module):
-    def __init__(self, num_users, num_items, hidden_size, info_size):
+    def __init__(self, input_size, hidden_size):
         super().__init__()
-        self.num_users = num_users
-        self.num_items = num_items
+        self.input_size = input_size
         self.hidden_size = hidden_size
-        self.info_size = info_size
-        if info_size is None:
-            blocks = [nn.Linear(num_items, hidden_size[0]),
-                      nn.Tanh()]
-            for i in range(len(hidden_size) - 1):
-                blocks.append(nn.Linear(hidden_size[i], hidden_size[i + 1]))
-                blocks.append(nn.Tanh())
-            self.blocks = nn.Sequential(*blocks)
-        else:
-            if 'user_profile' in info_size:
-                blocks = [nn.Linear(num_items + info_size['user_profile'] + info_size['item_attr'], hidden_size[0]),
-                          nn.Tanh()]
-            else:
-                blocks = [nn.Linear(num_items + info_size['item_attr'], hidden_size[0]),
-                          nn.Tanh()]
-            for i in range(len(hidden_size) - 1):
-                blocks.append(nn.Linear(hidden_size[i], hidden_size[i + 1]))
-                blocks.append(nn.Tanh())
-            self.blocks = nn.Sequential(*blocks)
-        self.dropout = nn.Dropout(p=0.5)
+        blocks = [nn.Linear(input_size, hidden_size[0]),
+                  nn.Tanh()]
+        for i in range(len(hidden_size) - 1):
+            blocks.append(nn.Linear(hidden_size[i], hidden_size[i + 1]))
+            blocks.append(nn.Tanh())
+        self.blocks = nn.Sequential(*blocks)
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -44,21 +29,19 @@ class Encoder(nn.Module):
 
     def forward(self, x):
         x = self.blocks(x)
-        x = self.dropout(x)
         return x
 
 
 class Decoder(nn.Module):
-    def __init__(self, num_users, num_items, hidden_size):
+    def __init__(self, input_size, hidden_size):
         super().__init__()
-        self.num_users = num_users
-        self.num_items = num_items
+        self.input_size = input_size
         self.hidden_size = hidden_size
         blocks = []
         for i in range(len(hidden_size) - 1):
             blocks.append(nn.Linear(hidden_size[i], hidden_size[i + 1]))
             blocks.append(nn.Tanh())
-        blocks.append(nn.Linear(hidden_size[-1], num_items))
+        blocks.append(nn.Linear(hidden_size[-1], input_size))
         self.blocks = nn.Sequential(*blocks)
         self.reset_parameters()
 
@@ -76,30 +59,34 @@ class Decoder(nn.Module):
 
 
 class AE(nn.Module):
-    def __init__(self, encoder_num_users, encoder_num_items, decoder_num_users, decoder_num_items, encoder_hidden_size,
+    def __init__(self, encoder_num_items, decoder_num_items, encoder_hidden_size,
                  decoder_hidden_size, info_size):
         super().__init__()
         self.info_size = info_size
-        self.encoder = Encoder(encoder_num_users, encoder_num_items, encoder_hidden_size, info_size)
-        self.decoder = Decoder(decoder_num_users, decoder_num_items, decoder_hidden_size)
+        self.encoder = Encoder(encoder_num_items, encoder_hidden_size)
+        self.dropout = nn.Dropout(p=0.5)
+        self.decoder = Decoder(decoder_num_items, decoder_hidden_size)
+        if info_size is not None:
+            if 'user_profile' in info_size:
+                self.user_profile = Encoder(info_size['user_profile'], encoder_hidden_size)
+            if 'item_attr' in info_size:
+                self.item_attr = Encoder(info_size['item_attr'], encoder_hidden_size)
 
     def forward(self, input):
         output = {}
-        rating = input['rating']
+        x = input['rating']
+        encoded = self.encoder(x)
         if self.info_size is not None:
             if 'user_profile' in input:
                 user_profile = input['user_profile']
+                user_profile = self.user_profile(user_profile)
+                encoded = encoded + user_profile
+            if 'item_attr' in input:
                 item_attr = input['item_attr']
-                x = torch.cat([rating, user_profile, item_attr], dim=-1)
-                encoded = self.encoder(x)
-            else:
-                item_attr = input['item_attr']
-                x = torch.cat([rating, item_attr], dim=-1)
-                encoded = self.encoder(x)
-        else:
-            x = rating
-            encoded = self.encoder(x)
-        decoded = self.decoder(encoded)
+                item_attr = self.item_attr(item_attr)
+                encoded = encoded + item_attr
+        code = self.dropout(encoded)
+        decoded = self.decoder(code)
         output['target_rating'] = decoded
         target_mask = ~input['target_rating'].isnan()
         if 'local' in input and input['local']:
@@ -117,14 +104,11 @@ class AE(nn.Module):
         return output
 
 
-def ae(encoder_num_users=None, encoder_num_items=None, decoder_num_users=None, decoder_num_items=None):
-    encoder_num_users = cfg['num_users'] if encoder_num_users is None else encoder_num_users
-    encoder_num_items = cfg['num_items'] if encoder_num_items is None else encoder_num_items
-    decoder_num_users = cfg['num_users'] if decoder_num_users is None else decoder_num_users
-    decoder_num_items = cfg['num_items'] if decoder_num_items is None else decoder_num_items
+def ae(encoder_num_items=None, decoder_num_items=None):
+    encoder_num_items = cfg['num_items']['data'] if encoder_num_items is None else encoder_num_items
+    decoder_num_items = cfg['num_items']['target'] if decoder_num_items is None else decoder_num_items
     encoder_hidden_size = cfg['ae']['encoder_hidden_size']
     decoder_hidden_size = cfg['ae']['decoder_hidden_size']
     info_size = cfg['info_size']
-    model = AE(encoder_num_users, encoder_num_items, decoder_num_users, decoder_num_items, encoder_hidden_size,
-               decoder_hidden_size, info_size)
+    model = AE(encoder_num_items, decoder_num_items, encoder_hidden_size, decoder_hidden_size, info_size)
     return model
