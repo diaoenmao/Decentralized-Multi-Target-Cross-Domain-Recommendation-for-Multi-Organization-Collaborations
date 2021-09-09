@@ -8,13 +8,13 @@ class AssistRate(nn.Module):
     def __init__(self, lr, factor, milestones, iter):
         super().__init__()
         if milestones is not None:
-            exp = (iter > torch(milestones)).float().sum().item()
-            lr = factor ** exp
+            exp = (iter > torch.tensor(milestones)).float().sum().item()
+            lr = lr * (factor ** exp)
         self.register_buffer('assist_rate', torch.tensor(lr))
 
     def forward(self, input):
         output = {}
-        output['target'] = input['history'] + self.assist_rate * input['output']
+        output['target'] = input['history'] + self.assist_rate * input['output'].mean(dim=-1)
         if 'target' in input:
             output['loss'] = loss_fn(output['target'], input['target'])
         return output

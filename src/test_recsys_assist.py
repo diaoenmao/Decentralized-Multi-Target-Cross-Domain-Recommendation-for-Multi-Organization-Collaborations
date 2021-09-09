@@ -55,7 +55,6 @@ def runExperiment():
     dataset = make_split_dataset(data_split)
     dataset = [{'test': dataset[i]['test']} for i in range(len(dataset))]
     assist = result['assist']
-    print(assist.linesearch_state_dict)
     assist.reset()
     organization = result['organization']
     test_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))

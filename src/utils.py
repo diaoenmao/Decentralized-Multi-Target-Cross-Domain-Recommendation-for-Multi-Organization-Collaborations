@@ -165,7 +165,7 @@ def process_control():
     cfg['local']['weight_decay'] = 5e-4
     cfg['local']['scheduler_name'] = 'CosineAnnealingLR'
     cfg['local']['batch_size'] = {'train': 100, 'test': 200}
-    cfg['local']['num_epochs'] = 200
+    cfg['local']['num_epochs'] = 1
     cfg['global'] = {}
     cfg['global']['num_epochs'] = 20
     cfg['ar'] = {}
