@@ -17,9 +17,9 @@ class Assist:
         self.reset()
 
     def reset(self):
-        self.organization_output = [{split: None for split in cfg['data_size']} for _ in
+        self.organization_output = [{k: None for k in cfg['data_size']} for _ in
                                     range(cfg['global']['num_epochs'] + 1)]
-        self.organization_target = [{split: None for split in cfg['data_size']} for _ in
+        self.organization_target = [{k: None for k in cfg['data_size']} for _ in
                                     range(cfg['global']['num_epochs'] + 1)]
         return
 
@@ -44,7 +44,6 @@ class Assist:
             output_k.requires_grad = True
             loss = models.loss_fn(output_k, target_k, reduction='sum')
             loss.backward()
-            print(loss)
             residual_k = - copy.deepcopy(output_k.grad)
             output_k.detach_()
             for i in range(len(dataset)):
@@ -52,6 +51,10 @@ class Assist:
                 row, col = coo.row, coo.col
                 dataset[i][k].target = csr_matrix((residual_k, (row, col)),
                                                   shape=(cfg['num_users']['data'], cfg['num_items']['data']))
+                if 'target' in dataset[i][k].user_profile:
+                    del dataset[i][k].user_profile['target']
+                if 'target' in dataset[i][k].item_attr:
+                    del dataset[i][k].item_attr['target']
                 dataset[i][k].transform.transforms[0].num_items['target'] = cfg['num_items']['target']
         return dataset
 
@@ -75,7 +78,6 @@ class Assist:
                          'target': torch.tensor(self.organization_target[0][k].data)}
                 input = to_device(input, cfg['device'])
                 output = model(input)
-                print(output['loss'])
                 coo = self.organization_output[iter - 1][k].tocoo()
                 row, col = coo.row, coo.col
                 self.organization_output[iter][k] = csr_matrix((output['target'].cpu().numpy(), (row, col)),

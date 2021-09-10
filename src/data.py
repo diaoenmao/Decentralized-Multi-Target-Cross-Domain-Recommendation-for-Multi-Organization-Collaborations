@@ -45,9 +45,12 @@ def make_pair_transform(dataset, data_mode):
             dataset['test'].transform = datasets.Compose([PairInput()])
     elif data_mode == 'implicit':
         if 'train' in dataset:
-            dataset['train'].transform = datasets.Compose(
-                [NegativeSample(dataset['train'].item_attr['data'], dataset['train'].num_items['data'],
-                                cfg['num_negatives']), PairInput()])
+            if hasattr(dataset['train'], 'item_attr'):
+                dataset['train'].transform = datasets.Compose(
+                    [NegativeSample(dataset['train'].item_attr['data'], dataset['train'].num_items['data'],
+                                    cfg['num_negatives']), PairInput()])
+            else:
+                dataset['train'].transform = datasets.Compose([PairInput()])
         if 'test' in dataset:
             dataset['test'].transform = datasets.Compose([PairInput()])
     else:

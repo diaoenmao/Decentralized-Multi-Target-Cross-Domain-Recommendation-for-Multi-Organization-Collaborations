@@ -11,49 +11,39 @@ from scipy.sparse import csr_matrix
 class NFP(Dataset):
     data_name = 'NFP'
 
-    def __init__(self, root, split, data_mode, data_split=None, transform=None):
+    def __init__(self, root, split, data_mode, transform=None):
         self.root = os.path.expanduser(root)
         self.split = split
         self.data_mode = data_mode
-        self.data_split = data_split
         self.transform = transform
         if not check_exists(self.processed_folder):
             self.process()
-        self.train_data = load(os.path.join(self.processed_folder, self.data_mode, 'train.pt'), mode='pickle')
-        self.test_data = load(os.path.join(self.processed_folder, self.data_mode, 'test.pt'), mode='pickle')
-        if data_split is not None:
-            self.train_data = self.train_data[:, data_split]
-            self.test_data = self.test_data[:, data_split]
-        self.item_attr = None
-        self.num_users, self.num_items = self.train_data.shape
+        self.data, self.target = load(os.path.join(self.processed_folder, self.data_mode, '{}.pt'.format(self.split)),
+                                      mode='pickle')
 
     def __getitem__(self, index):
-        if self.split == 'train':
-            train_data = self.train_data[index].tocoo()
-            input = {'user': torch.tensor(np.array([index]), dtype=torch.long),
-                     'item': torch.tensor(train_data.col, dtype=torch.long),
-                     'rating': torch.tensor(train_data.data),
-                     'target_user': torch.tensor(np.array([index]), dtype=torch.long),
-                     'target_item': torch.tensor(train_data.col, dtype=torch.long),
-                     'target_rating': torch.tensor(train_data.data)}
-        elif self.split == 'test':
-            train_data = self.train_data[index].tocoo()
-            test_data = self.test_data[index].tocoo()
-            input = {'user': torch.tensor(np.array([index]), dtype=torch.long),
-                     'item': torch.tensor(train_data.col, dtype=torch.long),
-                     'rating': torch.tensor(train_data.data),
-                     'target_user': torch.tensor(np.array([index]), dtype=torch.long),
-                     'target_item': torch.tensor(test_data.col, dtype=torch.long),
-                     'target_rating': torch.tensor(test_data.data)}
-
-        else:
-            raise ValueError('Not valid load mode')
+        data = self.data[index].tocoo()
+        target = self.target[index].tocoo()
+        input = {'user': torch.tensor(np.array([index]), dtype=torch.long),
+                 'item': torch.tensor(data.col, dtype=torch.long),
+                 'rating': torch.tensor(data.data),
+                 'target_user': torch.tensor(np.array([index]), dtype=torch.long),
+                 'target_item': torch.tensor(target.col, dtype=torch.long),
+                 'target_rating': torch.tensor(target.data)}
         if self.transform is not None:
             input = self.transform(input)
         return input
 
     def __len__(self):
-        return self.num_users
+        return self.num_users['data']
+
+    @property
+    def num_users(self):
+        return {'data': self.data.shape[0], 'target': self.target.shape[0]}
+
+    @property
+    def num_items(self):
+        return {'data': self.data.shape[1], 'target': self.target.shape[1]}
 
     @property
     def processed_folder(self):
@@ -106,8 +96,10 @@ class NFP(Dataset):
         train_user, train_item, train_rating = user[train_idx], item[train_idx], rating[train_idx]
         test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
         train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
-        test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
-        return train_data, test_data
+        train_target = train_data
+        test_data = train_data
+        test_target = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
+        return (train_data, train_target), (test_data, test_target)
 
     def make_implicit_data(self):
         filenames = os.listdir(os.path.join(self.raw_folder, 'download', 'training_set'))
@@ -138,5 +130,7 @@ class NFP(Dataset):
         test_rating[test_rating < 3.5] = 0
         test_rating[test_rating >= 3.5] = 1
         train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
-        test_data = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
-        return train_data, test_data
+        train_target = train_data
+        test_data = train_data
+        test_target = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
+        return (train_data, train_target), (test_data, test_target)

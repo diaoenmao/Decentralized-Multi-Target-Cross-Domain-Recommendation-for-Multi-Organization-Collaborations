@@ -40,24 +40,43 @@ def main():
     num_experiments = [[experiment_step]]
     resume_mode = [[resume_mode]]
     filename = '{}_{}'.format(run, file)
-    file_list = file.split('_')
-    if file_list[0] == 'base':
+    if file == 'joint':
         script_name = [['{}_recsys.py'.format(run)]]
-        control_name = [[['ML100K', 'ML1M'], ['explicit', 'implicit'], ['mf', 'nmf'], ['0', '0.05', '0.1', '0.5']]]
-        controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
-    elif file_list[0] == 'semi':
-        script_name = [['{}_recsys_semi.py'.format(run)]]
+        control_name = [[['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP'], ['explicit', 'implicit'], ['base'], ['0']]]
+        base_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
         control_name = [
-            [['ML100K', 'ML1M'], ['explicit'], ['mf', 'nmf'], ['0', '0.05', '0.1', '0.5'], ['fix']]]
-        explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
-                                          control_name)
-        script_name = [['{}_recsys_semi.py'.format(run)]]
+            [['ML100K', 'ML1M', 'ML10M', 'ML20M'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+             ['0', '1']]]
+        info_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
+        control_name = [[['NFP'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'], ['0']]]
+        noinfo_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
+        controls = base_controls + info_controls + noinfo_controls
+    elif file == 'alone':
+        script_name = [['{}_recsys_alone.py'.format(run)]]
+        control_name = [[['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP'], ['explicit', 'implicit'], ['base'], ['0'],
+                         ['genre', 'random-4', 'random-8', 'random-16', 'random-20'], ['alone']]]
+        base_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
         control_name = [
-            [['ML100K', 'ML1M'], ['implicit'], ['mf', 'nmf'], ['0', '0.05', '0.1', '0.5'], ['fix', 'fixp']]]
-        implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
-                                          control_name)
-        controls = explicit_controls + implicit_controls
-
+            [['ML100K', 'ML1M', 'ML10M', 'ML20M'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+             ['0', '1'], ['genre', 'random-4', 'random-8', 'random-16', 'random-20'], ['alone']]]
+        info_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
+        control_name = [[['NFP'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'], ['0'],
+                         ['genre', 'random-4', 'random-8', 'random-16', 'random-20'], ['alone']]]
+        noinfo_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
+        controls = base_controls + info_controls + noinfo_controls
+    elif file_list[0] == 'assist':
+        script_name = [['{}_recsys_assist.py'.format(run)]]
+        control_name = [[['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP'], ['explicit', 'implicit'], ['base'], ['0'],
+                         ['genre', 'random-4', 'random-8', 'random-16', 'random-20'], ['assist']]]
+        base_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
+        control_name = [
+            [['ML100K', 'ML1M', 'ML10M', 'ML20M'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+             ['0', '1'], ['genre', 'random-4', 'random-8', 'random-16', 'random-20'], ['assist']]]
+        info_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
+        control_name = [[['NFP'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'], ['0'],
+                         ['genre', 'random-4', 'random-8', 'random-16', 'random-20'], ['assist']]]
+        noinfo_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
+        controls = base_controls + info_controls + noinfo_controls
     else:
         raise ValueError('Not valid file')
     s = '#!/bin/bash\n'
