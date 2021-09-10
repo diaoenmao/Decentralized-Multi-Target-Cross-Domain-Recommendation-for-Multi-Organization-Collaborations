@@ -41,42 +41,39 @@ def main():
     resume_mode = [[resume_mode]]
     filename = '{}_{}'.format(run, file)
     if file == 'joint':
-        script_name = [['{}_recsys.py'.format(run)]]
-        control_name = [[['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP'], ['explicit', 'implicit'], ['base'], ['0']]]
+        script_name = [['{}_recsys_joint.py'.format(run)]]
+        control_name = [[['ML100K', 'ML1M', 'ML10M'], ['explicit', 'implicit'], ['base'], ['0']]]
         base_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
         control_name = [
-            [['ML100K', 'ML1M', 'ML10M', 'ML20M'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            [['ML100K', 'ML1M', 'ML10M'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
              ['0', '1']]]
         info_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
         control_name = [[['NFP'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'], ['0']]]
         noinfo_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
-        controls = base_controls + info_controls + noinfo_controls
+        controls = base_controls + info_controls
     elif file == 'alone':
         script_name = [['{}_recsys_alone.py'.format(run)]]
-        control_name = [[['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP'], ['explicit', 'implicit'], ['base'], ['0'],
+        control_name = [[['ML100K', 'ML1M', 'ML10M'], ['explicit', 'implicit'], ['base'], ['0'],
                          ['genre', 'random-4', 'random-8', 'random-16', 'random-20'], ['alone']]]
         base_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
         control_name = [
-            [['ML100K', 'ML1M', 'ML10M', 'ML20M'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            [['ML100K', 'ML1M', 'ML10M'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
              ['0', '1'], ['genre', 'random-4', 'random-8', 'random-16', 'random-20'], ['alone']]]
         info_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
         control_name = [[['NFP'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'], ['0'],
                          ['genre', 'random-4', 'random-8', 'random-16', 'random-20'], ['alone']]]
         noinfo_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
-        controls = base_controls + info_controls + noinfo_controls
-    elif file_list[0] == 'assist':
+        controls = base_controls + info_controls
+    elif file == 'assist':
         script_name = [['{}_recsys_assist.py'.format(run)]]
-        control_name = [[['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP'], ['explicit', 'implicit'], ['base'], ['0'],
-                         ['genre', 'random-4', 'random-8', 'random-16', 'random-20'], ['assist']]]
-        base_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
         control_name = [
-            [['ML100K', 'ML1M', 'ML10M', 'ML20M'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            [['ML100K', 'ML1M', 'ML10M'], ['explicit', 'implicit'], ['ae'],
              ['0', '1'], ['genre', 'random-4', 'random-8', 'random-16', 'random-20'], ['assist']]]
         info_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
-        control_name = [[['NFP'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'], ['0'],
+        control_name = [[['NFP'], ['explicit', 'implicit'], ['ae'], ['0'],
                          ['genre', 'random-4', 'random-8', 'random-16', 'random-20'], ['assist']]]
         noinfo_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
-        controls = base_controls + info_controls + noinfo_controls
+        controls = info_controls
     else:
         raise ValueError('Not valid file')
     s = '#!/bin/bash\n'

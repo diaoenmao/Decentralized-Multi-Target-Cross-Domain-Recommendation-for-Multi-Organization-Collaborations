@@ -187,10 +187,13 @@ class FlatInput(torch.nn.Module):
 
 
 def split_dataset(dataset):
-    if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
+    if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
         if 'genre' in cfg['data_split_mode']:
             num_organizations = cfg['num_organizations']
-            data_split_idx = torch.multinomial(torch.tensor(dataset['train'].item_attr), 1).view(-1).numpy()
+            zero_mask = torch.tensor(dataset['train'].item_attr['data']).sum(dim=-1) == 0
+            p = torch.tensor(dataset['train'].item_attr['data'])
+            p[zero_mask] = 1
+            data_split_idx = torch.multinomial(p, 1).view(-1).numpy()
             data_split = []
             for i in range(num_organizations):
                 data_split_i = np.where(data_split_idx == i)[0].tolist()

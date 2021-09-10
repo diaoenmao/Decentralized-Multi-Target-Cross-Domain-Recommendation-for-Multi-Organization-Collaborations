@@ -145,7 +145,8 @@ class ML100K(Dataset):
         from sklearn import preprocessing
         le = preprocessing.LabelEncoder()
         user_profile = pd.read_csv(os.path.join(self.raw_folder, 'ml-100k', 'u.user'), delimiter='|',
-                                   names=['id', 'age', 'gender', 'occupation', 'zipcode'])
+                                   names=['id', 'age', 'gender', 'occupation', 'zipcode'], encoding="latin",
+                                   engine='python')
         age = user_profile['age'].to_numpy().astype(np.int64)
         age[age <= 17] = 0
         age[(age >= 18) & (age <= 24)] = 1
@@ -160,7 +161,8 @@ class ML100K(Dataset):
         occupation = le.fit_transform(user_profile['occupation'].to_numpy()).astype(np.int64)
         occupation = np.eye(len(le.classes_), dtype=np.float32)[occupation]
         user_profile = np.hstack([age, gender, occupation])
-        item_attr = pd.read_csv(os.path.join(self.raw_folder, 'ml-100k', 'u.item'), delimiter='|', header=None)
+        item_attr = pd.read_csv(os.path.join(self.raw_folder, 'ml-100k', 'u.item'), delimiter='|', header=None,
+                                encoding="latin", engine='python')
         genre = item_attr.iloc[:, 5:].to_numpy().astype(np.float32)
         item_attr = genre
         return user_profile, item_attr
