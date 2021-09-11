@@ -7,7 +7,7 @@ from utils import check_exists, makedir_exist_ok, save, load
 from .utils import download_url, extract_file
 from scipy.sparse import csr_matrix
 from config import cfg
-
+import time
 
 class ML100K(Dataset):
     data_name = 'ML100K'
@@ -28,8 +28,13 @@ class ML100K(Dataset):
         self.item_attr = {'data': item_attr, 'target': item_attr}
 
     def __getitem__(self, index):
+        s = time.time()
         data = self.data[index].tocoo()
+        print('coo_data', time.time() - s)
+        s = time.time()
         target = self.target[index].tocoo()
+        print('coo_target', time.time() - s)
+        s = time.time()
         input = {'user': torch.tensor(np.array([index]), dtype=torch.long),
                  'item': torch.tensor(data.col, dtype=torch.long),
                  'rating': torch.tensor(data.data),

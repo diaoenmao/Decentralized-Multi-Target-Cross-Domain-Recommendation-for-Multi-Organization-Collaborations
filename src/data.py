@@ -187,7 +187,7 @@ class FlatInput(torch.nn.Module):
 
 
 def split_dataset(dataset):
-    if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+    if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
         if 'genre' in cfg['data_split_mode']:
             num_organizations = cfg['num_organizations']
             zero_mask = torch.tensor(dataset['train'].item_attr['data']).sum(dim=-1) == 0
@@ -219,8 +219,9 @@ def make_split_dataset(data_split):
         for k in dataset_i:
             dataset_i[k].data = dataset_i[k].data[:, data_split_i]
             dataset_i[k].target = dataset_i[k].target[:, data_split_i]
-            dataset_i[k].item_attr['data'] = dataset_i[k].item_attr['data'][data_split_i]
-            dataset_i[k].item_attr['target'] = dataset_i[k].item_attr['target'][data_split_i]
+            if hasattr(dataset_i[k], 'item_attr'):
+                dataset_i[k].item_attr['data'] = dataset_i[k].item_attr['data'][data_split_i]
+                dataset_i[k].item_attr['target'] = dataset_i[k].item_attr['target'][data_split_i]
         if cfg['model_name'] in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
             dataset_i = make_pair_transform(dataset_i, cfg['data_mode'])
         elif cfg['model_name'] in ['ae']:

@@ -51,9 +51,9 @@ class Assist:
                 row, col = coo.row, coo.col
                 dataset[i][k].target = csr_matrix((residual_k, (row, col)),
                                                   shape=(cfg['num_users']['data'], cfg['num_items']['data']))
-                if 'target' in dataset[i][k].user_profile:
+                if hasattr(dataset[i][k], 'user_profile') and 'target' in dataset[i][k].user_profile:
                     del dataset[i][k].user_profile['target']
-                if 'target' in dataset[i][k].item_attr:
+                if hasattr(dataset[i][k], 'item_attr') and 'target' in dataset[i][k].item_attr:
                     del dataset[i][k].item_attr['target']
                 dataset[i][k].transform.transforms[0].num_items['target'] = cfg['num_items']['target']
         return dataset
