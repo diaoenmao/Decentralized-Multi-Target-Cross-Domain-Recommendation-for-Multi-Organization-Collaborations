@@ -191,12 +191,12 @@ def split_dataset(dataset):
         if 'genre' in cfg['data_split_mode']:
             num_organizations = cfg['num_organizations']
             zero_mask = torch.tensor(dataset['train'].item_attr['data']).sum(dim=-1) == 0
-            p = torch.tensor(dataset['train'].item_attr['data'])
-            p[zero_mask] = 1
-            data_split_idx = torch.multinomial(p, 1).view(-1).numpy()
+            item_attr = torch.tensor(dataset['train'].item_attr['data'])
+            item_attr[zero_mask] = 1
+            data_split_idx = torch.nonzero(item_attr)
             data_split = []
             for i in range(num_organizations):
-                data_split_i = np.where(data_split_idx == i)[0].tolist()
+                data_split_i = data_split_idx[:, 0][data_split_idx[:, 1] == i].tolist()
                 data_split.append(data_split_i)
         elif 'random' in cfg['data_split_mode']:
             num_items = dataset['train'].num_items['data']
