@@ -189,7 +189,7 @@ import models
 # if __name__ == "__main__":
 #     process_control()
 #     cfg['seed'] = 0
-#     data_name = 'NFP'
+#     data_name = 'ML100K'
 #     batch_size = {'train': 10, 'test': 10}
 #     dataset = fetch_dataset(data_name)
 #     data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
@@ -204,7 +204,10 @@ import models
 #         #       input['target_user'].size(), input['target_item'].size(), input['target_rating'].size(),
 #         #       input['target_item_attr'].size())
 #         print(input['user'].size(), input['item'].size(), input['rating'].size(),
+#               input['user_profile'].size(), input['item_attr'].size(),
 #               input['target_user'].size(), input['target_item'].size(), input['target_rating'].size())
+#         # print(input['user'].size(), input['item'].size(), input['rating'].size(),
+#         #       input['target_user'].size(), input['target_item'].size(), input['target_rating'].size())
 #         exit()
 
 # if __name__ == "__main__":
@@ -247,16 +250,62 @@ import models
 #     print(t_1)
 
 
-if __name__ == "__main__":
-    process_control()
-    cfg['seed'] = 0
-    batch_size = {'train': 10, 'test': 10}
-    data_names = ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']
-    for data_name in data_names:
-        dataset = fetch_dataset(data_name)
-        data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
-        for i, input in enumerate(data_loader['train']):
-            input = collate(input)
-            print(input['user'].size(), input['item'].size(), input['rating'].size(),
-                  input['target_user'].size(), input['target_item'].size(), input['target_rating'].size())
-            break
+# if __name__ == "__main__":
+#     process_control()
+#     cfg['seed'] = 0
+#     batch_size = {'train': 10, 'test': 10}
+#     data_names = ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']
+#     for data_name in data_names:
+#         dataset = fetch_dataset(data_name)
+#         data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
+#         for i, input in enumerate(data_loader['train']):
+#             input = collate(input)
+#             print(input['user'].size(), input['item'].size(), input['rating'].size(),
+#                   input['target_user'].size(), input['target_item'].size(), input['target_rating'].size())
+#             break
+
+
+# if __name__ == "__main__":
+#     import torch
+#     import numpy as np
+#     from scipy.sparse import coo_matrix
+#
+#     coo = coo_matrix(([3, 4, 5], ([0, 1, 1], [2, 0, 2])), shape=(2, 3))
+#
+#     values = coo.data
+#     indices = np.vstack((coo.row, coo.col))
+#
+#     i = torch.LongTensor(indices)
+#     v = torch.FloatTensor(values)
+#     shape = coo.shape
+#
+#     torch.sparse.FloatTensor(i, v, torch.Size(shape)).to_dense()
+#
+#     import time
+#     import numpy as np
+#     from scipy.sparse import csr_matrix
+#
+#     user = np.arange(1000).astype(np.int64)
+#     item = np.arange(1000).astype(np.int64)
+#     rating = np.ones(1000, dtype=np.float32) * 0.1
+#     target_rating = np.ones(1000, dtype=np.float32) * 0.2
+#     data = csr_matrix((rating, (user, item)), shape=(1000, 1000))
+#     target = csr_matrix((target_rating, (user, item)), shape=(1000, 1000))
+#     data_coo = data.tocoo()
+#     target_coo = target.tocoo()
+#     s = time.time()
+#     input = {'user': torch.tensor(data_coo.row), 'item': torch.tensor(data_coo.col),
+#              'rating': torch.tensor(data_coo.data), 'target_user': torch.tensor(target_coo.row),
+#              'target_items': torch.tensor(target_coo.col), 'target_rating': torch.tensor(target_coo.data)}
+#     # input = to_device(input, cfg['device'])
+#     print('base', time.time() - s)
+#     indices = torch.tensor(np.vstack((user, item)), dtype=torch.long)
+#     values = torch.tensor(rating)
+#     target_values = torch.tensor(target_rating)
+#     data = torch.sparse_coo_tensor(indices, values, torch.Size([1000, 1000]))
+#     target = torch.sparse_coo_tensor(indices, target_values, torch.Size([1000, 1000]))
+#     s = time.time()
+#     input = {'data': data, 'target': target}
+#     input = to_device(input, cfg['device'])
+#     print('new', time.time() - s)
+#     time.sleep(65535)

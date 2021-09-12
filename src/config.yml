@@ -2,10 +2,10 @@
 # control
 control:
   data_name: ML100K
-  data_mode: implicit
+  data_mode: explicit
   model_name: mf
   info: 1
-  data_split_mode: random-10
+  data_split_mode: random-2
   run_mode: assist
 # experiment
 num_workers: 0

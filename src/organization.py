@@ -35,7 +35,7 @@ class Organization:
 
     def initialize(self, dataset, metric, logger, iter, each_logger=None):
         dataset = copy.deepcopy(dataset)
-        dataset = make_pair_transform(dataset, cfg['data_mode'])
+        dataset = make_pair_transform(dataset)
         model_name = cfg['model_name']
         cfg['model_name'] = 'base'
         data_loader = make_data_loader(dataset, self.model_name[iter], shuffle={'train': False, 'test': False})

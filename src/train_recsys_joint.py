@@ -97,28 +97,19 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
     logger.safe(True)
     model.train(True)
     start_time = time.time()
-    s = time.time()
     for i, input in enumerate(data_loader):
-        if i == 3:
-            exit()
-        print('data_load', time.time() - s)
-        s = time.time()
         input = collate(input)
         input_size = len(input['user'])
         if input_size == 0:
             continue
         input = to_device(input, cfg['device'])
         output = model(input)
-        print('forward', time.time() - s)
-        s = time.time()
         output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
         if optimizer is not None:
             optimizer.zero_grad()
             output['loss'].backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
             optimizer.step()
-        print('backward', time.time() - s)
-        s = time.time()
         evaluation = metric.evaluate(metric.metric_name['train'], input, output)
         logger.append(evaluation, 'train', n=input_size)
         if i % int((len(data_loader) * cfg['log_interval']) + 1) == 0:
@@ -133,9 +124,6 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
                              'Experiment Finished Time: {}'.format(exp_finished_time)]}
             logger.append(info, 'train', mean=False)
             print(logger.write('train', metric.metric_name['train']))
-        print('log', time.time() - s)
-        s = time.time()
-    exit()
     logger.safe(False)
     return
 

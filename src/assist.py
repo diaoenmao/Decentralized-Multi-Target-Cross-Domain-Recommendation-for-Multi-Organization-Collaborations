@@ -67,7 +67,6 @@ class Assist:
         if 'train' in organization_outputs[0]:
             model = models.ar(iter).to(cfg['device'])
             self.ar_state_dict[iter] = {k: v.cpu() for k, v in model.state_dict().items()}
-            print(model.assist_rate)
         with torch.no_grad():
             model = models.ar(iter).to(cfg['device'])
             model.load_state_dict(self.ar_state_dict[iter])

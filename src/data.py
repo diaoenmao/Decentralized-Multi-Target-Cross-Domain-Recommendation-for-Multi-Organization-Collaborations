@@ -24,9 +24,9 @@ def fetch_dataset(data_name, model_name=None, verbose=True):
         dataset['test'] = eval(
             'datasets.{}(root=root, split=\'test\', data_mode=cfg["data_mode"])'.format(data_name))
         if model_name in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
-            dataset = make_pair_transform(dataset, cfg['data_mode'])
+            dataset = make_pair_transform(dataset)
         elif model_name in ['ae']:
-            dataset = make_flat_transform(dataset, cfg['data_mode'])
+            dataset = make_flat_transform(dataset)
         else:
             raise ValueError('Not valid model name')
     else:
@@ -36,56 +36,27 @@ def fetch_dataset(data_name, model_name=None, verbose=True):
     return dataset
 
 
-def make_pair_transform(dataset, data_mode):
+def make_pair_transform(dataset):
     import datasets
-    if data_mode == 'explicit':
-        if 'train' in dataset:
-            dataset['train'].transform = datasets.Compose([PairInput()])
-        if 'test' in dataset:
-            dataset['test'].transform = datasets.Compose([PairInput()])
-    elif data_mode == 'implicit':
-        if 'train' in dataset:
-            if hasattr(dataset['train'], 'item_attr'):
-                dataset['train'].transform = datasets.Compose(
-                    [NegativeSample(dataset['train'].item_attr['data'], dataset['train'].num_items['data'],
-                                    cfg['num_negatives']), PairInput()])
-            else:
-                dataset['train'].transform = datasets.Compose([PairInput()])
-        if 'test' in dataset:
-            dataset['test'].transform = datasets.Compose([PairInput()])
-    else:
-        raise ValueError('Not valid data mode')
+    if 'train' in dataset:
+        dataset['train'].transform = datasets.Compose([PairInput()])
+    if 'test' in dataset:
+        dataset['test'].transform = datasets.Compose([PairInput()])
     return dataset
 
 
-def make_flat_transform(dataset, data_mode):
+def make_flat_transform(dataset):
     import datasets
-    if data_mode == 'explicit':
-        if 'train' in dataset:
-            dataset['train'].transform = datasets.Compose(
-                [FlatInput(dataset['train'].num_items)])
-        if 'test' in dataset:
-            dataset['test'].transform = datasets.Compose(
-                [FlatInput(dataset['test'].num_items)])
-    elif data_mode == 'implicit':
-        if 'train' in dataset:
-            dataset['train'].transform = datasets.Compose(
-                [FlatInput(dataset['train'].num_items)])
-        if 'test' in dataset:
-            dataset['test'].transform = datasets.Compose(
-                [FlatInput(dataset['test'].num_items)])
-    else:
-        raise ValueError('Not valid data mode')
+    if 'train' in dataset:
+        dataset['train'].transform = datasets.Compose([FlatInput(dataset['train'].num_items)])
+    if 'test' in dataset:
+        dataset['test'].transform = datasets.Compose([FlatInput(dataset['test'].num_items)])
     return dataset
 
 
 def input_collate(batch):
     if isinstance(batch[0], dict):
-        output = {key: [] for key in batch[0].keys()}
-        for b in batch:
-            for key in b:
-                output[key].append(b[key])
-        return output
+        return {key: [b[key] for b in batch] for key in batch[0]}
     else:
         return default_collate(batch)
 
@@ -104,29 +75,6 @@ def make_data_loader(dataset, tag, batch_size=None, shuffle=None, sampler=None):
                                         pin_memory=True, num_workers=cfg['num_workers'], collate_fn=input_collate,
                                         worker_init_fn=np.random.seed(cfg['seed']))
     return data_loader
-
-
-class NegativeSample(torch.nn.Module):
-    def __init__(self, item_attr, num_items, num_negatives):
-        super().__init__()
-        self.item_attr = item_attr
-        self.num_items = num_items
-        self.num_negatives = num_negatives
-
-    def forward(self, input):
-        positive_item = input['item']
-        positive_rating = input['rating']
-        negative_item = torch.tensor(list(set(range(self.num_items)) - set(positive_item.tolist())),
-                                     dtype=torch.long)
-        num_negative_random_item = self.num_negatives * len(positive_item)
-        negative_item = negative_item[torch.randperm(len(negative_item))][:num_negative_random_item]
-        negative_rating = torch.zeros(negative_item.size(0))
-        input['item'] = torch.cat([positive_item, negative_item], dim=0)
-        input['rating'] = torch.cat([positive_rating, negative_rating], dim=0)
-        if 'item_attr' in input is not None and self.item_attr is not None:
-            negative_item_attr = torch.tensor(self.item_attr[negative_item]).view(-1, input['item_attr'].size(1))
-            input['item_attr'] = torch.cat([input['item_attr'], negative_item_attr], dim=0)
-        return input
 
 
 class PairInput(torch.nn.Module):
@@ -223,8 +171,8 @@ def make_split_dataset(data_split):
                 dataset_i[k].item_attr['data'] = dataset_i[k].item_attr['data'][data_split_i]
                 dataset_i[k].item_attr['target'] = dataset_i[k].item_attr['target'][data_split_i]
         if cfg['model_name'] in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
-            dataset_i = make_pair_transform(dataset_i, cfg['data_mode'])
+            dataset_i = make_pair_transform(dataset_i)
         elif cfg['model_name'] in ['ae']:
-            dataset_i = make_flat_transform(dataset_i, cfg['data_mode'])
+            dataset_i = make_flat_transform(dataset_i)
         dataset.append(dataset_i)
     return dataset
