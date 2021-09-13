@@ -171,15 +171,19 @@ def test(assist, metric, logger, epoch):
                     input = {'target_rating': torch.tensor(target_i_j.data)}
                 elif cfg['data_mode'] == 'implicit':
                     output_i_j_coo = output_i_j.tocoo()
-                    output_i_j_coo_row = torch.tensor(output_i_j_coo.row, dtype=torch.long)
-                    output_i_j_coo_col = torch.tensor(output_i_j_coo.col, dtype=torch.long)
+                    output_i_j_rating = torch.tensor(output_i_j_coo.data)
                     target_i_j_coo = target_i_j.tocoo()
-                    target_i_j_coo_row = torch.tensor(target_i_j_coo.row, dtype=torch.long)
-                    target_i_j_coo_col = torch.tensor(target_i_j_coo.col, dtype=torch.long)
-                    output_rating = torch.full(output_i_j.shape, -float('inf'))
-                    target_rating = torch.full(target_i_j.shape, 0.)
-                    output_rating[output_i_j_coo_row, output_i_j_coo_col] = torch.tensor(output_i_j_coo.data)
-                    target_rating[target_i_j_coo_row, target_i_j_coo_col] = torch.tensor(target_i_j_coo.data)
+                    target_i_j_user = torch.tensor(target_i_j_coo.row, dtype=torch.long)
+                    target_i_j_item = torch.tensor(target_i_j_coo.col, dtype=torch.long)
+                    target_i_j_rating = torch.tensor(target_i_j_coo.data)
+                    user, user_idx = torch.unique(target_i_j_user, return_inverse=True)
+                    item_idx = target_i_j_item
+                    num_users = len(user)
+                    num_items = len(assist.data_split[i])
+                    output_rating = torch.full((num_users, num_items), -float('inf'))
+                    target_rating = torch.full((num_users, num_items), 0.)
+                    output_rating[user_idx, item_idx] = output_i_j_rating
+                    target_rating[user_idx, item_idx] = target_i_j_rating
                     output = {'target_rating': output_rating}
                     input = {'target_rating': target_rating}
                 else:

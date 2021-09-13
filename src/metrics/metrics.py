@@ -24,6 +24,8 @@ def MAP(output, target, topk=10):
     m = torch.sum(topk_target, dim=-1)
     ap = (precision * topk_target).sum(dim=-1) / (m + 1e-10)
     map = ap.mean().item()
+    # print(precision)
+    # exit()
     return map
 
 

@@ -52,7 +52,7 @@ def runExperiment():
         num_items = dataset[i]["train"].num_items['data']
         if cfg['model_name'] == 'ae':
             model_i = eval(
-                'models.{}( num_items, num_items).to(cfg["device"])'.format(cfg['model_name']))
+                'models.{}(num_items, num_items).to(cfg["device"])'.format(cfg['model_name']))
         else:
             model_i = eval(
                 'models.{}(num_users, num_items).to(cfg["device"])'.format(cfg['model_name']))

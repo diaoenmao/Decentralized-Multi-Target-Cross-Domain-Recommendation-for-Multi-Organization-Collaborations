@@ -146,9 +146,9 @@ def process_control():
     batch_size = {'ML100K': 100, 'ML1M': 500, 'ML10M': 5000, 'ML20M': 5000, 'NFP': 5000}
     model_name = cfg['model_name']
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
-    cfg[model_name]['optimizer_name'] = 'SGD'
-    cfg[model_name]['lr'] = 1e-1
-    cfg[model_name]['scheduler_name'] = 'CosineAnnealingLR'
+    cfg[model_name]['optimizer_name'] = 'Adam'
+    cfg[model_name]['lr'] = 1e-3
+    cfg[model_name]['scheduler_name'] = 'None'
     cfg[model_name]['momentum'] = 0.9
     cfg[model_name]['nesterov'] = True
     cfg[model_name]['betas'] = (0.9, 0.999)
@@ -167,12 +167,11 @@ def process_control():
     cfg['local']['batch_size'] = {'train': batch_size[cfg['data_name']], 'test': batch_size[cfg['data_name']]}
     cfg['local']['num_epochs'] = 200
     cfg['global'] = {}
-    cfg['global']['num_epochs'] = 20
+    cfg['global']['num_epochs'] = 10
     cfg['ar'] = {}
-    cfg['ar']['lr'] = 0.1
+    cfg['ar']['lr'] = 1
     cfg['ar']['factor'] = 0.1
     cfg['ar']['milestones'] = None
-    cfg['ar']['num_epochs'] = 10
     return
 
 

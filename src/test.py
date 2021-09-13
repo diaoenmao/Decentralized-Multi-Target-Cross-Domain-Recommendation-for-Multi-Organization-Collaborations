@@ -309,3 +309,15 @@ import models
 #     input = to_device(input, cfg['device'])
 #     print('new', time.time() - s)
 #     time.sleep(65535)
+
+
+# if __name__ == "__main__":
+#     import torch
+#     import numpy as np
+#     from scipy.sparse import coo_matrix
+#
+#     coo = coo_matrix(([3, 4, 5], ([1, 1, 0], [2, 0, 2])), shape=(2, 3))
+#     print(coo)
+#     print(coo.row)
+#     print(coo.col)
+#     exit()

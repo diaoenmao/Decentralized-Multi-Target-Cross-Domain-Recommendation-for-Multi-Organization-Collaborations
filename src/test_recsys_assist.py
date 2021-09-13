@@ -130,17 +130,16 @@ def gather(dataset, organization, epoch):
     return organization_outputs
 
 
-def test(assist, metric, logger, epoch, each_logger):
+def test(assist, metric, logger, epoch):
     logger.safe(True)
     with torch.no_grad():
         organization_output = assist.organization_output[epoch]['test']
         organization_target = assist.organization_target[0]['test']
         batch_size = cfg[cfg['model_name']]['batch_size']['test']
         for i in range(len(assist.data_split)):
-            each_logger.safe(True)
             output_i = organization_output[:, assist.data_split[i]]
             target_i = organization_target[:, assist.data_split[i]]
-            for j in range(0, cfg['num_users'], batch_size):
+            for j in range(0, output_i.shape[0], batch_size):
                 output_i_j = output_i[j:j + batch_size]
                 target_i_j = target_i[j:j + batch_size]
                 if cfg['data_mode'] == 'explicit':
@@ -148,15 +147,19 @@ def test(assist, metric, logger, epoch, each_logger):
                     input = {'target_rating': torch.tensor(target_i_j.data)}
                 elif cfg['data_mode'] == 'implicit':
                     output_i_j_coo = output_i_j.tocoo()
-                    output_i_j_coo_row = torch.tensor(output_i_j_coo.row, dtype=torch.long)
-                    output_i_j_coo_col = torch.tensor(output_i_j_coo.col, dtype=torch.long)
+                    output_i_j_rating = torch.tensor(output_i_j_coo.data)
                     target_i_j_coo = target_i_j.tocoo()
-                    target_i_j_coo_row = torch.tensor(target_i_j_coo.row, dtype=torch.long)
-                    target_i_j_coo_col = torch.tensor(target_i_j_coo.col, dtype=torch.long)
-                    output_rating = torch.full(output_i_j.shape, -float('inf'))
-                    target_rating = torch.full(target_i_j.shape, 0.)
-                    output_rating[output_i_j_coo_row, output_i_j_coo_col] = torch.tensor(output_i_j_coo.data)
-                    target_rating[target_i_j_coo_row, target_i_j_coo_col] = torch.tensor(target_i_j_coo.data)
+                    target_i_j_user = torch.tensor(target_i_j_coo.row, dtype=torch.long)
+                    target_i_j_item = torch.tensor(target_i_j_coo.col, dtype=torch.long)
+                    target_i_j_rating = torch.tensor(target_i_j_coo.data)
+                    user, user_idx = torch.unique(target_i_j_user, return_inverse=True)
+                    item_idx = target_i_j_item
+                    num_users = len(user)
+                    num_items = len(assist.data_split[i])
+                    output_rating = torch.full((num_users, num_items), -float('inf'))
+                    target_rating = torch.full((num_users, num_items), 0.)
+                    output_rating[user_idx, item_idx] = output_i_j_rating
+                    target_rating[user_idx, item_idx] = target_i_j_rating
                     output = {'target_rating': output_rating}
                     input = {'target_rating': target_rating}
                 else:
@@ -167,13 +170,6 @@ def test(assist, metric, logger, epoch, each_logger):
                 input_size = len(input['target_rating'])
                 evaluation = metric.evaluate(metric.metric_name['test'], input, output)
                 logger.append(evaluation, 'test', n=input_size)
-                each_logger.append(evaluation, 'test', n=input_size)
-            info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.),
-                             'ID: {}/{}'.format(i + 1, len(assist.data_split))]}
-            each_logger.append(info, 'test', mean=False)
-            print(each_logger.write('test', metric.metric_name['test']))
-            each_logger.safe(False)
-            each_logger.reset()
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
         logger.append(info, 'test', mean=False)
         print(logger.write('test', metric.metric_name['test']))
