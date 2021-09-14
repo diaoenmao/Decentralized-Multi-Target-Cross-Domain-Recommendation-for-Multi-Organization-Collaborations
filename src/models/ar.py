@@ -15,8 +15,8 @@ class AssistRate(nn.Module):
 
     def forward(self, input):
         output = {}
-        # output['target'] = input['history'] + self.assist_rate * (input['output'] * self.stack.softmax(-1)).sum(-1)
-        output['target'] = input['history'] + self.assist_rate * input['output'].mean(-1)
+        output['target'] = input['history'] + self.assist_rate * (input['output'] * self.stack.softmax(-1)).sum(-1)
+        # output['target'] = input['history'] + self.assist_rate * input['output'].mean(-1)
         if 'target' in input:
             output['loss'] = loss_fn(output['target'], input['target'])
         return output

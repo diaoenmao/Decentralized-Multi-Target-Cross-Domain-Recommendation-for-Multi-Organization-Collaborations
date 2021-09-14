@@ -169,7 +169,10 @@ def process_control():
     cfg['global'] = {}
     cfg['global']['num_epochs'] = 10
     cfg['ar'] = {}
-    cfg['ar']['lr'] = 0.1
+    if cfg['data_split_mode'] == 'genre':
+        cfg['ar']['lr'] = 0.01
+    else:
+        cfg['ar']['lr'] = 0.1
     cfg['ar']['factor'] = 0.1
     cfg['ar']['milestones'] = None
     cfg['weight'] = {}
