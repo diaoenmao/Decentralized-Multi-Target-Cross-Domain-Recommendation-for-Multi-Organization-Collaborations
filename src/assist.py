@@ -66,6 +66,20 @@ class Assist:
             organization_outputs_[k] = torch.stack(organization_outputs_[k], dim=-1)
         if 'train' in organization_outputs[0]:
             model = models.ar(iter).to(cfg['device'])
+            # input = {'history': torch.tensor(self.organization_output[iter - 1]['train'].data),
+            #          'output': organization_outputs_['train'],
+            #          'target': torch.tensor(self.organization_target[0]['train'].data)}
+            # input = to_device(input, cfg['device'])
+            # model.train(True)
+            # optimizer = make_optimizer(model, 'weight')
+            # for _ in range(1, cfg['weight']['num_epochs'] + 1):
+            #     def closure():
+            #         output = model(input)
+            #         optimizer.zero_grad()
+            #         output['loss'].backward()
+            #         return output['loss']
+            #
+            #     optimizer.step(closure)
             self.ar_state_dict[iter] = {k: v.cpu() for k, v in model.state_dict().items()}
         with torch.no_grad():
             model = models.ar(iter).to(cfg['device'])
