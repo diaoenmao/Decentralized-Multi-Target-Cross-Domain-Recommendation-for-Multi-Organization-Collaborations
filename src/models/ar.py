@@ -10,7 +10,8 @@ class AssistRate(nn.Module):
         if milestones is not None:
             exp = (iter > torch.tensor(milestones)).float().sum().item()
             lr = lr * (factor ** exp)
-        self.register_buffer('assist_rate', torch.tensor(lr))
+        # self.assist_rate = nn.Parameter(torch.tensor(lr))
+        self.register_buffer('assist_rate',  torch.tensor(lr))
         self.stack = nn.Parameter(torch.zeros(num_organizations))
 
     def forward(self, input):

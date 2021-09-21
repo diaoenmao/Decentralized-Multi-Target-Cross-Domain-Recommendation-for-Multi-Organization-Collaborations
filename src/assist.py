@@ -50,7 +50,7 @@ class Assist:
                 coo = self.organization_target[0][k].tocoo()
                 row, col = coo.row, coo.col
                 dataset[i][k].target = csr_matrix((residual_k, (row, col)),
-                                                  shape=(cfg['num_users']['data'], cfg['num_items']['data']))
+                                                  shape=(cfg['num_users']['target'], cfg['num_items']['target']))
                 if hasattr(dataset[i][k], 'user_profile') and 'target' in dataset[i][k].user_profile:
                     del dataset[i][k].user_profile['target']
                 if hasattr(dataset[i][k], 'item_attr') and 'target' in dataset[i][k].item_attr:
@@ -66,6 +66,7 @@ class Assist:
             organization_outputs_[k] = torch.stack(organization_outputs_[k], dim=-1)
         if 'train' in organization_outputs[0]:
             model = models.ar(iter).to(cfg['device'])
+            coo = organization_outputs[0]['train'].tocoo()
             input = {'history': torch.tensor(self.organization_output[iter - 1]['train'].data),
                      'output': organization_outputs_['train'],
                      'target': torch.tensor(self.organization_target[0]['train'].data)}
@@ -86,6 +87,7 @@ class Assist:
             model.load_state_dict(self.ar_state_dict[iter])
             model.train(False)
             for k in organization_outputs[0]:
+                coo = self.organization_output[iter - 1][k].tocoo()
                 input = {'history': torch.tensor(self.organization_output[iter - 1][k].data),
                          'output': organization_outputs_[k],
                          'target': torch.tensor(self.organization_target[0][k].data)}

@@ -114,7 +114,7 @@ def initialize(dataset, assist, organization, metric, logger, epoch):
     for k in dataset[0]:
         assist.organization_output[0][k] = csr_matrix(
             (np.concatenate(output_data[k]), (np.concatenate(output_row[k]), np.concatenate(output_col[k]))),
-            shape=(cfg['num_users']['data'], cfg['num_items']['data']))
+            shape=(cfg['num_users']['target'], cfg['num_items']['target']))
         assist.organization_target[0][k] = csr_matrix(
             (np.concatenate(target_data[k]), (np.concatenate(target_row[k]), np.concatenate(target_col[k]))),
             shape=(cfg['num_users']['target'], cfg['num_items']['target']))
@@ -200,7 +200,7 @@ def test(assist, metric, logger, epoch):
                 logger.append(evaluation, 'test', n=input_size)
         lr = assist.ar_state_dict[epoch]['assist_rate'].item()
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.),
-                         'Assist rate: {:.6f}'.format(lr), ]}
+                         'Assist rate: {:.6f}'.format(lr)]}
         logger.append(info, 'test', mean=False)
         print(logger.write('test', metric.metric_name['test']))
         logger.safe(False)

@@ -74,13 +74,15 @@ class Organization:
                     target_rating.append(target_rating_i)
                 target_user = torch.cat(target_user, dim=0).numpy()
                 target_item = torch.cat(target_item, dim=0).numpy()
+                target_item = self.data_split[target_item]
                 target_rating = torch.cat(target_rating, dim=0).numpy()
             output['train'] = csr_matrix((target_rating, (target_user, target_item)),
-                                         shape=(cfg['num_users']['data'], cfg['num_items']['data']))
+                                         shape=(cfg['num_users']['target'], cfg['num_items']['target']))
             dataset_coo = dataset['train'].target.tocoo()
             row, col = dataset_coo.row, dataset_coo.col
+            col = self.data_split[col]
             target['train'] = csr_matrix((dataset['train'].target.data, (row, col)),
-                                         shape=(cfg['num_users']['data'], cfg['num_items']['data']))
+                                         shape=(cfg['num_users']['target'], cfg['num_items']['target']))
         with torch.no_grad():
             num_users = dataset['test'].num_users['data']
             num_items = dataset['test'].num_items['data']
@@ -110,13 +112,15 @@ class Organization:
                 target_rating.append(target_rating_i)
             target_user = torch.cat(target_user, dim=0).numpy()
             target_item = torch.cat(target_item, dim=0).numpy()
+            target_item = self.data_split[target_item]
             target_rating = torch.cat(target_rating, dim=0).numpy()
             output['test'] = csr_matrix((target_rating, (target_user, target_item)),
-                                        shape=(cfg['num_users']['data'], cfg['num_items']['data']))
+                                        shape=(cfg['num_users']['target'], cfg['num_items']['target']))
             dataset_coo = dataset['test'].target.tocoo()
             row, col = dataset_coo.row, dataset_coo.col
+            col = self.data_split[col]
             target['test'] = csr_matrix((dataset['test'].target.data, (row, col)),
-                                        shape=(cfg['num_users']['data'], cfg['num_items']['data']))
+                                        shape=(cfg['num_users']['target'], cfg['num_items']['target']))
         cfg['model_name'] = model_name
         return output, target
 

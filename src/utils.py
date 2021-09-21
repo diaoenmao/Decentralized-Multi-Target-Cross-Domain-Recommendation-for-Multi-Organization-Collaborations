@@ -152,7 +152,7 @@ def process_control():
     cfg[model_name]['nesterov'] = True
     cfg[model_name]['betas'] = (0.9, 0.999)
     cfg[model_name]['weight_decay'] = 5e-4
-    cfg[model_name]['scheduler_name'] = 'CosineAnnealingLR'
+    cfg[model_name]['scheduler_name'] = 'None'
     cfg[model_name]['batch_size'] = {'train': batch_size[cfg['data_name']], 'test': batch_size[cfg['data_name']]}
     cfg[model_name]['num_epochs'] = 200 if model_name != 'base' else 1
     cfg['local'] = {}
@@ -170,7 +170,7 @@ def process_control():
     cfg['global']['num_epochs'] = 10
     cfg['ar'] = {}
     if cfg['data_split_mode'] == 'genre':
-        cfg['ar']['lr'] = 0.01
+        cfg['ar']['lr'] = 0.1
     else:
         cfg['ar']['lr'] = 0.1
     cfg['ar']['factor'] = 0.1
