@@ -123,6 +123,7 @@ def process_dataset(dataset):
 def process_control():
     cfg['data_name'] = cfg['control']['data_name']
     cfg['data_mode'] = cfg['control']['data_mode']
+    cfg['target_mode'] = cfg['control']['target_mode']
     cfg['model_name'] = cfg['control']['model_name']
     cfg['info'] = float(cfg['control']['info']) if 'info' in cfg['control'] else 0
     if 'data_split_mode' in cfg['control']:
@@ -169,10 +170,7 @@ def process_control():
     cfg['global'] = {}
     cfg['global']['num_epochs'] = 10
     cfg['ar'] = {}
-    if cfg['data_split_mode'] == 'genre':
-        cfg['ar']['lr'] = 0.1
-    else:
-        cfg['ar']['lr'] = 0.1
+    cfg['ar']['lr'] = 0.1
     cfg['ar']['factor'] = 0.1
     cfg['ar']['milestones'] = None
     cfg['weight'] = {}

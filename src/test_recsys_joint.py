@@ -38,12 +38,12 @@ def runExperiment():
     process_dataset(dataset)
     data_loader = make_data_loader(dataset, cfg['model_name'])
     model = eval('models.{}().to(cfg["device"])'.format(cfg['model_name']))
-    if cfg['data_mode'] == 'explicit':
+    if cfg['target_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
-    elif cfg['data_mode'] == 'implicit':
+    elif cfg['target_mode'] == 'implicit':
         metric = Metric({'train': ['Loss', 'MAP'], 'test': ['Loss', 'MAP']})
     else:
-        raise ValueError('Not valid data mode')
+        raise ValueError('Not valid target mode')
     result = resume(cfg['model_tag'], load_tag='best')
     last_epoch = result['epoch']
     model.load_state_dict(result['model_state_dict'])

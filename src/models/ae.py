@@ -59,13 +59,19 @@ class Decoder(nn.Module):
 
 
 class AE(nn.Module):
-    def __init__(self, encoder_num_items, decoder_num_items, encoder_hidden_size,
+    def __init__(self, encoder_num_users, encoder_num_items, decoder_num_users, decoder_num_items, encoder_hidden_size,
                  decoder_hidden_size, info_size):
         super().__init__()
         self.info_size = info_size
-        self.encoder = Encoder(encoder_num_items, encoder_hidden_size)
+        if cfg['data_mode'] == 'user':
+            self.encoder = Encoder(encoder_num_items, encoder_hidden_size)
+            self.decoder = Decoder(decoder_num_items, decoder_hidden_size)
+        elif cfg['data_mode'] == 'item':
+            self.encoder = Encoder(encoder_num_users, encoder_hidden_size)
+            self.decoder = Decoder(decoder_num_users, decoder_hidden_size)
+        else:
+            raise ValueError('Not valid data mode')
         self.dropout = nn.Dropout(p=0.5)
-        self.decoder = Decoder(decoder_num_items, decoder_hidden_size)
         if info_size is not None:
             if 'user_profile' in info_size:
                 self.user_profile = Encoder(info_size['user_profile'], encoder_hidden_size)
@@ -93,22 +99,25 @@ class AE(nn.Module):
             output['loss'] = F.mse_loss(output['target_rating'][target_mask], input['target_rating'][target_mask])
         else:
             output['loss'] = loss_fn(output['target_rating'][target_mask], input['target_rating'][target_mask])
-        if cfg['data_mode'] == 'explicit':
+        if cfg['target_mode'] == 'explicit':
             output['target_rating'], input['target_rating'] = parse_explicit_rating_flat(output['target_rating'],
                                                                                          input['target_rating'])
-        elif cfg['data_mode'] == 'implicit':
+        elif cfg['target_mode'] == 'implicit':
             output['target_rating'], input['target_rating'] = parse_implicit_rating_flat(output['target_rating'],
                                                                                          input['target_rating'])
         else:
-            raise ValueError('Not valid data mode')
+            raise ValueError('Not valid target mode')
         return output
 
 
-def ae(encoder_num_items=None, decoder_num_items=None):
+def ae(encoder_num_users=None, encoder_num_items=None, decoder_num_users=None, decoder_num_items=None):
+    encoder_num_users = cfg['num_users']['data'] if encoder_num_users is None else encoder_num_users
     encoder_num_items = cfg['num_items']['data'] if encoder_num_items is None else encoder_num_items
+    decoder_num_users = cfg['num_users']['target'] if decoder_num_users is None else decoder_num_users
     decoder_num_items = cfg['num_items']['target'] if decoder_num_items is None else decoder_num_items
     encoder_hidden_size = cfg['ae']['encoder_hidden_size']
     decoder_hidden_size = cfg['ae']['decoder_hidden_size']
     info_size = cfg['info_size']
-    model = AE(encoder_num_items, decoder_num_items, encoder_hidden_size, decoder_hidden_size, info_size)
+    model = AE(encoder_num_users, encoder_num_items, decoder_num_users, decoder_num_items, encoder_hidden_size,
+               decoder_hidden_size, info_size)
     return model

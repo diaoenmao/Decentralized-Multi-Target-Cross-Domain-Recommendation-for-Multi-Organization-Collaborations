@@ -77,8 +77,9 @@ class GMF(nn.Module):
                 mf = mf + item_attr
         output['target_rating'] = self.affine(mf).view(-1)
         output['loss'] = loss_fn(output['target_rating'], rating)
-        if cfg['data_mode'] == 'implicit':
-            output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(self.num_items,
+        if cfg['target_mode'] == 'implicit':
+            output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(self.num_users,
+                                                                                         self.num_items,
                                                                                          user,
                                                                                          item,
                                                                                          output['target_rating'],

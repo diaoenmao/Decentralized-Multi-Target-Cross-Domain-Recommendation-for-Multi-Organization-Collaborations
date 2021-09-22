@@ -43,12 +43,12 @@ def runExperiment():
     torch.cuda.manual_seed(cfg['seed'])
     dataset = fetch_dataset(cfg['data_name'])
     process_dataset(dataset)
-    if cfg['data_mode'] == 'explicit':
+    if cfg['target_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
-    elif cfg['data_mode'] == 'implicit':
+    elif cfg['target_mode'] == 'implicit':
         metric = Metric({'train': ['Loss', 'MAP'], 'test': ['Loss', 'MAP']})
     else:
-        raise ValueError('Not valid data mode')
+        raise ValueError('Not valid target mode')
     result = resume(cfg['model_tag'])
     last_epoch = result['epoch']
     data_split = result['data_split']

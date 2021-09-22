@@ -203,9 +203,9 @@ import models
 #         #       input['item_attr'].size(),
 #         #       input['target_user'].size(), input['target_item'].size(), input['target_rating'].size(),
 #         #       input['target_item_attr'].size())
-#         print(input['user'].size(), input['item'].size(), input['rating'].size(),
-#               input['user_profile'].size(), input['item_attr'].size(),
-#               input['target_user'].size(), input['target_item'].size(), input['target_rating'].size())
+#         # print(input['user'].size(), input['item'].size(), input['rating'].size(),
+#         #       input['user_profile'].size(), input['item_attr'].size(),
+#         #       input['target_user'].size(), input['target_item'].size(), input['target_rating'].size())
 #         # print(input['user'].size(), input['item'].size(), input['rating'].size(),
 #         #       input['target_user'].size(), input['target_item'].size(), input['target_rating'].size())
 #         exit()
@@ -321,3 +321,15 @@ import models
 #     print(coo.row)
 #     print(coo.col)
 #     exit()
+
+# if __name__ == "__main__":
+#     import numpy as np
+#     from scipy.sparse import csc_matrix
+#     row = np.array([0, 2, 2, 0, 1, 2])
+#     col = np.array([0, 0, 1, 2, 2, 2])
+#     data = np.array([1, 2, 3, 4, 5, 6])
+#     a = csc_matrix((data, (row, col)), shape=(3, 3))
+#     b = a.transpose()
+#     print(a.toarray())
+#     print(b.toarray())
+#     print(a[:, 0].toarray())

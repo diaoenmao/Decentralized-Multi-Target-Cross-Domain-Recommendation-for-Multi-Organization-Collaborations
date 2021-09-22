@@ -13,15 +13,22 @@ class ML100K(Dataset):
     data_name = 'ML100K'
     file = [('https://files.grouplens.org/datasets/movielens/ml-100k.zip', '0e33842e24a9c977be4e0107933c0723')]
 
-    def __init__(self, root, split, data_mode, transform=None):
+    def __init__(self, root, split, data_mode, target_mode, transform=None):
         self.root = os.path.expanduser(root)
         self.split = split
         self.data_mode = data_mode
+        self.target_mode = target_mode
         self.transform = transform
         if not check_exists(self.processed_folder):
             self.process()
-        self.data, self.target = load(os.path.join(self.processed_folder, self.data_mode, '{}.pt'.format(self.split)),
+        self.data, self.target = load(os.path.join(self.processed_folder, self.target_mode, '{}.pt'.format(self.split)),
                                       mode='pickle')
+        if self.data_mode == 'user':
+            pass
+        elif self.data_mode == 'item':
+            self.data, self.target = self.data.transpose(), self.target.transpose()
+        else:
+            raise ValueError('Not valid data mode')
         user_profile = load(os.path.join(self.processed_folder, 'user_profile.pt'), mode='pickle')
         self.user_profile = {'data': user_profile, 'target': user_profile}
         item_attr = load(os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')
@@ -30,20 +37,38 @@ class ML100K(Dataset):
     def __getitem__(self, index):
         data = self.data[index].tocoo()
         target = self.target[index].tocoo()
-        input = {'user': torch.tensor(np.array([index]), dtype=torch.long),
-                 'item': torch.tensor(data.col, dtype=torch.long),
-                 'rating': torch.tensor(data.data),
-                 'target_user': torch.tensor(np.array([index]), dtype=torch.long),
-                 'target_item': torch.tensor(target.col, dtype=torch.long),
-                 'target_rating': torch.tensor(target.data)}
-        if 'data' in self.user_profile:
-            input['user_profile'] = torch.tensor(self.user_profile['data'][index])
-        if 'target' in self.user_profile:
-            input['target_user_profile'] = torch.tensor(self.user_profile['target'][index])
-        if 'data' in self.item_attr:
-            input['item_attr'] = torch.tensor(self.item_attr['data'][data.col])
-        if 'target' in self.item_attr:
-            input['target_item_attr'] = torch.tensor(self.item_attr['target'][target.col])
+        if self.data_mode == 'user':
+            input = {'user': torch.tensor(np.array([index]), dtype=torch.long),
+                     'item': torch.tensor(data.col, dtype=torch.long),
+                     'rating': torch.tensor(data.data),
+                     'target_user': torch.tensor(np.array([index]), dtype=torch.long),
+                     'target_item': torch.tensor(target.col, dtype=torch.long),
+                     'target_rating': torch.tensor(target.data)}
+            if 'data' in self.user_profile:
+                input['user_profile'] = torch.tensor(self.user_profile['data'][index])
+            if 'target' in self.user_profile:
+                input['target_user_profile'] = torch.tensor(self.user_profile['target'][index])
+            if 'data' in self.item_attr:
+                input['item_attr'] = torch.tensor(self.item_attr['data'][data.col])
+            if 'target' in self.item_attr:
+                input['target_item_attr'] = torch.tensor(self.item_attr['target'][target.col])
+        elif self.data_mode == 'item':
+            input = {'user': torch.tensor(data.col, dtype=torch.long),
+                     'item': torch.tensor(np.array([index]), dtype=torch.long),
+                     'rating': torch.tensor(data.data),
+                     'target_user': torch.tensor(target.col, dtype=torch.long),
+                     'target_item': torch.tensor(np.array([index]), dtype=torch.long),
+                     'target_rating': torch.tensor(target.data)}
+            if 'data' in self.user_profile:
+                input['user_profile'] = torch.tensor(self.user_profile['data'][data.col])
+            if 'target' in self.user_profile:
+                input['target_user_profile'] = torch.tensor(self.user_profile['target'][target.col])
+            if 'data' in self.item_attr:
+                input['item_attr'] = torch.tensor(self.item_attr['data'][index])
+            if 'target' in self.item_attr:
+                input['target_item_attr'] = torch.tensor(self.item_attr['target'][index])
+        else:
+            raise ValueError('Not valid data mode')
         if self.transform is not None:
             input = self.transform(input)
         return input
@@ -53,11 +78,23 @@ class ML100K(Dataset):
 
     @property
     def num_users(self):
-        return {'data': self.data.shape[0], 'target': self.target.shape[0]}
+        if self.data_mode == 'user':
+            num_users_ = {'data': self.data.shape[0], 'target': self.target.shape[0]}
+        elif self.data_mode == 'item':
+            num_users_ = {'data': self.data.shape[1], 'target': self.target.shape[1]}
+        else:
+            raise ValueError('Not valid data mode')
+        return num_users_
 
     @property
     def num_items(self):
-        return {'data': self.data.shape[1], 'target': self.target.shape[1]}
+        if self.data_mode == 'user':
+            num_items_ = {'data': self.data.shape[1], 'target': self.target.shape[1]}
+        elif self.data_mode == 'item':
+            num_items_ = {'data': self.data.shape[0], 'target': self.target.shape[0]}
+        else:
+            raise ValueError('Not valid data mode')
+        return num_items_
 
     @property
     def processed_folder(self):
@@ -109,10 +146,10 @@ class ML100K(Dataset):
         train_idx, test_idx = idx[:num_train], idx[num_train:]
         train_user, train_item, train_rating = user[train_idx], item[train_idx], rating[train_idx]
         test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
-        train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
+        train_data = coo_matrix((train_rating, (train_user, train_item)), shape=(M, N))
         train_target = train_data
         test_data = train_data
-        test_target = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
+        test_target = coo_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return (train_data, train_target), (test_data, test_target)
 
     def make_implicit_data(self):
@@ -134,10 +171,10 @@ class ML100K(Dataset):
         test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
         test_rating[test_rating < 3.5] = 0
         test_rating[test_rating >= 3.5] = 1
-        train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
+        train_data = coo_matrix((train_rating, (train_user, train_item)), shape=(M, N))
         train_target = train_data
         test_data = train_data
-        test_target = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
+        test_target = coo_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return (train_data, train_target), (test_data, test_target)
 
     def make_info(self):

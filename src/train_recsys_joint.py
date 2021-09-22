@@ -48,12 +48,12 @@ def runExperiment():
     else:
         optimizer = None
         scheduler = None
-    if cfg['data_mode'] == 'explicit':
+    if cfg['target_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
-    elif cfg['data_mode'] == 'implicit':
+    elif cfg['target_mode'] == 'implicit':
         metric = Metric({'train': ['Loss', 'MAP'], 'test': ['Loss', 'MAP']})
     else:
-        raise ValueError('Not valid data mode')
+        raise ValueError('Not valid target mode')
     if cfg['resume_mode'] == 1:
         result = resume(cfg['model_tag'])
         last_epoch = result['epoch']

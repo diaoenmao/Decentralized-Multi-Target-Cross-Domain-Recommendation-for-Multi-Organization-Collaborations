@@ -24,8 +24,6 @@ def MAP(output, target, topk=10):
     m = torch.sum(topk_target, dim=-1)
     ap = (precision * topk_target).sum(dim=-1) / (m + 1e-10)
     map = ap.mean().item()
-    # print(precision)
-    # exit()
     return map
 
 
@@ -43,16 +41,16 @@ class Metric(object):
 
     def make_pivot(self):
         if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
-            if cfg['data_mode'] == 'explicit':
+            if cfg['target_mode'] == 'explicit':
                 pivot = float('inf')
                 pivot_direction = 'down'
                 pivot_name = 'RMSE'
-            elif cfg['data_mode'] == 'implicit':
+            elif cfg['target_mode'] == 'implicit':
                 pivot = -float('inf')
                 pivot_direction = 'up'
                 pivot_name = 'MAP'
             else:
-                raise ValueError('Not valid data mode')
+                raise ValueError('Not valid target mode')
         else:
             raise ValueError('Not valid data name')
         return pivot, pivot_name, pivot_direction

@@ -2,7 +2,8 @@
 # control
 control:
   data_name: ML100K
-  data_mode: explicit
+  data_mode: user
+  target_mode: implicit
   model_name: mf
   info: 1
   data_split_mode: random-2
@@ -12,7 +13,7 @@ num_workers: 0
 init_seed: 0
 num_experiments: 1
 log_interval: 0.25
-device: cuda
+device: cpu
 world_size: 1
 resume_mode: 0
 verbose: False
