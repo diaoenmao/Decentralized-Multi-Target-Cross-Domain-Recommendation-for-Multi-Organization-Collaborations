@@ -192,20 +192,33 @@ class FlatInput(torch.nn.Module):
 def split_dataset(dataset):
     if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
         if 'genre' in cfg['data_split_mode']:
-            num_organizations = cfg['num_organizations']
-            zero_mask = torch.tensor(dataset['train'].item_attr['data']).sum(dim=-1) == 0
-            item_attr = torch.tensor(dataset['train'].item_attr['data'])
-            item_attr[zero_mask] = 1
-            data_split_idx = torch.multinomial(torch.tensor(item_attr), 1).view(-1).numpy()
-            data_split = []
-            for i in range(num_organizations):
-                data_split_i = np.where(data_split_idx == i)[0]
-                data_split.append(data_split_i)
+            if cfg['data_mode'] == 'user':
+                num_organizations = cfg['num_organizations']
+                zero_mask = torch.tensor(dataset['train'].item_attr['data']).sum(dim=-1) == 0
+                item_attr = torch.tensor(dataset['train'].item_attr['data'])
+                item_attr[zero_mask] = 1
+                data_split_idx = torch.multinomial(torch.tensor(item_attr), 1).view(-1).numpy()
+                data_split = []
+                for i in range(num_organizations):
+                    data_split_i = np.where(data_split_idx == i)[0]
+                    data_split.append(data_split_i)
+            elif cfg['data_mode'] == 'item':
+                raise NotImplementedError
+            else:
+                raise ValueError('Not valid data mode')
         elif 'random' in cfg['data_split_mode']:
-            num_items = dataset['train'].num_items['data']
-            num_organizations = cfg['num_organizations']
-            data_split = list(torch.randperm(num_items).split(num_items // num_organizations))
-            data_split = data_split[:num_organizations - 1] + [torch.cat(data_split[num_organizations - 1:])]
+            if cfg['data_mode'] == 'user':
+                num_items = dataset['train'].num_items['data']
+                num_organizations = cfg['num_organizations']
+                data_split = list(torch.randperm(num_items).split(num_items // num_organizations))
+                data_split = data_split[:num_organizations - 1] + [torch.cat(data_split[num_organizations - 1:])]
+            elif cfg['data_mode'] == 'item':
+                num_users = dataset['train'].num_users['data']
+                num_organizations = cfg['num_organizations']
+                data_split = list(torch.randperm(num_users).split(num_users // num_organizations))
+                data_split = data_split[:num_organizations - 1] + [torch.cat(data_split[num_organizations - 1:])]
+            else:
+                raise ValueError('Not valid data mode')
         else:
             raise ValueError('Not valid data split mode')
     else:
@@ -222,9 +235,16 @@ def make_split_dataset(data_split):
         for k in dataset_i:
             dataset_i[k].data = dataset_i[k].data[:, data_split_i]
             dataset_i[k].target = dataset_i[k].target[:, data_split_i]
-            if hasattr(dataset_i[k], 'item_attr'):
-                dataset_i[k].item_attr['data'] = dataset_i[k].item_attr['data'][data_split_i]
-                dataset_i[k].item_attr['target'] = dataset_i[k].item_attr['target'][data_split_i]
+            if cfg['data_mode'] == 'user':
+                if hasattr(dataset_i[k], 'item_attr'):
+                    dataset_i[k].item_attr['data'] = dataset_i[k].item_attr['data'][data_split_i]
+                    dataset_i[k].item_attr['target'] = dataset_i[k].item_attr['target'][data_split_i]
+            elif cfg['data_mode'] == 'item':
+                if hasattr(dataset_i[k], 'user_profile'):
+                    dataset_i[k].user_profile['data'] = dataset_i[k].user_profile['data'][data_split_i]
+                    dataset_i[k].user_profile['target'] = dataset_i[k].user_profile['target'][data_split_i]
+            else:
+                raise ValueError('Not valid data mode')
         if cfg['model_name'] in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
             dataset_i = make_pair_transform(dataset_i)
         elif cfg['model_name'] in ['ae']:
