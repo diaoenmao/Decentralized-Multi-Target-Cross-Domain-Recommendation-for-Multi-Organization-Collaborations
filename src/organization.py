@@ -12,14 +12,28 @@ from utils import to_device, make_optimizer, make_scheduler, collate
 
 
 def process_output(target_user, target_item, target_rating):
-    target_user_i = target_user.cpu()
-    if cfg['data_mode'] == 'explicit':
+    if cfg['data_mode'] == 'user':
+        target_user_i = target_user.cpu()
+        if cfg['target_mode'] == 'explicit':
+            target_item_i = target_item.cpu()
+            target_rating_i = target_rating.cpu()
+        elif cfg['target_mode'] == 'implicit':
+            mask = target_rating != -float('inf')
+            target_item_i = torch.nonzero(mask)[:, 1].cpu()
+            target_rating_i = target_rating[mask].cpu()
+        else:
+            raise ValueError('Not valid target mode')
+    elif cfg['data_mode'] == 'item':
         target_item_i = target_item.cpu()
-        target_rating_i = target_rating.cpu()
-    elif cfg['data_mode'] == 'implicit':
-        mask = target_rating != -float('inf')
-        target_item_i = torch.nonzero(mask)[:, 1].cpu()
-        target_rating_i = target_rating[mask].cpu()
+        if cfg['target_mode'] == 'explicit':
+            target_user_i = target_user.cpu()
+            target_rating_i = target_rating.cpu()
+        elif cfg['target_mode'] == 'implicit':
+            mask = target_rating != -float('inf')
+            target_user_i = torch.nonzero(mask)[:, 1].cpu()
+            target_rating_i = target_rating[mask].cpu()
+        else:
+            raise ValueError('Not valid target mode')
     else:
         raise ValueError('Not valid data mode')
     return target_user_i, target_item_i, target_rating_i
@@ -58,7 +72,7 @@ class Organization:
                 target_rating = []
                 for i, input in enumerate(data_loader['train']):
                     input = collate(input)
-                    input_size = len(input['user'])
+                    input_size = len(input[cfg['data_mode']])
                     if input_size == 0:
                         continue
                     input = to_device(input, cfg['device'])
@@ -74,15 +88,27 @@ class Organization:
                     target_rating.append(target_rating_i)
                 target_user = torch.cat(target_user, dim=0).numpy()
                 target_item = torch.cat(target_item, dim=0).numpy()
-                target_item = self.data_split[target_item]
                 target_rating = torch.cat(target_rating, dim=0).numpy()
-            output['train'] = csr_matrix((target_rating, (target_user, target_item)),
-                                         shape=(cfg['num_users']['target'], cfg['num_items']['target']))
-            dataset_coo = dataset['train'].target.tocoo()
-            row, col = dataset_coo.row, dataset_coo.col
-            col = self.data_split[col]
-            target['train'] = csr_matrix((dataset['train'].target.data, (row, col)),
-                                         shape=(cfg['num_users']['target'], cfg['num_items']['target']))
+            if cfg['data_mode'] == 'user':
+                target_item = self.data_split[target_item]
+                output['train'] = csr_matrix((target_rating, (target_user, target_item)),
+                                             shape=(cfg['num_users']['target'], cfg['num_items']['target']))
+                dataset_coo = dataset['train'].target.tocoo()
+                row, col = dataset_coo.row, dataset_coo.col
+                col = self.data_split[col]
+                target['train'] = csr_matrix((dataset['train'].target.data, (row, col)),
+                                             shape=(cfg['num_users']['target'], cfg['num_items']['target']))
+            elif cfg['data_mode'] == 'item':
+                target_user = self.data_split[target_user]
+                output['train'] = csr_matrix((target_rating, (target_item, target_user)),
+                                             shape=(cfg['num_items']['target'], cfg['num_users']['target']))
+                dataset_coo = dataset['train'].target.tocoo()
+                row, col = dataset_coo.row, dataset_coo.col
+                col = self.data_split[col]
+                target['train'] = csr_matrix((dataset['train'].target.data, (row, col)),
+                                             shape=(cfg['num_items']['target'], cfg['num_users']['target']))
+            else:
+                raise ValueError('Not valid data mode')
         with torch.no_grad():
             num_users = dataset['test'].num_users['data']
             num_items = dataset['test'].num_items['data']
@@ -94,7 +120,7 @@ class Organization:
             target_rating = []
             for i, input in enumerate(data_loader['test']):
                 input = collate(input)
-                input_size = len(input['target_user'])
+                input_size = len(input['target_{}'.format(cfg['data_mode'])])
                 if input_size == 0:
                     continue
                 input = to_device(input, cfg['device'])
@@ -112,23 +138,37 @@ class Organization:
                 target_rating.append(target_rating_i)
             target_user = torch.cat(target_user, dim=0).numpy()
             target_item = torch.cat(target_item, dim=0).numpy()
-            target_item = self.data_split[target_item]
             target_rating = torch.cat(target_rating, dim=0).numpy()
-            output['test'] = csr_matrix((target_rating, (target_user, target_item)),
-                                        shape=(cfg['num_users']['target'], cfg['num_items']['target']))
-            dataset_coo = dataset['test'].target.tocoo()
-            row, col = dataset_coo.row, dataset_coo.col
-            col = self.data_split[col]
-            target['test'] = csr_matrix((dataset['test'].target.data, (row, col)),
-                                        shape=(cfg['num_users']['target'], cfg['num_items']['target']))
+            if cfg['data_mode'] == 'user':
+                target_item = self.data_split[target_item]
+                output['test'] = csr_matrix((target_rating, (target_user, target_item)),
+                                            shape=(cfg['num_users']['target'], cfg['num_items']['target']))
+                dataset_coo = dataset['test'].target.tocoo()
+                row, col = dataset_coo.row, dataset_coo.col
+                col = self.data_split[col]
+                target['test'] = csr_matrix((dataset['test'].target.data, (row, col)),
+                                            shape=(cfg['num_users']['target'], cfg['num_items']['target']))
+            elif cfg['data_mode'] == 'item':
+                target_user = self.data_split[target_user]
+                output['test'] = csr_matrix((target_rating, (target_item, target_user)),
+                                            shape=(cfg['num_items']['target'], cfg['num_users']['target']))
+                dataset_coo = dataset['test'].target.tocoo()
+                row, col = dataset_coo.row, dataset_coo.col
+                col = self.data_split[col]
+                target['test'] = csr_matrix((dataset['test'].target.data, (row, col)),
+                                            shape=(cfg['num_items']['target'], cfg['num_users']['target']))
+            else:
+                raise ValueError('Not valid data mode')
+
         cfg['model_name'] = model_name
         return output, target
 
     def train(self, dataset, metric, logger, iter):
         data_loader = make_data_loader({'train': dataset}, 'local')['train']
+        num_users = dataset.num_users
         num_items = dataset.num_items
-        model = eval('models.{}(num_items["data"], num_items["target"]).to(cfg["device"])'.format(
-            self.model_name[iter]))
+        model = eval('models.{}(num_users["data"], num_items["data"], num_users["target"], '
+                     'num_items["target"]).to(cfg["device"])'.format(self.model_name[iter]))
         model.train(True)
         optimizer = make_optimizer(model, 'local')
         scheduler = make_scheduler(optimizer, 'local')
@@ -136,7 +176,7 @@ class Organization:
             start_time = time.time()
             for i, input in enumerate(data_loader):
                 input = collate(input)
-                input_size = input['user'].size(0)
+                input_size = len(input[cfg['data_mode']])
                 if input_size == 0:
                     continue
                 input = to_device(input, cfg['device'])
@@ -166,8 +206,10 @@ class Organization:
     def predict(self, dataset, iter):
         with torch.no_grad():
             data_loader = make_data_loader({'train': dataset}, 'local', shuffle={'train': False})['train']
+            num_users = dataset.num_users
             num_items = dataset.num_items
-            model = eval('models.{}(num_items["data"], num_items["target"]).to(cfg["device"])'.format(
+            model = eval('models.{}(num_users["data"], num_items["data"], num_users["target"], '
+                         'num_items["target"]).to(cfg["device"])'.format(
                 self.model_name[iter]))
             model.load_state_dict(self.model_state_dict[iter])
             model.train(False)
@@ -176,7 +218,7 @@ class Organization:
             target_rating = []
             for i, input in enumerate(data_loader):
                 input = collate(input)
-                input_size = len(input['target_user'])
+                input_size = len(input['target_{}'.format(cfg['data_mode'])])
                 if input_size == 0:
                     continue
                 input = to_device(input, cfg['device'])
@@ -190,6 +232,12 @@ class Organization:
             target_user = torch.cat(target_user, dim=0).numpy()
             target_item = torch.cat(target_item, dim=0).numpy()
             target_rating = torch.cat(target_rating, dim=0).numpy()
-            output = csr_matrix((target_rating, (target_user, target_item)),
-                                shape=(cfg['num_users']['target'], cfg['num_items']['target']))
+            if cfg['data_mode'] == 'user':
+                output = csr_matrix((target_rating, (target_user, target_item)),
+                                    shape=(cfg['num_users']['target'], cfg['num_items']['target']))
+            elif cfg['data_mode'] == 'item':
+                output = csr_matrix((target_rating, (target_item, target_user)),
+                                    shape=(cfg['num_items']['target'], cfg['num_users']['target']))
+            else:
+                raise ValueError('Not valid data mode')
         return output

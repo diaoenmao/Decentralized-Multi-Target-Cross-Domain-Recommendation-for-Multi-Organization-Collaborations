@@ -49,13 +49,21 @@ class Assist:
             for i in range(len(dataset)):
                 coo = self.organization_target[0][k].tocoo()
                 row, col = coo.row, coo.col
-                dataset[i][k].target = csr_matrix((residual_k, (row, col)),
-                                                  shape=(cfg['num_users']['target'], cfg['num_items']['target']))
                 if hasattr(dataset[i][k], 'user_profile') and 'target' in dataset[i][k].user_profile:
                     del dataset[i][k].user_profile['target']
                 if hasattr(dataset[i][k], 'item_attr') and 'target' in dataset[i][k].item_attr:
                     del dataset[i][k].item_attr['target']
-                dataset[i][k].transform.transforms[0].num_items['target'] = cfg['num_items']['target']
+                if cfg['data_mode'] == 'user':
+                    dataset[i][k].target = csr_matrix((residual_k, (row, col)),
+                                                      shape=(cfg['num_users']['target'], cfg['num_items']['target']))
+                    dataset[i][k].transform.transforms[0].num_items['target'] = cfg['num_items']['target']
+                elif cfg['data_mode'] == 'item':
+                    dataset[i][k].target = csr_matrix((residual_k, (row, col)),
+                                                      shape=(cfg['num_items']['target'], cfg['num_users']['target']))
+                    dataset[i][k].transform.transforms[0].num_users['target'] = cfg['num_users']['target']
+                else:
+                    raise ValueError('Not valid data mode')
+
         return dataset
 
     def update(self, organization_outputs, iter):
@@ -66,7 +74,6 @@ class Assist:
             organization_outputs_[k] = torch.stack(organization_outputs_[k], dim=-1)
         if 'train' in organization_outputs[0]:
             model = models.ar(iter).to(cfg['device'])
-            coo = organization_outputs[0]['train'].tocoo()
             input = {'history': torch.tensor(self.organization_output[iter - 1]['train'].data),
                      'output': organization_outputs_['train'],
                      'target': torch.tensor(self.organization_target[0]['train'].data)}
@@ -87,7 +94,6 @@ class Assist:
             model.load_state_dict(self.ar_state_dict[iter])
             model.train(False)
             for k in organization_outputs[0]:
-                coo = self.organization_output[iter - 1][k].tocoo()
                 input = {'history': torch.tensor(self.organization_output[iter - 1][k].data),
                          'output': organization_outputs_[k],
                          'target': torch.tensor(self.organization_target[0][k].data)}
@@ -95,7 +101,14 @@ class Assist:
                 output = model(input)
                 coo = self.organization_output[iter - 1][k].tocoo()
                 row, col = coo.row, coo.col
-                self.organization_output[iter][k] = csr_matrix((output['target'].cpu().numpy(), (row, col)),
-                                                               shape=(cfg['num_users']['target'],
-                                                                      cfg['num_items']['target']))
+                if cfg['data_mode'] == 'user':
+                    self.organization_output[iter][k] = csr_matrix((output['target'].cpu().numpy(), (row, col)),
+                                                                   shape=(cfg['num_users']['target'],
+                                                                          cfg['num_items']['target']))
+                elif cfg['data_mode'] == 'item':
+                    self.organization_output[iter][k] = csr_matrix((output['target'].cpu().numpy(), (row, col)),
+                                                                   shape=(cfg['num_items']['target'],
+                                                                          cfg['num_users']['target']))
+                else:
+                    raise ValueError('Not valid data mode')
         return

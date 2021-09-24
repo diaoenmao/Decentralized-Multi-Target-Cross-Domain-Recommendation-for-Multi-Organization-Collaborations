@@ -99,6 +99,16 @@ class AE(nn.Module):
             output['loss'] = F.mse_loss(output['target_rating'][target_mask], input['target_rating'][target_mask])
         else:
             output['loss'] = loss_fn(output['target_rating'][target_mask], input['target_rating'][target_mask])
+        if output['loss'].isnan():
+            print(output['target_rating'][target_mask].isnan().any())
+            print(input['target_rating'][target_mask].isnan().any())
+            print(output['target_rating'][target_mask])
+            print(input['target_rating'][target_mask])
+            print(output['target_rating'])
+            print(input['target_rating'])
+            print(input['target_user'])
+            print(input['target_item'])
+            exit()
         if cfg['target_mode'] == 'explicit':
             output['target_rating'], input['target_rating'] = parse_explicit_rating_flat(output['target_rating'],
                                                                                          input['target_rating'])

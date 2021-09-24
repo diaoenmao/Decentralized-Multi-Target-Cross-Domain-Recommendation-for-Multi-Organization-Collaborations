@@ -111,13 +111,24 @@ def initialize(dataset, assist, organization, metric, logger, epoch):
             target_data[k].append(target_coo_i_k.data)
             target_row[k].append(target_coo_i_k.row)
             target_col[k].append(target_coo_i_k.col)
-    for k in dataset[0]:
-        assist.organization_output[0][k] = csr_matrix(
-            (np.concatenate(output_data[k]), (np.concatenate(output_row[k]), np.concatenate(output_col[k]))),
-            shape=(cfg['num_users']['target'], cfg['num_items']['target']))
-        assist.organization_target[0][k] = csr_matrix(
-            (np.concatenate(target_data[k]), (np.concatenate(target_row[k]), np.concatenate(target_col[k]))),
-            shape=(cfg['num_users']['target'], cfg['num_items']['target']))
+    if cfg['data_mode'] == 'user':
+        for k in dataset[0]:
+            assist.organization_output[0][k] = csr_matrix(
+                (np.concatenate(output_data[k]), (np.concatenate(output_row[k]), np.concatenate(output_col[k]))),
+                shape=(cfg['num_users']['target'], cfg['num_items']['target']))
+            assist.organization_target[0][k] = csr_matrix(
+                (np.concatenate(target_data[k]), (np.concatenate(target_row[k]), np.concatenate(target_col[k]))),
+                shape=(cfg['num_users']['target'], cfg['num_items']['target']))
+    elif cfg['data_mode'] == 'item':
+        for k in dataset[0]:
+            assist.organization_output[0][k] = csr_matrix(
+                (np.concatenate(output_data[k]), (np.concatenate(output_row[k]), np.concatenate(output_col[k]))),
+                shape=(cfg['num_items']['target'], cfg['num_users']['target']))
+            assist.organization_target[0][k] = csr_matrix(
+                (np.concatenate(target_data[k]), (np.concatenate(target_row[k]), np.concatenate(target_col[k]))),
+                shape=(cfg['num_items']['target'], cfg['num_users']['target']))
+    else:
+        raise ValueError('Not valid data mode')
     logger.safe(False)
     logger.reset()
     return
@@ -169,33 +180,51 @@ def test(assist, metric, logger, epoch):
                 output_i_j_coo = output_i_j.tocoo()
                 output_i_j_rating = torch.tensor(output_i_j_coo.data)
                 target_i_j_coo = target_i_j.tocoo()
+                target_i_j_user = torch.tensor(target_i_j_coo.row, dtype=torch.long)
+                target_i_j_item = torch.tensor(target_i_j_coo.col, dtype=torch.long)
                 target_i_j_rating = torch.tensor(target_i_j_coo.data)
-                target_mask = ~target_i_j_rating.isnan()
-                input_size = target_i_j_rating.size(0)
-                if input_size == 0:
-                    continue
-                if cfg['data_mode'] == 'explicit':
-                    output = {'target_rating': torch.tensor(output_i_j.data)}
-                    input = {'target_rating': torch.tensor(target_i_j.data)}
-                elif cfg['data_mode'] == 'implicit':
-                    target_i_j_user = torch.tensor(target_i_j_coo.row, dtype=torch.long)
-                    target_i_j_item = torch.tensor(target_i_j_coo.col, dtype=torch.long)
+                if cfg['data_mode'] == 'user':
                     user, user_idx = torch.unique(target_i_j_user, return_inverse=True)
-                    item_idx = target_i_j_item
                     num_users = len(user)
-                    num_items = len(assist.data_split[i])
-                    output_rating = torch.full((num_users, num_items), -float('inf'))
-                    target_rating = torch.full((num_users, num_items), 0.)
-                    output_rating[user_idx, item_idx] = output_i_j_rating
-                    target_rating[user_idx, item_idx] = target_i_j_rating
-                    output = {'target_rating': output_rating}
-                    input = {'target_rating': target_rating}
+                    input_size = num_users
+                elif cfg['data_mode'] == 'item':
+                    item, item_idx = torch.unique(target_i_j_item, return_inverse=True)
+                    num_items = len(item)
+                    input_size = num_items
                 else:
                     raise ValueError('Not valid data mode')
+                if input_size == 0:
+                    continue
+                if cfg['target_mode'] == 'explicit':
+                    output = {'target_rating': torch.tensor(output_i_j.data)}
+                    input = {'target_rating': torch.tensor(target_i_j.data)}
+                elif cfg['target_mode'] == 'implicit':
+                    if cfg['data_mode'] == 'user':
+                        item_idx = target_i_j_item
+                        num_items = len(assist.data_split[i])
+                        output_rating = torch.full((num_users, num_items), -float('inf'))
+                        target_rating = torch.full((num_users, num_items), 0.)
+                        output_rating[user_idx, item_idx] = output_i_j_rating
+                        target_rating[user_idx, item_idx] = target_i_j_rating
+                        output = {'target_rating': output_rating}
+                        input = {'target_rating': target_rating}
+                    elif cfg['data_mode'] == 'item':
+                        user_idx = target_i_j_user
+                        num_users = len(assist.data_split[i])
+                        output_rating = torch.full((num_items, num_users), -float('inf'))
+                        target_rating = torch.full((num_items, num_users), 0.)
+                        output_rating[item_idx, user_idx] = output_i_j_rating
+                        target_rating[item_idx, user_idx] = target_i_j_rating
+                        output = {'target_rating': output_rating}
+                        input = {'target_rating': target_rating}
+                    else:
+                        raise ValueError('Not valid data mode')
+                else:
+                    raise ValueError('Not valid target mode')
+                target_mask = ~target_i_j_rating.isnan()
                 output['loss'] = models.loss_fn(output_i_j_rating[target_mask], target_i_j_rating[target_mask])
                 output = to_device(output, cfg['device'])
                 input = to_device(input, cfg['device'])
-                input_size = len(input['target_rating'])
                 evaluation = metric.evaluate(metric.metric_name['test'], input, output)
                 logger.append(evaluation, 'test', n=input_size)
         lr = assist.ar_state_dict[epoch]['assist_rate'].item()

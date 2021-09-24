@@ -11,39 +11,74 @@ from scipy.sparse import csr_matrix
 class NFP(Dataset):
     data_name = 'NFP'
 
-    def __init__(self, root, split, data_mode, transform=None):
+    def __init__(self, root, split, data_mode, target_mode, transform=None):
         self.root = os.path.expanduser(root)
         self.split = split
         self.data_mode = data_mode
+        self.target_mode = target_mode
         self.transform = transform
         if not check_exists(self.processed_folder):
             self.process()
-        self.data, self.target = load(os.path.join(self.processed_folder, self.data_mode, '{}.pt'.format(self.split)),
+        self.data, self.target = load(os.path.join(self.processed_folder, self.target_mode, '{}.pt'.format(self.split)),
                                       mode='pickle')
+        if self.data_mode == 'user':
+            pass
+        elif self.data_mode == 'item':
+            self.data, self.target = self.data.transpose(), self.target.transpose()
+        else:
+            raise ValueError('Not valid data mode')
 
     def __getitem__(self, index):
         data = self.data[index].tocoo()
         target = self.target[index].tocoo()
-        input = {'user': torch.tensor(np.array([index]), dtype=torch.long),
-                 'item': torch.tensor(data.col, dtype=torch.long),
-                 'rating': torch.tensor(data.data),
-                 'target_user': torch.tensor(np.array([index]), dtype=torch.long),
-                 'target_item': torch.tensor(target.col, dtype=torch.long),
-                 'target_rating': torch.tensor(target.data)}
+        if self.data_mode == 'user':
+            input = {'user': torch.tensor(np.array([index]), dtype=torch.long),
+                     'item': torch.tensor(data.col, dtype=torch.long),
+                     'rating': torch.tensor(data.data),
+                     'target_user': torch.tensor(np.array([index]), dtype=torch.long),
+                     'target_item': torch.tensor(target.col, dtype=torch.long),
+                     'target_rating': torch.tensor(target.data)}
+        elif self.data_mode == 'item':
+            input = {'user': torch.tensor(data.col, dtype=torch.long),
+                     'item': torch.tensor(np.array([index]), dtype=torch.long),
+                     'rating': torch.tensor(data.data),
+                     'target_user': torch.tensor(target.col, dtype=torch.long),
+                     'target_item': torch.tensor(np.array([index]), dtype=torch.long),
+                     'target_rating': torch.tensor(target.data)}
+        else:
+            raise ValueError('Not valid data mode')
         if self.transform is not None:
             input = self.transform(input)
         return input
 
     def __len__(self):
-        return self.num_users['data']
+        if self.data_mode == 'user':
+            len_ = self.num_users['data']
+        elif self.data_mode == 'item':
+            len_ = self.num_items['data']
+        else:
+            raise ValueError('Not valid data mode')
+        return len_
 
     @property
     def num_users(self):
-        return {'data': self.data.shape[0], 'target': self.target.shape[0]}
+        if self.data_mode == 'user':
+            num_users_ = {'data': self.data.shape[0], 'target': self.target.shape[0]}
+        elif self.data_mode == 'item':
+            num_users_ = {'data': self.data.shape[1], 'target': self.target.shape[1]}
+        else:
+            raise ValueError('Not valid data mode')
+        return num_users_
 
     @property
     def num_items(self):
-        return {'data': self.data.shape[1], 'target': self.target.shape[1]}
+        if self.data_mode == 'user':
+            num_items_ = {'data': self.data.shape[1], 'target': self.target.shape[1]}
+        elif self.data_mode == 'item':
+            num_items_ = {'data': self.data.shape[0], 'target': self.target.shape[0]}
+        else:
+            raise ValueError('Not valid data mode')
+        return num_items_
 
     @property
     def processed_folder(self):

@@ -124,7 +124,7 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
         model[m].train(True)
         for i, input in enumerate(data_loader[m]):
             input = collate(input)
-            input_size = len(input['user'])
+            input_size = len(input[cfg['data_mode']])
             if input_size == 0:
                 continue
             input = to_device(input, cfg['device'])
@@ -161,7 +161,7 @@ def test(data_loader, model, metric, logger, epoch):
             model[m].train(False)
             for i, input in enumerate(data_loader[m]):
                 input = collate(input)
-                input_size = len(input['target_user'])
+                input_size = len(input['target_{}'.format(cfg['data_mode'])])
                 if input_size == 0:
                     continue
                 input = to_device(input, cfg['device'])
