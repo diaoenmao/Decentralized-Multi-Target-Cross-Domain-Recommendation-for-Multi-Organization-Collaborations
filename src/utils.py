@@ -137,7 +137,13 @@ def process_control():
             cfg['num_organizations'] = int(cfg['data_split_mode'].split('-')[1])
         else:
             raise ValueError('Not valid data split mode')
-    cfg['run_mode'] = cfg['control']['run_mode'] if 'run_mode' in cfg['control'] else None
+    cfg['assist'] = {}
+    if 'ar' in cfg['control']:
+        ar_list = cfg['control']['ar'].split('-')
+        cfg['assist']['ar_mode'] = ar_list[0]
+        cfg['assist']['ar'] = float(ar_list[1])
+    if 'aw' in cfg['control']:
+        cfg['assist']['aw_mode'] = cfg['control']['aw']
     cfg['base'] = {}
     cfg['mf'] = {'hidden_size': 128}
     cfg['gmf'] = {'hidden_size': 128}
@@ -169,14 +175,9 @@ def process_control():
     cfg['local']['num_epochs'] = 20
     cfg['global'] = {}
     cfg['global']['num_epochs'] = 10
-    cfg['ar'] = {}
-    cfg['ar']['lr'] = 0.1
-    cfg['ar']['factor'] = 0.1
-    cfg['ar']['milestones'] = None
-    cfg['weight'] = {}
-    cfg['weight']['optimizer_name'] = 'LBFGS'
-    cfg['weight']['lr'] = 1
-    cfg['weight']['num_epochs'] = 10
+    cfg['assist']['optimizer_name'] = 'LBFGS'
+    cfg['assist']['lr'] = 1
+    cfg['assist']['num_epochs'] = 10
     return
 
 

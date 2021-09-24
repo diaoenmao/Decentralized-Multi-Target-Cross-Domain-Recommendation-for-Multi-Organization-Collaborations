@@ -45,35 +45,35 @@ def main():
     if file == 'joint':
         controls = []
         script_name = [['{}_recsys_joint.py'.format(run)]]
-        control_name = [[data, ['explicit', 'implicit'], ['base'], ['0']]]
+        control_name = [[data, ['user', 'item'], ['explicit', 'implicit'], ['base'], ['0']]]
         base_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
         controls.extend(base_controls)
         if 'ML100K' in data:
-            control_name = [[['ML100K'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML100K'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             ml100k_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                             control_name)
             controls.extend(ml100k_controls)
         if 'ML1M' in data:
-            control_name = [[['ML1M'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML1M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             ml1m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                           control_name)
             controls.extend(ml1m_controls)
         if 'ML10M' in data:
-            control_name = [[['ML10M'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML10M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             ml10m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                            control_name)
             controls.extend(ml10m_controls)
         if 'ML20M' in data:
-            control_name = [[['ML20M'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             ml20m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                            control_name)
             controls.extend(ml20m_controls)
         if 'NFP' in data:
-            control_name = [[['ML20M'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)
@@ -81,36 +81,36 @@ def main():
     elif file == 'alone':
         controls = []
         script_name = [['{}_recsys_alone.py'.format(run)]]
-        control_name = [[data, ['explicit', 'implicit'], ['base'], ['0'], ['genre', 'random-8'], ['alone']]]
+        control_name = [[data, ['explicit', 'implicit'], ['base'], ['0'], ['genre', 'random-8']]]
         base_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
         controls.extend(base_controls)
         if 'ML100K' in data:
-            control_name = [[['ML100K'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
-                             ['0', '1'], ['genre', 'random-8'], ['alone']]]
+            control_name = [[['ML100K'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+                             ['0', '1'], ['genre', 'random-8']]]
             ml100k_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                             control_name)
             controls.extend(ml100k_controls)
         if 'ML1M' in data:
-            control_name = [[['ML1M'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
-                             ['0', '1'], ['genre', 'random-8'], ['alone']]]
+            control_name = [[['ML1M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+                             ['0', '1'], ['genre', 'random-8']]]
             ml1m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                           control_name)
             controls.extend(ml1m_controls)
         if 'ML10M' in data:
-            control_name = [[['ML10M'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
-                             ['0', '1'], ['genre', 'random-8'], ['alone']]]
+            control_name = [[['ML10M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+                             ['0', '1'], ['genre', 'random-8']]]
             ml10m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                            control_name)
             controls.extend(ml10m_controls)
         if 'ML20M' in data:
-            control_name = [[['ML20M'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
-                             ['0', '1'], ['genre', 'random-8'], ['alone']]]
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+                             ['0', '1'], ['genre', 'random-8']]]
             ml20m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                            control_name)
             controls.extend(ml20m_controls)
         if 'NFP' in data:
-            control_name = [[['NFP'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
-                             ['0', '1'], ['genre', 'random-8'], ['alone']]]
+            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+                             ['0', '1'], ['genre', 'random-8']]]
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)
             controls.extend(nfp_controls)
@@ -118,30 +118,131 @@ def main():
         controls = []
         script_name = [['{}_recsys_assist.py'.format(run)]]
         if 'ML100K' in data:
-            control_name = [
-                [['ML100K'], ['explicit', 'implicit'], ['ae'], ['0', '1'], ['genre', 'random-8'], ['assist']]]
+            control_name = [[['ML100K'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre', 'random-8'], ['constant-0.1'], ['constant']]]
             ml100k_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                             control_name)
             controls.extend(ml100k_controls)
         if 'ML1M' in data:
-            control_name = [[['ML1M'], ['explicit', 'implicit'], ['ae'], ['0', '1'], ['genre', 'random-8'], ['assist']]]
+            control_name = [[['ML1M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre', 'random-8'], ['constant-0.1'], ['constant']]]
             ml1m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                           control_name)
             controls.extend(ml1m_controls)
         if 'ML10M' in data:
-            control_name = [
-                [['ML10M'], ['explicit', 'implicit'], ['ae'], ['0', '1'], ['genre', 'random-8'], ['assist']]]
+            control_name = [[['ML10M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre', 'random-8'], ['constant-0.1'], ['constant']]]
             ml10m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                            control_name)
             controls.extend(ml10m_controls)
         if 'ML20M' in data:
-            control_name = [
-                [['ML20M'], ['explicit', 'implicit'], ['ae'], ['0', '1'], ['genre', 'random-8'], ['assist']]]
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre', 'random-8'], ['constant-0.1'], ['constant']]]
             ml20m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                            control_name)
             controls.extend(ml20m_controls)
         if 'NFP' in data:
-            control_name = [[['NFP'], ['explicit', 'implicit'], ['ae'], ['0', '1'], ['genre', 'random-8'], ['assist']]]
+            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre', 'random-8'], ['constant-0.1'], ['constant']]]
+            nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                         control_name)
+            controls.extend(nfp_controls)
+    elif file == 'ar':
+        controls = []
+        script_name = [['{}_recsys_assist.py'.format(run)]]
+        if 'ML100K' in data:
+            control_name = [[['ML100K'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['random-8'], ['constant-0.3'], ['constant']]]
+            ml100k_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                            control_name)
+            controls.extend(ml100k_controls)
+        if 'ML1M' in data:
+            control_name = [[['ML1M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['random-8'], ['constant-0.3'], ['constant']]]
+            ml1m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                          control_name)
+            controls.extend(ml1m_controls)
+        if 'ML10M' in data:
+            control_name = [[['ML10M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['random-8'], ['constant-0.3'], ['constant']]]
+            ml10m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                           control_name)
+            controls.extend(ml10m_controls)
+        if 'ML20M' in data:
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['random-8'], ['constant-0.3'], ['constant']]]
+            ml20m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                           control_name)
+            controls.extend(ml20m_controls)
+        if 'NFP' in data:
+            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['random-8'], ['constant-0.3'], ['constant']]]
+            nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                         control_name)
+            controls.extend(nfp_controls)
+    elif file == 'ar-optim':
+        controls = []
+        script_name = [['{}_recsys_assist.py'.format(run)]]
+        if 'ML100K' in data:
+            control_name = [[['ML100K'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['random-8'], ['optim-0.1'], ['constant']]]
+            ml100k_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                            control_name)
+            controls.extend(ml100k_controls)
+        if 'ML1M' in data:
+            control_name = [[['ML1M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['random-8'], ['optim-0.1'], ['constant']]]
+            ml1m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                          control_name)
+            controls.extend(ml1m_controls)
+        if 'ML10M' in data:
+            control_name = [[['ML10M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['random-8'], ['optim-0.1'], ['constant']]]
+            ml10m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                           control_name)
+            controls.extend(ml10m_controls)
+        if 'ML20M' in data:
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['random-8'], ['optim-0.1'], ['constant']]]
+            ml20m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                           control_name)
+            controls.extend(ml20m_controls)
+        if 'NFP' in data:
+            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['random-8'], ['optim-0.1'], ['constant']]]
+            nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                         control_name)
+            controls.extend(nfp_controls)
+    elif file == 'aw':
+        controls = []
+        script_name = [['{}_recsys_assist.py'.format(run)]]
+        if 'ML100K' in data:
+            control_name = [[['ML100K'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['genre'], ['constant-0.1'], ['optim']]]
+            ml100k_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                            control_name)
+            controls.extend(ml100k_controls)
+        if 'ML1M' in data:
+            control_name = [[['ML1M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['genre'], ['constant-0.1'], ['optim']]]
+            ml1m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                          control_name)
+            controls.extend(ml1m_controls)
+        if 'ML10M' in data:
+            control_name = [[['ML10M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['genre'], ['constant-0.1'], ['optim']]]
+            ml10m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                           control_name)
+            controls.extend(ml10m_controls)
+        if 'ML20M' in data:
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['genre'], ['constant-0.1'], ['optim']]]
+            ml20m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                           control_name)
+            controls.extend(ml20m_controls)
+        if 'NFP' in data:
+            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['genre'], ['constant-0.1'], ['optim']]]
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)
             controls.extend(nfp_controls)
