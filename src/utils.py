@@ -150,7 +150,8 @@ def process_control():
     cfg['mlp'] = {'hidden_size': [128, 64, 32, 16]}
     cfg['nmf'] = {'hidden_size': [128, 64, 32, 16]}
     cfg['ae'] = {'encoder_hidden_size': [256, 128], 'decoder_hidden_size': [128, 256]}
-    batch_size = {'ML100K': 100, 'ML1M': 500, 'ML10M': 5000, 'ML20M': 5000, 'NFP': 5000}
+    batch_size = {'user': {'ML100K': 100, 'ML1M': 500, 'ML10M': 500, 'ML20M': 500, 'NFP': 500},
+                  'item': {'ML100K': 100, 'ML1M': 500, 'ML10M': 500, 'ML20M': 500, 'NFP': 500}}
     model_name = cfg['model_name']
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
     cfg[model_name]['optimizer_name'] = 'Adam'
@@ -160,7 +161,8 @@ def process_control():
     cfg[model_name]['betas'] = (0.9, 0.999)
     cfg[model_name]['weight_decay'] = 5e-4
     cfg[model_name]['scheduler_name'] = 'None'
-    cfg[model_name]['batch_size'] = {'train': batch_size[cfg['data_name']], 'test': batch_size[cfg['data_name']]}
+    cfg[model_name]['batch_size'] = {'train': batch_size[cfg['data_mode']][cfg['data_name']],
+                                     'test': batch_size[cfg['data_mode']][cfg['data_name']]}
     cfg[model_name]['num_epochs'] = 200 if model_name != 'base' else 1
     cfg['local'] = {}
     cfg['local']['shuffle'] = {'train': True, 'test': False}
@@ -171,7 +173,8 @@ def process_control():
     cfg['local']['betas'] = (0.9, 0.999)
     cfg['local']['weight_decay'] = 5e-4
     cfg['local']['scheduler_name'] = 'None'
-    cfg['local']['batch_size'] = {'train': batch_size[cfg['data_name']], 'test': batch_size[cfg['data_name']]}
+    cfg['local']['batch_size'] = {'train': batch_size[cfg['data_mode']][cfg['data_name']],
+                                  'test': batch_size[cfg['data_mode']][cfg['data_name']]}
     cfg['local']['num_epochs'] = 20
     cfg['global'] = {}
     cfg['global']['num_epochs'] = 10

@@ -141,7 +141,7 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
         lr = optimizer[m].param_groups[0]['lr'] if optimizer[m] is not None else 0
         epoch_finished_time = datetime.timedelta(seconds=round(_time * (len(data_loader) - m - 1)))
         exp_finished_time = epoch_finished_time + datetime.timedelta(
-            seconds=round((cfg[cfg['model_name']]['num_epochs'] - epoch) * _time * len(data_loader[m])))
+            seconds=round((cfg[cfg['model_name']]['num_epochs'] - epoch) * _time * len(data_loader)))
         info = {'info': ['Model: {}'.format(cfg['model_tag']),
                          'Train Epoch: {}({:.0f}%)'.format(epoch, 100. * m / len(data_loader)),
                          'ID: {}/{}'.format(m + 1, len(data_loader)),
