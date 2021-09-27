@@ -61,19 +61,19 @@ def main():
                                           control_name)
             controls.extend(ml1m_controls)
         if 'ML10M' in data:
-            control_name = [[['ML10M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML10M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'],
                              ['0', '1']]]
             ml10m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                            control_name)
             controls.extend(ml10m_controls)
         if 'ML20M' in data:
-            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'],
                              ['0', '1']]]
             ml20m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                            control_name)
             controls.extend(ml20m_controls)
         if 'NFP' in data:
-            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'],
                              ['0', '1']]]
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)
@@ -112,29 +112,29 @@ def main():
             ml1m_controls = ml1m_user_controls + ml1m_item_controls
             controls.extend(ml1m_controls)
         if 'ML10M' in data:
-            control_name = [[['ML10M'], ['user'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML10M'], ['user'], ['explicit', 'implicit'], ['ae'],
                              ['0', '1'], ['genre', 'random-8']]]
             ml10m_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                 control_name)
-            control_name = [[['ML10M'], ['item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML10M'], ['item'], ['explicit', 'implicit'], ['ae'],
                              ['0', '1'], ['random-8']]]
             ml10m_item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                 control_name)
             ml10m_controls = ml10m_user_controls + ml10m_item_controls
             controls.extend(ml10m_controls)
         if 'ML20M' in data:
-            control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['ae'],
                              ['0', '1'], ['genre', 'random-8']]]
             ml20m_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                 control_name)
-            control_name = [[['ML20M'], ['item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML20M'], ['item'], ['explicit', 'implicit'], ['ae'],
                              ['0', '1'], ['random-8']]]
             ml20m_item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                 control_name)
             ml20m_controls = ml20m_user_controls + ml20m_item_controls
             controls.extend(ml20m_controls)
         if 'NFP' in data:
-            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['ae'],
                              ['0', '1'], ['random-8']]]
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)

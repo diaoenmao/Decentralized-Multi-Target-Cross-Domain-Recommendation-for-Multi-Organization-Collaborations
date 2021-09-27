@@ -146,7 +146,8 @@ class FlatInput(torch.nn.Module):
             target_rating[input['target_item']] = input['target_rating']
             input['target_rating'] = target_rating
             if cfg['info'] == 1:
-                input['item_attr'] = input['item_attr'].sum(dim=0)
+                if 'item_attr' in input:
+                    input['item_attr'] = input['item_attr'].sum(dim=0)
                 if 'target_user_profile' in input:
                     del input['target_user_profile']
                 if 'target_item_attr' in input:
@@ -170,7 +171,8 @@ class FlatInput(torch.nn.Module):
             target_rating[input['target_user']] = input['target_rating']
             input['target_rating'] = target_rating
             if cfg['info'] == 1:
-                input['user_profile'] = input['user_profile'].sum(dim=0)
+                if 'user_profile' in input:
+                    input['user_profile'] = input['user_profile'].sum(dim=0)
                 if 'target_user_profile' in input:
                     del input['target_user_profile']
                 if 'target_item_attr' in input:
@@ -194,14 +196,19 @@ def split_dataset(dataset):
         if 'genre' in cfg['data_split_mode']:
             if cfg['data_mode'] == 'user':
                 num_organizations = cfg['num_organizations']
-                zero_mask = torch.tensor(dataset['train'].item_attr['data']).sum(dim=-1) == 0
                 item_attr = torch.tensor(dataset['train'].item_attr['data'])
+                zero_mask = torch.tensor(dataset['train'].item_attr['data']).sum(dim=-1) == 0
                 item_attr[zero_mask] = 1
-                data_split_idx = torch.multinomial(item_attr, 1).view(-1).numpy()
-                data_split = []
-                for i in range(num_organizations):
-                    data_split_i = np.where(data_split_idx == i)[0]
-                    data_split.append(data_split_i)
+                all_filled = False
+                while not all_filled:
+                    all_filled = True
+                    data_split = []
+                    data_split_idx = torch.multinomial(item_attr, 1).view(-1).numpy()
+                    for i in range(num_organizations):
+                        data_split_i = np.where(data_split_idx == i)[0]
+                        data_split.append(data_split_i)
+                        if len(data_split_i) == 0:
+                            all_filled = False
             elif cfg['data_mode'] == 'item':
                 raise NotImplementedError
             else:
