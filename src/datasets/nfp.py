@@ -24,7 +24,12 @@ class NFP(Dataset):
         if self.data_mode == 'user':
             pass
         elif self.data_mode == 'item':
-            self.data, self.target = self.data.transpose(), self.target.transpose()
+            data_coo = self.data.tocoo()
+            target_coo = self.target.tocoo()
+            self.data = csr_matrix((data_coo.data, (data_coo.col, data_coo.row)),
+                                   shape=(self.data.shape[1], self.data.shape[0]))
+            self.target = csr_matrix((target_coo.data, (target_coo.col, target_coo.row)),
+                                   shape=(self.target.shape[1], self.target.shape[0]))
         else:
             raise ValueError('Not valid data mode')
 

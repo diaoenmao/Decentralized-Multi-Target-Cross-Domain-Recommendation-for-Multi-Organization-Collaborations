@@ -14,98 +14,271 @@ num_experiments = 4
 exp = [str(x) for x in list(range(num_experiments))]
 
 
-def make_controls(data_names, model_names, control_name):
+def make_controls(control_name):
     control_names = []
     for i in range(len(control_name)):
         control_names.extend(list('_'.join(x) for x in itertools.product(*control_name[i])))
-    controls = [exp] + data_names + model_names + [control_names]
+    controls = [exp] + [control_names]
     controls = list(itertools.product(*controls))
     return controls
 
 
-def make_control_list(file):
-    if file == 'fs':
-        control_name = [[['fs']]]
-        data_names = [['CIFAR10']]
-        model_names = [['wresnet28x2']]
-        cifar10_controls = make_controls(data_names, model_names, control_name)
-        data_names = [['SVHN']]
-        model_names = [['wresnet28x2']]
-        svhn_controls = make_controls(data_names, model_names, control_name)
-        controls = cifar10_controls + svhn_controls
-    elif file == 'ps':
-        control_name = [[['250', '4000']]]
-        data_names = [['CIFAR10']]
-        model_names = [['wresnet28x2']]
-        cifar10_controls = make_controls(data_names, model_names, control_name)
-        control_name = [[['250', '1000']]]
-        data_names = [['SVHN']]
-        model_names = [['wresnet28x2']]
-        svhn_controls = make_controls(data_names, model_names, control_name)
-        controls = cifar10_controls + svhn_controls
-    elif file == 'cd':
-        control_name = [[['250', '4000'], ['fix-mix'], ['100'], ['0.1'], ['iid', 'non-iid-l-2'], ['5'], ['0.5'], ['1']]]
-        data_names = [['CIFAR10']]
-        model_names = [['wresnet28x2']]
-        cifar10_controls = make_controls(data_names, model_names, control_name)
-        control_name = [[['250', '1000'], ['fix-mix'], ['100'], ['0.1'], ['iid', 'non-iid-l-2'], ['5'], ['0.5'], ['1']]]
-        data_names = [['SVHN']]
-        model_names = [['wresnet28x2']]
-        svhn_controls = make_controls(data_names, model_names, control_name)
-        controls = cifar10_controls + svhn_controls
-    elif file == 'ub':
-        control_name = [
-            [['250', '4000'], ['fix-mix'], ['100'], ['0.1'], ['non-iid-d-0.1', 'non-iid-d-0.3'], ['5'], ['0.5'], ['1']]]
-        data_names = [['CIFAR10']]
-        model_names = [['wresnet28x2']]
-        cifar10_controls = make_controls(data_names, model_names, control_name)
-        control_name = [
-            [['250', '1000'], ['fix-mix'], ['100'], ['0.1'], ['non-iid-d-0.1', 'non-iid-d-0.3'], ['5'], ['0.5'], ['1']]]
-        data_names = [['SVHN']]
-        model_names = [['wresnet28x2']]
-        svhn_controls = make_controls(data_names, model_names, control_name)
-        controls = cifar10_controls + svhn_controls
-    elif file == 'loss':
-        control_name = [[['4000'], ['fix'], ['100'], ['0.1'], ['iid', 'non-iid-l-2'], ['5'], ['0.5'], ['1']]]
-        data_names = [['CIFAR10']]
-        model_names = [['wresnet28x2']]
-        cifar10_controls = make_controls(data_names, model_names, control_name)
-        controls = cifar10_controls
-    elif file == 'local-epoch':
-        control_name = [[['4000'], ['fix-mix'], ['100'], ['0.1'], ['iid', 'non-iid-l-2'], ['1'], ['0.5'], ['1']]]
-        data_names = [['CIFAR10']]
-        model_names = [['wresnet28x2']]
-        cifar10_controls = make_controls(data_names, model_names, control_name)
-        controls = cifar10_controls
-    elif file == 'gm':
-        control_name = [[['4000'], ['fix-mix'], ['100'], ['0.1'], ['iid', 'non-iid-l-2'], ['5'], ['0'], ['1']]]
-        data_names = [['CIFAR10']]
-        model_names = [['wresnet28x2']]
-        cifar10_controls = make_controls(data_names, model_names, control_name)
-        controls = cifar10_controls
-    elif file == 'all_sbn':
-        control_name = [[['250', '4000'], ['fix-mix'], ['100'], ['0.1'], ['iid', 'non-iid-l-2'], ['5'], ['0.5'], ['0']]]
-        data_names = [['CIFAR10']]
-        model_names = [['wresnet28x2']]
-        cifar10_controls = make_controls(data_names, model_names, control_name)
-        controls = cifar10_controls
+def make_control_list(data, file):
+    if file == 'joint':
+        controls = []
+        control_name = [[data, ['user', 'item'], ['explicit', 'implicit'], ['base'], ['0']]]
+        base_controls = make_controls(control_name)
+        controls.extend(base_controls)
+        if 'ML100K' in data:
+            control_name = [[['ML100K'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+                             ['0', '1']]]
+            ml100k_controls = make_controls(control_name)
+            controls.extend(ml100k_controls)
+        if 'ML1M' in data:
+            control_name = [[['ML1M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+                             ['0', '1']]]
+            ml1m_controls = make_controls(control_name)
+            controls.extend(ml1m_controls)
+        if 'ML10M' in data:
+            control_name = [[['ML10M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'],
+                             ['0', '1']]]
+            ml10m_controls = make_controls(control_name)
+            controls.extend(ml10m_controls)
+        if 'ML20M' in data:
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'],
+                             ['0', '1']]]
+            ml20m_controls = make_controls(control_name)
+            controls.extend(ml20m_controls)
+        if 'NFP' in data:
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'],
+                             ['0', '1']]]
+            nfp_controls = make_controls(control_name)
+            controls.extend(nfp_controls)
+    elif file == 'alone':
+        controls = []
+        control_name = [[data, ['user'], ['explicit', 'implicit'], ['base'], ['0'], ['genre', 'random-8']]]
+        base_user_controls = make_controls(control_name)
+        control_name = [[data, ['item'], ['explicit', 'implicit'], ['base'], ['0'], ['random-8']]]
+        base_item_controls = make_controls(control_name)
+        base_controls = base_user_controls + base_item_controls
+        controls.extend(base_controls)
+        if 'ML100K' in data:
+            control_name = [[['ML100K'], ['user'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+                             ['0', '1'], ['genre', 'random-8']]]
+            ml100k_user_controls = make_controls(control_name)
+            control_name = [[['ML100K'], ['item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+                             ['0', '1'], ['random-8']]]
+            ml100k_item_controls = make_controls(control_name)
+            ml100k_controls = ml100k_user_controls + ml100k_item_controls
+            controls.extend(ml100k_controls)
+        if 'ML1M' in data:
+            control_name = [[['ML1M'], ['user'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+                             ['0', '1'], ['genre', 'random-8']]]
+            ml1m_user_controls = make_controls(control_name)
+            control_name = [[['ML1M'], ['item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+                             ['0', '1'], ['random-8']]]
+            ml1m_item_controls = make_controls(control_name)
+            ml1m_controls = ml1m_user_controls + ml1m_item_controls
+            controls.extend(ml1m_controls)
+        if 'ML10M' in data:
+            control_name = [[['ML10M'], ['user'], ['explicit', 'implicit'], ['ae'],
+                             ['0', '1'], ['genre', 'random-8']]]
+            ml10m_user_controls = make_controls(control_name)
+            control_name = [[['ML10M'], ['item'], ['explicit', 'implicit'], ['ae'],
+                             ['0', '1'], ['random-8']]]
+            ml10m_item_controls = make_controls(control_name)
+            ml10m_controls = ml10m_user_controls + ml10m_item_controls
+            controls.extend(ml10m_controls)
+        if 'ML20M' in data:
+            control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['ae'],
+                             ['0', '1'], ['genre', 'random-8']]]
+            ml20m_user_controls = make_controls(control_name)
+            control_name = [[['ML20M'], ['item'], ['explicit', 'implicit'], ['ae'],
+                             ['0', '1'], ['random-8']]]
+            ml20m_item_controls = make_controls(control_name)
+            ml20m_controls = ml20m_user_controls + ml20m_item_controls
+            controls.extend(ml20m_controls)
+        if 'NFP' in data:
+            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['ae'],
+                             ['0', '1'], ['random-8']]]
+            nfp_controls = make_controls(control_name)
+            controls.extend(nfp_controls)
+    elif file == 'assist':
+        controls = []
+        if 'ML100K' in data:
+            control_name = [[['ML100K'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre', 'random-8'], ['constant-0.1'], ['constant']]]
+            ml100k_user_controls = make_controls(control_name)
+            control_name = [[['ML100K'], ['item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.1'], ['constant']]]
+            ml100k_item_controls = make_controls(control_name)
+            ml100k_controls = ml100k_user_controls + ml100k_item_controls
+            controls.extend(ml100k_controls)
+        if 'ML1M' in data:
+            control_name = [[['ML1M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre', 'random-8'], ['constant-0.1'], ['constant']]]
+            ml1m_user_controls = make_controls(control_name)
+            control_name = [[['ML1M'], ['item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.1'], ['constant']]]
+            ml1m_item_controls = make_controls(control_name)
+            ml1m_controls = ml1m_user_controls + ml1m_item_controls
+            controls.extend(ml1m_controls)
+        if 'ML10M' in data:
+            control_name = [[['ML10M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre', 'random-8'], ['constant-0.1'], ['constant']]]
+            ml10m_user_controls = make_controls(control_name)
+            control_name = [[['ML10M'], ['item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.1'], ['constant']]]
+            ml10m_item_controls = make_controls(control_name)
+            ml10m_controls = ml10m_user_controls + ml10m_item_controls
+            controls.extend(ml10m_controls)
+        if 'ML20M' in data:
+            control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre', 'random-8'], ['constant-0.1'], ['constant']]]
+            ml20m_user_controls = make_controls(control_name)
+            control_name = [[['ML20M'], ['item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.1'], ['constant']]]
+            ml20m_item_controls = make_controls(control_name)
+            ml20m_controls = ml20m_user_controls + ml20m_item_controls
+            controls.extend(ml20m_controls)
+        if 'NFP' in data:
+            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.1'], ['constant']]]
+            nfp_controls = make_controls(control_name)
+            controls.extend(nfp_controls)
+    elif file == 'ar':
+        controls = []
+        if 'ML100K' in data:
+            control_name = [[['ML100K'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.3'], ['constant']]]
+            ml100k_user_controls = make_controls(control_name)
+            control_name = [[['ML100K'], ['item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.3'], ['constant']]]
+            ml100k_item_controls = make_controls(control_name)
+            ml100k_controls = ml100k_user_controls + ml100k_item_controls
+            controls.extend(ml100k_controls)
+        if 'ML1M' in data:
+            control_name = [[['ML1M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.3'], ['constant']]]
+            ml1m_user_controls = make_controls(control_name)
+            control_name = [[['ML1M'], ['item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.3'], ['constant']]]
+            ml1m_item_controls = make_controls(control_name)
+            ml1m_controls = ml1m_user_controls + ml1m_item_controls
+            controls.extend(ml1m_controls)
+        if 'ML10M' in data:
+            control_name = [[['ML10M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.3'], ['constant']]]
+            ml10m_user_controls = make_controls(control_name)
+            control_name = [[['ML10M'], ['item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.3'], ['constant']]]
+            ml10m_item_controls = make_controls(control_name)
+            ml10m_controls = ml10m_user_controls + ml10m_item_controls
+            controls.extend(ml10m_controls)
+        if 'ML20M' in data:
+            control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.3'], ['constant']]]
+            ml20m_user_controls = make_controls(control_name)
+            control_name = [[['ML20M'], ['item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.3'], ['constant']]]
+            ml20m_item_controls = make_controls(control_name)
+            ml20m_controls = ml20m_user_controls + ml20m_item_controls
+            controls.extend(ml20m_controls)
+        if 'NFP' in data:
+            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.3'], ['constant']]]
+            nfp_controls = make_controls(control_name)
+            controls.extend(nfp_controls)
+    elif file == 'aw':
+        controls = []
+        if 'ML100K' in data:
+            control_name = [[['ML100K'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre'], ['constant-0.1'], ['optim']]]
+            ml100k_user_controls = make_controls(control_name)
+            ml100k_controls = ml100k_user_controls
+            controls.extend(ml100k_controls)
+        if 'ML1M' in data:
+            control_name = [[['ML1M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre'], ['constant-0.1'], ['optim']]]
+            ml1m_user_controls = make_controls(control_name)
+            ml1m_controls = ml1m_user_controls
+            controls.extend(ml1m_controls)
+        if 'ML10M' in data:
+            control_name = [[['ML10M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre'], ['constant-0.1'], ['optim']]]
+            ml10m_user_controls = make_controls(control_name)
+            ml10m_controls = ml10m_user_controls
+            controls.extend(ml10m_controls)
+        if 'ML20M' in data:
+            control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre'], ['constant-0.1'], ['optim']]]
+            ml20m_user_controls = make_controls(control_name)
+            ml20m_controls = ml20m_user_controls
+            controls.extend(ml20m_controls)
+    elif file == 'ar-optim':
+        controls = []
+        if 'ML100K' in data:
+            control_name = [[['ML100K'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['optim-0.1'], ['constant']]]
+            ml100k_user_controls = make_controls(control_name)
+            control_name = [[['ML100K'], ['item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['optim-0.1'], ['constant']]]
+            ml100k_item_controls = make_controls(control_name)
+            ml100k_controls = ml100k_user_controls + ml100k_item_controls
+            controls.extend(ml100k_controls)
+        if 'ML1M' in data:
+            control_name = [[['ML1M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['optim-0.1'], ['constant']]]
+            ml1m_user_controls = make_controls(control_name)
+            control_name = [[['ML1M'], ['item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['optim-0.1'], ['constant']]]
+            ml1m_item_controls = make_controls(control_name)
+            ml1m_controls = ml1m_user_controls + ml1m_item_controls
+            controls.extend(ml1m_controls)
+        if 'ML10M' in data:
+            control_name = [[['ML10M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['optim-0.1'], ['constant']]]
+            ml10m_user_controls = make_controls(control_name)
+            control_name = [[['ML10M'], ['item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['optim-0.1'], ['constant']]]
+            ml10m_item_controls = make_controls(control_name)
+            ml10m_controls = ml10m_user_controls + ml10m_item_controls
+            controls.extend(ml10m_controls)
+        if 'ML20M' in data:
+            control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['optim-0.1'], ['constant']]]
+            ml20m_user_controls = make_controls(control_name)
+            control_name = [[['ML20M'], ['item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['optim-0.1'], ['constant']]]
+            ml20m_item_controls = make_controls(control_name)
+            ml20m_controls = ml20m_user_controls + ml20m_item_controls
+            controls.extend(ml20m_controls)
+        if 'NFP' in data:
+            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['optim-0.1'], ['constant']]]
+            nfp_controls = make_controls(control_name)
+            controls.extend(nfp_controls)
     else:
         raise ValueError('Not valid file')
     return controls
 
 
 def main():
-    fs_control_list = make_control_list('fs')
-    ps_control_list = make_control_list('ps')
-    cd_control_list = make_control_list('cd')
-    ub_control_list = make_control_list('ub')
-    loss_control_list = make_control_list('loss')
-    local_epoch_control_list = make_control_list('local-epoch')
-    gm_control_list = make_control_list('gm')
-    all_sbn_control_list = make_control_list('all_sbn')
-    controls = fs_control_list + ps_control_list + cd_control_list + ub_control_list + loss_control_list + \
-               local_epoch_control_list + gm_control_list + all_sbn_control_list
+    data = ['ML100K', 'ML1M']
+    joint_control_list = make_control_list(data, 'joint')
+    alone_control_list = make_control_list(data, 'alone')
+    assist_control_list = make_control_list(data, 'assist')
+    if 'ML100K' in data or 'ML1M' in data:
+        ar_control_list = make_control_list(data, 'ar')
+        ar_optim_control_list = make_control_list(data, 'ar-optim')
+        aw_epoch_control_list = make_control_list(data, 'aw')
+        controls = joint_control_list + alone_control_list + assist_control_list + ar_control_list + \
+                   ar_optim_control_list + aw_epoch_control_list
+    else:
+        controls = joint_control_list + alone_control_list + assist_control_list
     processed_result_exp, processed_result_history = process_result(controls)
+    print(processed_result_exp)
+    exit()
     with open('{}/processed_result_exp.json'.format(result_path), 'w') as fp:
         json.dump(processed_result_exp, fp, indent=2)
     save(processed_result_exp, os.path.join(result_path, 'processed_result_exp.pt'))
@@ -136,6 +309,9 @@ def extract_result(control, model_tag, processed_result_exp, processed_result_hi
         base_result_path_i = os.path.join(result_path, '{}.pt'.format(model_tag))
         if os.path.exists(base_result_path_i):
             base_result = load(base_result_path_i)
+            if model_tag == '0_ML100K_user_explicit_ae_0_random-9_constant-0.1_constant':
+                print(base_result['logger']['test'].history)
+                exit()
             for k in base_result['logger']['test'].mean:
                 metric_name = k.split('/')[1]
                 if metric_name not in processed_result_exp:

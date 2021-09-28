@@ -26,7 +26,12 @@ class ML100K(Dataset):
         if self.data_mode == 'user':
             pass
         elif self.data_mode == 'item':
-            self.data, self.target = self.data.transpose(), self.target.transpose()
+            data_coo = self.data.tocoo()
+            target_coo = self.target.tocoo()
+            self.data = csr_matrix((data_coo.data, (data_coo.col, data_coo.row)),
+                                   shape=(self.data.shape[1], self.data.shape[0]))
+            self.target = csr_matrix((target_coo.data, (target_coo.col, target_coo.row)),
+                                   shape=(self.target.shape[1], self.target.shape[0]))
         else:
             raise ValueError('Not valid data mode')
         user_profile = load(os.path.join(self.processed_folder, 'user_profile.pt'), mode='pickle')
@@ -152,10 +157,10 @@ class ML100K(Dataset):
         train_idx, test_idx = idx[:num_train], idx[num_train:]
         train_user, train_item, train_rating = user[train_idx], item[train_idx], rating[train_idx]
         test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
-        train_data = coo_matrix((train_rating, (train_user, train_item)), shape=(M, N))
+        train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
         train_target = train_data
         test_data = train_data
-        test_target = coo_matrix((test_rating, (test_user, test_item)), shape=(M, N))
+        test_target = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return (train_data, train_target), (test_data, test_target)
 
     def make_implicit_data(self):
@@ -177,10 +182,10 @@ class ML100K(Dataset):
         test_user, test_item, test_rating = user[test_idx], item[test_idx], rating[test_idx]
         test_rating[test_rating < 3.5] = 0
         test_rating[test_rating >= 3.5] = 1
-        train_data = coo_matrix((train_rating, (train_user, train_item)), shape=(M, N))
+        train_data = csr_matrix((train_rating, (train_user, train_item)), shape=(M, N))
         train_target = train_data
         test_data = train_data
-        test_target = coo_matrix((test_rating, (test_user, test_item)), shape=(M, N))
+        test_target = csr_matrix((test_rating, (test_user, test_item)), shape=(M, N))
         return (train_data, train_target), (test_data, test_target)
 
     def make_info(self):
@@ -228,7 +233,12 @@ class ML1M(Dataset):
         if self.data_mode == 'user':
             pass
         elif self.data_mode == 'item':
-            self.data, self.target = self.data.transpose(), self.target.transpose()
+            data_coo = self.data.tocoo()
+            target_coo = self.target.tocoo()
+            self.data = csr_matrix((data_coo.data, (data_coo.col, data_coo.row)),
+                                   shape=(self.data.shape[1], self.data.shape[0]))
+            self.target = csr_matrix((target_coo.data, (target_coo.col, target_coo.row)),
+                                   shape=(self.target.shape[1], self.target.shape[0]))
         else:
             raise ValueError('Not valid data mode')
         user_profile = load(os.path.join(self.processed_folder, 'user_profile.pt'), mode='pickle')
@@ -432,7 +442,12 @@ class ML10M(Dataset):
         if self.data_mode == 'user':
             pass
         elif self.data_mode == 'item':
-            self.data, self.target = self.data.transpose(), self.target.transpose()
+            data_coo = self.data.tocoo()
+            target_coo = self.target.tocoo()
+            self.data = csr_matrix((data_coo.data, (data_coo.col, data_coo.row)),
+                                   shape=(self.data.shape[1], self.data.shape[0]))
+            self.target = csr_matrix((target_coo.data, (target_coo.col, target_coo.row)),
+                                   shape=(self.target.shape[1], self.target.shape[0]))
         else:
             raise ValueError('Not valid data mode')
         item_attr = load(os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')
@@ -614,7 +629,12 @@ class ML20M(Dataset):
         if self.data_mode == 'user':
             pass
         elif self.data_mode == 'item':
-            self.data, self.target = self.data.transpose(), self.target.transpose()
+            data_coo = self.data.tocoo()
+            target_coo = self.target.tocoo()
+            self.data = csr_matrix((data_coo.data, (data_coo.col, data_coo.row)),
+                                   shape=(self.data.shape[1], self.data.shape[0]))
+            self.target = csr_matrix((target_coo.data, (target_coo.col, target_coo.row)),
+                                   shape=(self.target.shape[1], self.target.shape[0]))
         else:
             raise ValueError('Not valid data mode')
         item_attr = load(os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')

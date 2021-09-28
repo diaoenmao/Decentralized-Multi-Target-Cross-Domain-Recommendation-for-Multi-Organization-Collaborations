@@ -67,10 +67,7 @@ def runExperiment():
         organization_outputs = gather(dataset, organization, epoch)
         assist.update(organization_outputs, epoch)
         test(assist, metric, test_logger, epoch, test_each_logger)
-        test_logger.safe(False)
-        test_each_logger.safe(False)
         test_logger.reset()
-        test_each_logger.reset()
     assist.reset()
     result = resume(cfg['model_tag'], load_tag='checkpoint')
     train_logger = result['logger'] if 'logger' in result else None

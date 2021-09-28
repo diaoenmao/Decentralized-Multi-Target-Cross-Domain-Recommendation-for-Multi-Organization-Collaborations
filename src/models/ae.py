@@ -33,15 +33,15 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, input_size, hidden_size):
+    def __init__(self, output_size, hidden_size):
         super().__init__()
-        self.input_size = input_size
+        self.output_size = output_size
         self.hidden_size = hidden_size
         blocks = []
         for i in range(len(hidden_size) - 1):
             blocks.append(nn.Linear(hidden_size[i], hidden_size[i + 1]))
             blocks.append(nn.Tanh())
-        blocks.append(nn.Linear(hidden_size[-1], input_size))
+        blocks.append(nn.Linear(hidden_size[-1], output_size))
         self.blocks = nn.Sequential(*blocks)
         self.reset_parameters()
 
@@ -80,35 +80,47 @@ class AE(nn.Module):
 
     def forward(self, input):
         output = {}
+        with torch.no_grad():
+            if cfg['data_mode'] == 'user':
+                user, user_idx = torch.unique(torch.cat([input['user'], input['target_user']]), return_inverse=True)
+                num_users = len(user)
+                rating = torch.zeros((num_users, self.encoder.input_size), device=user.device)
+                rating[user_idx[:len(input['user'])], input['item']] = input['rating']
+                input['rating'] = rating
+                rating = torch.full((num_users, self.decoder.output_size), float('nan'), device=user.device)
+                rating[user_idx[len(input['user']):], input['target_item']] = input['target_rating']
+                input['target_rating'] = rating
+            elif cfg['data_mode'] == 'item':
+                item, item_idx = torch.unique(torch.cat([input['item'], input['target_item']]), return_inverse=True)
+                num_items = len(item)
+                print(input['item'].size(), num_items)
+                rating = torch.zeros((num_items, self.encoder.input_size), device=item.device)
+                rating[item_idx[:len(input['item'])], input['user']] = input['rating']
+                input['rating'] = rating
+                rating = torch.full((num_items, self.decoder.output_size), float('nan'), device=item.device)
+                rating[item_idx[len(input['item']):], input['target_user']] = input['target_rating']
+                input['target_rating'] = rating
         x = input['rating']
         encoded = self.encoder(x)
         if self.info_size is not None:
             if 'user_profile' in input:
                 user_profile = input['user_profile']
                 user_profile = self.user_profile(user_profile)
+                print(user_profile.size(), encoded.size())
                 encoded = encoded + user_profile
             if 'item_attr' in input:
                 item_attr = input['item_attr']
+                print(item_attr.size(), encoded.size())
                 item_attr = self.item_attr(item_attr)
                 encoded = encoded + item_attr
         code = self.dropout(encoded)
         decoded = self.decoder(code)
         output['target_rating'] = decoded
-        target_mask = ~input['target_rating'].isnan()
+        target_mask = ~(input['target_rating'].isnan())
         if 'local' in input and input['local']:
             output['loss'] = F.mse_loss(output['target_rating'][target_mask], input['target_rating'][target_mask])
         else:
             output['loss'] = loss_fn(output['target_rating'][target_mask], input['target_rating'][target_mask])
-        if output['loss'].isnan():
-            print(output['target_rating'][target_mask].isnan().any())
-            print(input['target_rating'][target_mask].isnan().any())
-            print(output['target_rating'][target_mask])
-            print(input['target_rating'][target_mask])
-            print(output['target_rating'])
-            print(input['target_rating'])
-            print(input['target_user'])
-            print(input['target_item'])
-            exit()
         if cfg['target_mode'] == 'explicit':
             output['target_rating'], input['target_rating'] = parse_explicit_rating_flat(output['target_rating'],
                                                                                          input['target_rating'])
