@@ -80,37 +80,15 @@ class AE(nn.Module):
 
     def forward(self, input):
         output = {}
-        with torch.no_grad():
-            if cfg['data_mode'] == 'user':
-                user, user_idx = torch.unique(torch.cat([input['user'], input['target_user']]), return_inverse=True)
-                num_users = len(user)
-                rating = torch.zeros((num_users, self.encoder.input_size), device=user.device)
-                rating[user_idx[:len(input['user'])], input['item']] = input['rating']
-                input['rating'] = rating
-                rating = torch.full((num_users, self.decoder.output_size), float('nan'), device=user.device)
-                rating[user_idx[len(input['user']):], input['target_item']] = input['target_rating']
-                input['target_rating'] = rating
-            elif cfg['data_mode'] == 'item':
-                item, item_idx = torch.unique(torch.cat([input['item'], input['target_item']]), return_inverse=True)
-                num_items = len(item)
-                print(input['item'].size(), num_items)
-                rating = torch.zeros((num_items, self.encoder.input_size), device=item.device)
-                rating[item_idx[:len(input['item'])], input['user']] = input['rating']
-                input['rating'] = rating
-                rating = torch.full((num_items, self.decoder.output_size), float('nan'), device=item.device)
-                rating[item_idx[len(input['item']):], input['target_user']] = input['target_rating']
-                input['target_rating'] = rating
         x = input['rating']
         encoded = self.encoder(x)
         if self.info_size is not None:
             if 'user_profile' in input:
                 user_profile = input['user_profile']
                 user_profile = self.user_profile(user_profile)
-                print(user_profile.size(), encoded.size())
                 encoded = encoded + user_profile
             if 'item_attr' in input:
                 item_attr = input['item_attr']
-                print(item_attr.size(), encoded.size())
                 item_attr = self.item_attr(item_attr)
                 encoded = encoded + item_attr
         code = self.dropout(encoded)

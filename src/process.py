@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 
 result_path = './output/result'
-save_format = 'pdf'
+save_format = 'png'
 vis_path = './output/vis/{}'.format(save_format)
 num_experiments = 4
 exp = [str(x) for x in list(range(num_experiments))]
@@ -276,82 +276,87 @@ def main():
                    ar_optim_control_list + aw_epoch_control_list
     else:
         controls = joint_control_list + alone_control_list + assist_control_list
-    processed_result_exp, processed_result_history = process_result(controls)
-    print(processed_result_exp)
-    exit()
-    with open('{}/processed_result_exp.json'.format(result_path), 'w') as fp:
-        json.dump(processed_result_exp, fp, indent=2)
-    save(processed_result_exp, os.path.join(result_path, 'processed_result_exp.pt'))
-    save(processed_result_history, os.path.join(result_path, 'processed_result_history.pt'))
-    extracted_processed_result_exp = {}
-    extracted_processed_result_history = {}
-    extract_processed_result(extracted_processed_result_exp, processed_result_exp, [])
-    extract_processed_result(extracted_processed_result_history, processed_result_history, [])
-    df_exp = make_df_exp(extracted_processed_result_exp)
-    df_history = make_df_history(extracted_processed_result_history)
-    make_vis(df_history)
+    processed_result = process_result(controls)
+    save(processed_result, os.path.join(result_path, 'processed_result.pt'))
+    extracted_processed_result = {}
+    extract_processed_result(extracted_processed_result, processed_result, [])
+    df = make_df(extracted_processed_result)
+    make_vis(df)
     return
 
 
 def process_result(controls):
-    processed_result_exp, processed_result_history = {}, {}
+    processed_result = {}
     for control in controls:
         model_tag = '_'.join(control)
-        extract_result(list(control), model_tag, processed_result_exp, processed_result_history)
-    summarize_result(processed_result_exp)
-    summarize_result(processed_result_history)
-    return processed_result_exp, processed_result_history
+        extract_result(list(control), model_tag, processed_result)
+    summarize_result(processed_result)
+    return processed_result
 
 
-def extract_result(control, model_tag, processed_result_exp, processed_result_history):
+def extract_result(control, model_tag, processed_result):
     if len(control) == 1:
         exp_idx = exp.index(control[0])
         base_result_path_i = os.path.join(result_path, '{}.pt'.format(model_tag))
         if os.path.exists(base_result_path_i):
             base_result = load(base_result_path_i)
-            if model_tag == '0_ML100K_user_explicit_ae_0_random-9_constant-0.1_constant':
-                print(base_result['logger']['test'].history)
-                exit()
-            for k in base_result['logger']['test'].mean:
-                metric_name = k.split('/')[1]
-                if metric_name not in processed_result_exp:
-                    processed_result_exp[metric_name] = {'exp': [None for _ in range(num_experiments)]}
-                    processed_result_history[metric_name] = {'history': [None for _ in range(num_experiments)]}
-                processed_result_exp[metric_name]['exp'][exp_idx] = base_result['logger']['test'].mean[k]
-                processed_result_history[metric_name]['history'][exp_idx] = base_result['logger']['train'].history[k]
+            model_tag_list = model_tag.split('_')
+            if len(model_tag_list) == 6:
+                for k in base_result['logger']['test'].mean:
+                    metric_name = k.split('/')[1]
+                    if metric_name not in processed_result:
+                        processed_result[metric_name] = {'train': [None for _ in range(num_experiments)],
+                                                         'test': [None for _ in range(num_experiments)]}
+                    processed_result[metric_name]['train'][exp_idx] = base_result['logger']['train'].history[k]
+                    processed_result[metric_name]['test'][exp_idx] = base_result['logger']['test'].mean[k]
+            elif len(model_tag_list) == 7:
+                for k in base_result['logger']['test'].mean:
+                    metric_name = k.split('/')[1]
+                    if metric_name not in processed_result:
+                        processed_result[metric_name] = {'train': [None for _ in range(num_experiments)],
+                                                         'test': [None for _ in range(num_experiments)],
+                                                         'test_each': [None for _ in range(num_experiments)]}
+                    processed_result[metric_name]['train'][exp_idx] = base_result['logger']['train'].history[k]
+                    processed_result[metric_name]['test'][exp_idx] = base_result['logger']['test'].mean[k]
+                    processed_result[metric_name]['test_each'][exp_idx] = base_result['logger']['test_each'].history[k]
+            elif len(model_tag_list) == 9:
+                for k in base_result['logger']['test'].history:
+                    metric_name = k.split('/')[1]
+                    if metric_name not in processed_result:
+                        processed_result[metric_name] = {'train': [None for _ in range(num_experiments)],
+                                                         'test': [None for _ in range(num_experiments)],
+                                                         'test_each': [None for _ in range(num_experiments)]}
+                    processed_result[metric_name]['train'][exp_idx] = base_result['logger']['train'].history[k]
+                    processed_result[metric_name]['test'][exp_idx] = base_result['logger']['test'].history[k]
+                    processed_result[metric_name]['test_each'][exp_idx] = base_result['logger']['test'].history[k]
+            else:
+                raise ValueError('Not valid model tag')
         else:
             print('Missing {}'.format(base_result_path_i))
     else:
-        if control[1] not in processed_result_exp:
-            processed_result_exp[control[1]] = {}
-            processed_result_history[control[1]] = {}
-        extract_result([control[0]] + control[2:], model_tag, processed_result_exp[control[1]],
-                       processed_result_history[control[1]])
+        if control[1] not in processed_result:
+            processed_result[control[1]] = {}
+            processed_result[control[1]] = {}
+        extract_result([control[0]] + control[2:], model_tag, processed_result[control[1]])
     return
 
 
 def summarize_result(processed_result):
-    if 'exp' in processed_result:
-        pivot = 'exp'
-        processed_result[pivot] = np.stack(processed_result[pivot], axis=0)
-        processed_result['mean'] = np.mean(processed_result[pivot], axis=0).item()
-        processed_result['std'] = np.std(processed_result[pivot], axis=0).item()
-        processed_result['max'] = np.max(processed_result[pivot], axis=0).item()
-        processed_result['min'] = np.min(processed_result[pivot], axis=0).item()
-        processed_result['argmax'] = np.argmax(processed_result[pivot], axis=0).item()
-        processed_result['argmin'] = np.argmin(processed_result[pivot], axis=0).item()
-        processed_result[pivot] = processed_result[pivot].tolist()
-    elif 'history' in processed_result:
-        pivot = 'history'
-        processed_result[pivot] = np.stack(processed_result[pivot], axis=0)
-        processed_result['mean'] = np.mean(processed_result[pivot], axis=0)
-        processed_result['std'] = np.std(processed_result[pivot], axis=0)
-        processed_result['max'] = np.max(processed_result[pivot], axis=0)
-        processed_result['min'] = np.min(processed_result[pivot], axis=0)
-        processed_result['argmax'] = np.argmax(processed_result[pivot], axis=0)
-        processed_result['argmin'] = np.argmin(processed_result[pivot], axis=0)
-        processed_result[pivot] = processed_result[pivot].tolist()
-    else:
+    pivot = ['train', 'test', 'test_each']
+    leaf = False
+    for k, v in processed_result.items():
+        if k in pivot:
+            leaf = True
+            stacked_result = np.stack(processed_result[k], axis=0)
+            processed_result[k] = {}
+            processed_result[k]['mean'] = np.mean(stacked_result, axis=0)
+            processed_result[k]['std'] = np.std(stacked_result, axis=0)
+            processed_result[k]['max'] = np.max(stacked_result, axis=0)
+            processed_result[k]['min'] = np.min(stacked_result, axis=0)
+            processed_result[k]['argmax'] = np.argmax(stacked_result, axis=0)
+            processed_result[k]['argmin'] = np.argmin(stacked_result, axis=0)
+            processed_result[k]['val'] = stacked_result.tolist()
+    if not leaf:
         for k, v in processed_result.items():
             summarize_result(v)
         return
@@ -359,168 +364,114 @@ def summarize_result(processed_result):
 
 
 def extract_processed_result(extracted_processed_result, processed_result, control):
-    if 'exp' in processed_result or 'history' in processed_result:
-        exp_name = '_'.join(control[:-1])
-        metric_name = control[-1]
-        if exp_name not in extracted_processed_result:
-            extracted_processed_result[exp_name] = defaultdict()
-        extracted_processed_result[exp_name]['{}_mean'.format(metric_name)] = processed_result['mean']
-        extracted_processed_result[exp_name]['{}_std'.format(metric_name)] = processed_result['std']
-    else:
+    pivot = ['train', 'test', 'test_each']
+    leaf = False
+    for k, v in processed_result.items():
+        if k in pivot:
+            leaf = True
+            exp_name = '_'.join(control[:-1])
+            metric_name = control[-1]
+            if exp_name not in extracted_processed_result:
+                extracted_processed_result[exp_name] = {p: defaultdict() for p in processed_result.keys()}
+            extracted_processed_result[exp_name][k]['{}_mean'.format(metric_name)] = processed_result[k]['mean']
+            extracted_processed_result[exp_name][k]['{}_std'.format(metric_name)] = processed_result[k]['std']
+    if not leaf:
         for k, v in processed_result.items():
             extract_processed_result(extracted_processed_result, v, control + [k])
     return
 
 
-def make_df_exp(extracted_processed_result_exp):
-    df = defaultdict(list)
-    for exp_name in extracted_processed_result_exp:
+def make_df(extracted_processed_result):
+    pivot = ['train', 'test', 'test_each']
+    df = {p: defaultdict(list) for p in pivot}
+    for exp_name in extracted_processed_result:
         control = exp_name.split('_')
-        if len(control) == 3:
-            data_name, model_name, num_supervised = control
-            index_name = ['1']
-            df_name = '_'.join([data_name, model_name, num_supervised])
-        else:
-            data_name, model_name, num_supervised, loss_mode, num_clients, active_rate, data_split_mode, \
-            local_epoch, gm, all_sbn, = control
-            index_name = ['_'.join([local_epoch, gm])]
-            df_name = '_'.join(
-                [data_name, model_name, num_supervised, loss_mode, num_clients, active_rate, data_split_mode, all_sbn])
-        df[df_name].append(pd.DataFrame(data=extracted_processed_result_exp[exp_name], index=index_name))
-    startrow = 0
-    writer = pd.ExcelWriter('{}/result_exp.xlsx'.format(result_path), engine='xlsxwriter')
-    for df_name in df:
-        df[df_name] = pd.concat(df[df_name])
-        df[df_name].to_excel(writer, sheet_name='Sheet1', startrow=startrow + 1)
-        writer.sheets['Sheet1'].write_string(startrow, 0, df_name)
-        startrow = startrow + len(df[df_name].index) + 3
-    writer.save()
-    return df
-
-
-def make_df_history(extracted_processed_result_history):
-    df = defaultdict(list)
-    for exp_name in extracted_processed_result_history:
-        control = exp_name.split('_')
-        if len(control) == 3:
-            data_name, model_name, num_supervised = control
-            index_name = ['1']
-            for k in extracted_processed_result_history[exp_name]:
-                df_name = '_'.join([data_name, model_name, num_supervised, k])
-                df[df_name].append(
-                    pd.DataFrame(data=extracted_processed_result_history[exp_name][k].reshape(1, -1), index=index_name))
-        else:
-            data_name, model_name, num_supervised, loss_mode, num_clients, active_rate, data_split_mode, \
-            local_epoch, gm, all_sbn = control
-            index_name = ['_'.join([local_epoch, gm])]
-            for k in extracted_processed_result_history[exp_name]:
-                df_name = '_'.join(
-                    [data_name, model_name, num_supervised, loss_mode, num_clients, active_rate, data_split_mode, all_sbn,
-                     k])
-                df[df_name].append(
-                    pd.DataFrame(data=extracted_processed_result_history[exp_name][k].reshape(1, -1), index=index_name))
-    startrow = 0
-    writer = pd.ExcelWriter('{}/result_history.xlsx'.format(result_path), engine='xlsxwriter')
-    for df_name in df:
-        df[df_name] = pd.concat(df[df_name])
-        df[df_name].to_excel(writer, sheet_name='Sheet1', startrow=startrow + 1)
-        writer.sheets['Sheet1'].write_string(startrow, 0, df_name)
-        startrow = startrow + len(df[df_name].index) + 3
-    writer.save()
+        for p in extracted_processed_result[exp_name]:
+            if len(control) == 5:
+                data_name, data_mode, target_mode, model_name, info = control
+                index_name = [model_name]
+                df_name = '_'.join([data_name, data_mode, target_mode, info])
+            elif len(control) == 6:
+                data_name, data_mode, target_mode, model_name, info, data_split_mode = control
+                index_name = [model_name]
+                df_name = '_'.join([data_name, data_mode, target_mode, info, data_split_mode])
+            elif len(control) == 8:
+                data_name, data_mode, target_mode, model_name, info, data_split_mode, ar, aw = control
+                index_name = ['_'.join([model_name, ar, aw])]
+                df_name = '_'.join([data_name, data_mode, target_mode, info, data_split_mode, 'assist'])
+            else:
+                raise ValueError('Not valid control')
+            metric = list(extracted_processed_result[exp_name][p].keys())
+            if len(extracted_processed_result[exp_name][p][metric[0]].shape) == 0:
+                df[p][df_name].append(pd.DataFrame(data=extracted_processed_result[exp_name][p], index=index_name))
+            else:
+                for m in metric:
+                    df_name_ = '{}_{}'.format(df_name, m)
+                    df[p][df_name_].append(
+                        pd.DataFrame(data=extracted_processed_result[exp_name][p][m].reshape(1, -1), index=index_name))
+    for p in pivot:
+        startrow = 0
+        writer = pd.ExcelWriter('{}/{}.xlsx'.format(result_path, p), engine='xlsxwriter')
+        for df_name in df[p]:
+            df[p][df_name] = pd.concat(df[p][df_name])
+            df[p][df_name].to_excel(writer, sheet_name='Sheet1', startrow=startrow + 1)
+            writer.sheets['Sheet1'].write_string(startrow, 0, df_name)
+            startrow = startrow + len(df[p][df_name].index) + 3
+        writer.save()
     return df
 
 
 def make_vis(df):
-    data_split_mode_dict = {'iid': 'IID', 'non-iid-l-2': 'Non-IID, $K=2$',
-                            'non-iid-d-0.1': 'Non-IID, $\operatorname{Dir}(0.1)$',
-                            'non-iid-d-0.3': 'Non-IID, $\operatorname{Dir}(0.3)$'}
-    color = {'5_0.5': 'red', '1_0.5': 'orange', '5_0': 'dodgerblue', '5_0.9': 'blue', '5_0.5_nomixup': 'green',
-             'iid': 'red', 'non-iid-l-2': 'orange', 'non-iid-d-0.1': 'dodgerblue', 'non-iid-d-0.3': 'green'}
-    linestyle = {'5_0.5': '-', '1_0.5': '--', '5_0': ':', '5_0.5_nomixup': '-.', '5_0.9': (0, (1, 5)),
-                 'iid': '-', 'non-iid-l-2': '--', 'non-iid-d-0.1': '-.', 'non-iid-d-0.3': ':'}
-    loc_dict = {'Accuracy': 'lower right', 'Loss': 'upper right'}
+    control_dict = {'Joint': 'Joint', 'constant-0.1_constant': 'AAE ($\eta=0.1$)',
+                    'constant-0.3_constant': 'AAE ($\eta=0.3$)', 'optim-0.1_constant': 'AAE (line search)',
+                    'constant-0.1_optim': 'AAE, (weight)$', 'Alone': 'Alone'}
+    color = {'Joint': 'black', 'constant-0.1_constant': 'red', 'constant-0.3_constant': 'orange',
+             'optim-0.1_constant': 'dodgerblue', 'constant-0.1_optim': 'blue', 'Alone': 'green'}
+    linestyle = {'Joint': '-', 'constant-0.1_constant': '--', 'constant-0.3_constant': ':', 'optim-0.1_constant': '-.',
+                 'constant-0.1_optim': (0, (1, 5)), 'Alone': (0, (5, 5))}
+    loc_dict = {'Loss': 'upper right', 'RMSE': 'upper right', 'MAP': 'lower right'}
     fontsize = {'legend': 16, 'label': 16, 'ticks': 16}
+    linewidth = 3
     fig = {}
-    reorder_fig = []
-    for df_name in df:
+    p = 'test'
+    for df_name in df[p]:
         df_name_list = df_name.split('_')
-        if len(df_name_list) == 5:
-            data_name, model_name, num_supervised, metric_name, stat = df_name.split('_')
+        if 'assist' in df_name_list:
+            data_name, data_mode, target_mode, info, data_split_mode, assist, metric_name, stat = df_name.split('_')
             if stat == 'std':
                 continue
-            df_name_std = '_'.join([data_name, model_name, num_supervised, metric_name, 'std'])
-            fig_name = '_'.join([data_name, model_name, num_supervised, metric_name])
+            df_name_std = '_'.join(
+                [data_name, data_mode, target_mode, info, data_split_mode, assist, metric_name, 'std'])
+            df_name_joint = '_'.join([data_name, data_mode, target_mode, info])
+            df_name_alone = '_'.join([data_name, data_mode, target_mode, info, data_split_mode])
+            fig_name = '_'.join([data_name, data_mode, target_mode, info, data_split_mode, assist, metric_name])
             fig[fig_name] = plt.figure(fig_name)
-            for ((index, row), (_, row_std)) in zip(df[df_name].iterrows(), df[df_name_std].iterrows()):
+            for ((index, row), (_, row_std)) in zip(df[p][df_name].iterrows(), df[p][df_name_std].iterrows()):
+                model_name = index.split('_')[0]
+                control = '_'.join(index.split('_')[1:])
                 y = row.to_numpy()
-                yerr = row_std.to_numpy()
+                y_err = row_std.to_numpy()
                 x = np.arange(len(y))
-                plt.plot(x, y, color='r', linestyle='-')
-                plt.fill_between(x, (y - yerr), (y + yerr), color='r', alpha=.1)
+                plt.plot(x, y, color=color[control], linestyle=linestyle[control], label=control_dict[control],
+                         linewidth=linewidth)
+                plt.fill_between(x, (y - y_err), (y + y_err), color=color[control], alpha=.1)
                 plt.xlabel('Communication Rounds', fontsize=fontsize['label'])
                 plt.ylabel(metric_name, fontsize=fontsize['label'])
                 plt.xticks(fontsize=fontsize['ticks'])
                 plt.yticks(fontsize=fontsize['ticks'])
-
-        else:
-            data_name, model_name, num_supervised, loss_mode, num_clients, active_rate, data_split_mode, all_sbn, \
-            metric_name, stat = df_name.split('_')
-            if stat == 'std':
-                continue
-            df_name_std = '_'.join(
-                [data_name, model_name, num_supervised, loss_mode, num_clients, active_rate, data_split_mode, all_sbn,
-                 metric_name, 'std'])
-            for ((index, row), (_, row_std)) in zip(df[df_name].iterrows(), df[df_name_std].iterrows()):
-                y = row.to_numpy()
-                yerr = row_std.to_numpy()
-                x = np.arange(len(y))
-                if index == '5_0.5' and loss_mode == 'fix-mix':
-                    fig_name = '_'.join(
-                        [data_name, model_name, num_supervised, loss_mode, num_clients, active_rate, all_sbn, metric_name])
-                    reorder_fig.append(fig_name)
-                    style = data_split_mode
-                    fig[fig_name] = plt.figure(fig_name)
-                    label_name = '{}'.format(data_split_mode_dict[data_split_mode])
-                    plt.plot(x, y, color=color[style], linestyle=linestyle[style], label=label_name)
-                    plt.fill_between(x, (y - yerr), (y + yerr), color=color[style], alpha=.1)
-                    plt.legend(loc=loc_dict[metric_name], fontsize=fontsize['legend'])
-                    plt.xlabel('Communication Rounds', fontsize=fontsize['label'])
-                    plt.ylabel(metric_name, fontsize=fontsize['label'])
-                    plt.xticks(fontsize=fontsize['ticks'])
-                    plt.yticks(fontsize=fontsize['ticks'])
-                if data_split_mode in ['iid', 'non-iid-l-2']:
-                    fig_name = '_'.join(
-                        [data_name, model_name, num_supervised, num_clients, active_rate, data_split_mode, all_sbn,
-                         metric_name])
-                    reorder_fig.append(fig_name)
-                    fig[fig_name] = plt.figure(fig_name)
-                    local_epoch, gm = index.split('_')
-                    if loss_mode == 'fix':
-                        label_name = '$E={}$, $\\beta_g={}$, No mixup'.format(local_epoch, gm)
-                        style = '{}_nomixup'.format(index)
-                    else:
-                        label_name = '$E={}$, $\\beta_g={}$'.format(local_epoch, gm)
-                        style = index
-                    plt.plot(x, y, color=color[style], linestyle=linestyle[style], label=label_name)
-                    plt.fill_between(x, (y - yerr), (y + yerr), color=color[style], alpha=.1)
-                    plt.legend(loc=loc_dict[metric_name], fontsize=fontsize['legend'])
-                    plt.xlabel('Communication Rounds', fontsize=fontsize['label'])
-                    plt.ylabel(metric_name, fontsize=fontsize['label'])
-                    plt.xticks(fontsize=fontsize['ticks'])
-                    plt.yticks(fontsize=fontsize['ticks'])
-    for fig_name in reorder_fig:
-        data_name, model_name, num_supervised, loss_mode, num_clients, active_rate, all_sbn, metric_name = fig_name.split(
-            '_')
-        plt.figure(fig_name)
-        handles, labels = plt.gca().get_legend_handles_labels()
-        if len(handles) == 4:
-            handles = [handles[0], handles[3], handles[2], handles[1]]
-            labels = [labels[0], labels[3], labels[2], labels[1]]
-            plt.legend(handles, labels, loc=loc_dict[metric_name], fontsize=fontsize['legend'])
-        if len(handles) == 5:
-            handles = [handles[0], handles[4], handles[2], handles[3], handles[1]]
-            labels = [labels[0], labels[4], labels[2], labels[3], labels[1]]
-            plt.legend(handles, labels, loc=loc_dict[metric_name], fontsize=fontsize['legend'])
+            y_joint = df[p][df_name_joint]['{}_{}'.format(metric_name, stat)].loc[model_name]
+            y_joint = np.full(x.shape, y_joint)
+            y_err_joint = df[p][df_name_joint]['{}_std'.format(metric_name)].loc[model_name]
+            plt.plot(x, y_joint, color=color['Joint'], linestyle=linestyle['Joint'], label=control_dict['Joint'],
+                     linewidth=linewidth)
+            plt.fill_between(x, (y_joint - y_err_joint), (y_joint + y_err_joint), color=color['Joint'], alpha=.1)
+            y_alone = df[p][df_name_alone]['{}_{}'.format(metric_name, stat)].loc[model_name]
+            y_alone = np.full(x.shape, y_alone)
+            y_err_alone = df[p][df_name_joint]['{}_std'.format(metric_name)].loc[model_name]
+            plt.plot(x, y_alone, color=color['Alone'], linestyle=linestyle['Alone'], label=control_dict['Alone'],
+                     linewidth=linewidth)
+            plt.fill_between(x, (y_alone - y_err_alone), (y_alone + y_err_alone), color=color['Alone'], alpha=.1)
+            plt.legend(loc=loc_dict[metric_name], fontsize=fontsize['legend'])
     for fig_name in fig:
         fig[fig_name] = plt.figure(fig_name)
         plt.grid()

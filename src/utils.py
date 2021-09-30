@@ -284,7 +284,7 @@ def collate(input):
             input[k] = torch.cat(input[k], 0)
     elif cfg['model_name'] in ['ae']:
         for k in input:
-            if k in ['user', 'item', 'target_user', 'target_item', 'rating', 'target_rating']:
+            if k in ['user', 'item', 'target_user', 'target_item']:
                 input[k] = torch.cat(input[k], 0)
             else:
                 input[k] = torch.stack(input[k], 0)
