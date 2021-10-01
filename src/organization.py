@@ -18,9 +18,11 @@ def process_output(target_user, target_item, target_rating):
             target_item_i = target_item.cpu()
             target_rating_i = target_rating.cpu()
         elif cfg['target_mode'] == 'implicit':
-            mask = target_rating != -float('inf')
-            target_item_i = torch.nonzero(mask)[:, 1].cpu()
-            target_rating_i = target_rating[mask].cpu()
+            # mask = target_rating != -float('inf')
+            # target_item_i = torch.nonzero(mask)[:, 1].cpu()
+            # target_rating_i = target_rating[mask].cpu()
+            target_item_i = target_item.cpu()
+            target_rating_i = target_rating.cpu()
         else:
             raise ValueError('Not valid target mode')
     elif cfg['data_mode'] == 'item':
@@ -29,9 +31,11 @@ def process_output(target_user, target_item, target_rating):
             target_user_i = target_user.cpu()
             target_rating_i = target_rating.cpu()
         elif cfg['target_mode'] == 'implicit':
-            mask = target_rating != -float('inf')
-            target_user_i = torch.nonzero(mask)[:, 1].cpu()
-            target_rating_i = target_rating[mask].cpu()
+            # mask = target_rating != -float('inf')
+            # target_user_i = torch.nonzero(mask)[:, 1].cpu()
+            # target_rating_i = target_rating[mask].cpu()
+            target_item_i = target_item.cpu()
+            target_rating_i = target_rating.cpu()
         else:
             raise ValueError('Not valid target mode')
     else:

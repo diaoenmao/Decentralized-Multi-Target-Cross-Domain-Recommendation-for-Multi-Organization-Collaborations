@@ -424,7 +424,7 @@ def make_df(extracted_processed_result):
 def make_vis(df):
     control_dict = {'Joint': 'Joint', 'constant-0.1_constant': 'AAE ($\eta=0.1$)',
                     'constant-0.3_constant': 'AAE ($\eta=0.3$)', 'optim-0.1_constant': 'AAE (line search)',
-                    'constant-0.1_optim': 'AAE, (weight)$', 'Alone': 'Alone'}
+                    'constant-0.1_optim': 'AAE, (weight)', 'Alone': 'Alone'}
     color = {'Joint': 'black', 'constant-0.1_constant': 'red', 'constant-0.3_constant': 'orange',
              'optim-0.1_constant': 'dodgerblue', 'constant-0.1_optim': 'blue', 'Alone': 'green'}
     linestyle = {'Joint': '-', 'constant-0.1_constant': '--', 'constant-0.3_constant': ':', 'optim-0.1_constant': '-.',

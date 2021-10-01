@@ -95,18 +95,24 @@ class AE(nn.Module):
         decoded = self.decoder(code)
         output['target_rating'] = decoded
         target_mask = ~(input['target_rating'].isnan())
+        output['target_rating'], input['target_rating'] = output['target_rating'][target_mask], input['target_rating'][
+            target_mask]
         if 'local' in input and input['local']:
-            output['loss'] = F.mse_loss(output['target_rating'][target_mask], input['target_rating'][target_mask])
+            output['loss'] = F.mse_loss(output['target_rating'], input['target_rating'])
         else:
-            output['loss'] = loss_fn(output['target_rating'][target_mask], input['target_rating'][target_mask])
-        if cfg['target_mode'] == 'explicit':
-            output['target_rating'], input['target_rating'] = parse_explicit_rating_flat(output['target_rating'],
-                                                                                         input['target_rating'])
-        elif cfg['target_mode'] == 'implicit':
-            output['target_rating'], input['target_rating'] = parse_implicit_rating_flat(output['target_rating'],
-                                                                                         input['target_rating'])
-        else:
-            raise ValueError('Not valid target mode')
+            output['loss'] = loss_fn(output['target_rating'], input['target_rating'])
+        # if 'local' in input and input['local']:
+        #     output['loss'] = F.mse_loss(output['target_rating'][target_mask], input['target_rating'][target_mask])
+        # else:
+        #     output['loss'] = loss_fn(output['target_rating'][target_mask], input['target_rating'][target_mask])
+        # if cfg['target_mode'] == 'explicit':
+        #     output['target_rating'], input['target_rating'] = parse_explicit_rating_flat(output['target_rating'],
+        #                                                                                  input['target_rating'])
+        # elif cfg['target_mode'] == 'implicit':
+        #     output['target_rating'], input['target_rating'] = parse_implicit_rating_flat(output['target_rating'],
+        #                                                                                  input['target_rating'])
+        # else:
+        #     raise ValueError('Not valid target mode')
         return output
 
 

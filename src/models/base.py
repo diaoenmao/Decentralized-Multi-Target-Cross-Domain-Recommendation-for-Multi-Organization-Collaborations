@@ -36,12 +36,6 @@ class Base(nn.Module):
                     self.count = self.count + torch.unique(input['user']).size(0)
                 output['target_rating'] = self.base[input['target_item']] / self.count[input['target_item']]
                 output['loss'] = loss_fn(output['target_rating'], input['target_rating'])
-                output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(self.num_users,
-                                                                                             self.num_items,
-                                                                                             input['target_user'],
-                                                                                             input['target_item'],
-                                                                                             output['target_rating'],
-                                                                                             input['target_rating'])
             else:
                 raise ValueError('Not valid target mode')
         elif cfg['data_mode'] == 'item':
@@ -59,12 +53,6 @@ class Base(nn.Module):
                     self.count = self.count + torch.unique(input['item']).size(0)
                 output['target_rating'] = self.base[input['target_user']] / self.count[input['target_user']]
                 output['loss'] = loss_fn(output['target_rating'], input['target_rating'])
-                output['target_rating'], input['target_rating'] = parse_implicit_rating_pair(self.num_users,
-                                                                                             self.num_items,
-                                                                                             input['target_user'],
-                                                                                             input['target_item'],
-                                                                                             output['target_rating'],
-                                                                                             input['target_rating'])
             else:
                 raise ValueError('Not valid target mode')
         else:
