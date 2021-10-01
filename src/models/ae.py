@@ -2,7 +2,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .utils import loss_fn, parse_explicit_rating_flat, parse_implicit_rating_flat
+from .utils import loss_fn
 from config import cfg
 
 
@@ -80,6 +80,25 @@ class AE(nn.Module):
 
     def forward(self, input):
         output = {}
+        with torch.no_grad():
+            if cfg['data_mode'] == 'user':
+                user, user_idx = torch.unique(torch.cat([input['user'], input['target_user']]), return_inverse=True)
+                num_users = len(user)
+                rating = torch.zeros((num_users, self.encoder.input_size), device=user.device)
+                rating[user_idx[:len(input['user'])], input['item']] = input['rating']
+                input['rating'] = rating
+                rating = torch.full((num_users, self.decoder.output_size), float('nan'), device=user.device)
+                rating[user_idx[len(input['user']):], input['target_item']] = input['target_rating']
+                input['target_rating'] = rating
+            elif cfg['data_mode'] == 'item':
+                item, item_idx = torch.unique(torch.cat([input['item'], input['target_item']]), return_inverse=True)
+                num_items = len(item)
+                rating = torch.zeros((num_items, self.encoder.input_size), device=item.device)
+                rating[item_idx[:len(input['item'])], input['user']] = input['rating']
+                input['rating'] = rating
+                rating = torch.full((num_items, self.decoder.output_size), float('nan'), device=item.device)
+                rating[item_idx[len(input['item']):], input['target_user']] = input['target_rating']
+                input['target_rating'] = rating
         x = input['rating']
         encoded = self.encoder(x)
         if self.info_size is not None:
@@ -101,18 +120,6 @@ class AE(nn.Module):
             output['loss'] = F.mse_loss(output['target_rating'], input['target_rating'])
         else:
             output['loss'] = loss_fn(output['target_rating'], input['target_rating'])
-        # if 'local' in input and input['local']:
-        #     output['loss'] = F.mse_loss(output['target_rating'][target_mask], input['target_rating'][target_mask])
-        # else:
-        #     output['loss'] = loss_fn(output['target_rating'][target_mask], input['target_rating'][target_mask])
-        # if cfg['target_mode'] == 'explicit':
-        #     output['target_rating'], input['target_rating'] = parse_explicit_rating_flat(output['target_rating'],
-        #                                                                                  input['target_rating'])
-        # elif cfg['target_mode'] == 'implicit':
-        #     output['target_rating'], input['target_rating'] = parse_implicit_rating_flat(output['target_rating'],
-        #                                                                                  input['target_rating'])
-        # else:
-        #     raise ValueError('Not valid target mode')
         return output
 
 

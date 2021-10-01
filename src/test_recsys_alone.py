@@ -39,7 +39,7 @@ def runExperiment():
     if cfg['target_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
     elif cfg['target_mode'] == 'implicit':
-        metric = Metric({'train': ['Loss', 'MAP'], 'test': ['Loss', 'MAP']})
+        metric = Metric({'train': ['Loss', 'Accuracy'], 'test': ['Loss', 'Accuracy']})
     else:
         raise ValueError('Not valid target mode')
     result = resume(cfg['model_tag'], load_tag='best')

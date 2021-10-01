@@ -2,7 +2,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .utils import loss_fn, parse_implicit_rating_pair
+from .utils import loss_fn
 from config import cfg
 
 
