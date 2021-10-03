@@ -279,15 +279,6 @@ def resume(model_tag, load_tag='checkpoint', verbose=True):
 
 
 def collate(input):
-    if cfg['model_name'] in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
-        for k in input:
-            input[k] = torch.cat(input[k], 0)
-    elif cfg['model_name'] in ['ae']:
-        for k in input:
-            if k in ['user', 'item', 'target_user', 'target_item', 'rating', 'target_rating']:
-                input[k] = torch.cat(input[k], 0)
-            else:
-                input[k] = torch.stack(input[k], 0)
-    else:
-        raise ValueError('Not valid model name')
+    for k in input:
+        input[k] = torch.cat(input[k], 0)
     return input

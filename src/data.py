@@ -141,15 +141,15 @@ class FlatInput(torch.nn.Module):
         if self.data_mode == 'user':
             input['user'] = input['user'].repeat(input['item'].size(0))
             input['target_user'] = input['target_user'].repeat(input['target_item'].size(0))
-            # rating = torch.zeros(self.num_items['data'])
-            # rating[input['item']] = input['rating']
-            # input['rating'] = rating
-            # target_rating = torch.full((self.num_items['target'],), float('nan'))
-            # target_rating[input['target_item']] = input['target_rating']
-            # input['target_rating'] = target_rating
             if self.info == 1:
+                if 'user_profile' in input:
+                    input['user_profile'] = input['user_profile'].view(1, -1)
+                    if input['item'].size(0) == 0 and input['target_item'].size(0) == 0:
+                        input['user_profile'] = input['user_profile'].repeat(input['item'].size(0), 1)
                 if 'item_attr' in input:
-                    input['item_attr'] = input['item_attr'].sum(dim=0)
+                    input['item_attr'] = input['item_attr'].sum(dim=0, keepdim=True)
+                    if input['item'].size(0) == 0 and input['target_item'].size(0) == 0:
+                        input['item_attr'] = input['item_attr'].repeat(input['item'].size(0), 1)
                 if 'target_user_profile' in input:
                     del input['target_user_profile']
                 if 'target_item_attr' in input:
@@ -166,15 +166,15 @@ class FlatInput(torch.nn.Module):
         elif self.data_mode == 'item':
             input['item'] = input['item'].repeat(input['user'].size(0))
             input['target_item'] = input['target_item'].repeat(input['target_user'].size(0))
-            # rating = torch.zeros(self.num_users['data'])
-            # rating[input['user']] = input['rating']
-            # input['rating'] = rating
-            # target_rating = torch.full((self.num_users['target'],), float('nan'))
-            # target_rating[input['target_user']] = input['target_rating']
-            # input['target_rating'] = target_rating
             if self.info == 1:
                 if 'user_profile' in input:
-                    input['user_profile'] = input['user_profile'].sum(dim=0)
+                    input['user_profile'] = input['user_profile'].sum(dim=0, keepdim=True)
+                    if input['user'].size(0) == 0 and input['target_user'].size(0) == 0:
+                        input['user_profile'] = input['user_profile'].repeat(input['user'].size(0), 1)
+                if 'item_attr' in input:
+                    input['item_attr'] = input['item_attr'].view(1, -1)
+                    if input['user'].size(0) == 0 and input['target_user'].size(0) == 0:
+                        input['item_attr'] = input['item_attr'].repeat(input['user'].size(0), 1)
                 if 'target_user_profile' in input:
                     del input['target_user_profile']
                 if 'target_item_attr' in input:
