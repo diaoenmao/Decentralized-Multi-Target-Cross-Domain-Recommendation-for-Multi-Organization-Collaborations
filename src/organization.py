@@ -12,34 +12,9 @@ from utils import to_device, make_optimizer, make_scheduler, collate
 
 
 def process_output(target_user, target_item, target_rating):
-    if cfg['data_mode'] == 'user':
-        target_user_i = target_user.cpu()
-        if cfg['target_mode'] == 'explicit':
-            target_item_i = target_item.cpu()
-            target_rating_i = target_rating.cpu()
-        elif cfg['target_mode'] == 'implicit':
-            # mask = target_rating != -float('inf')
-            # target_item_i = torch.nonzero(mask)[:, 1].cpu()
-            # target_rating_i = target_rating[mask].cpu()
-            target_item_i = target_item.cpu()
-            target_rating_i = target_rating.cpu()
-        else:
-            raise ValueError('Not valid target mode')
-    elif cfg['data_mode'] == 'item':
-        target_item_i = target_item.cpu()
-        if cfg['target_mode'] == 'explicit':
-            target_user_i = target_user.cpu()
-            target_rating_i = target_rating.cpu()
-        elif cfg['target_mode'] == 'implicit':
-            # mask = target_rating != -float('inf')
-            # target_user_i = torch.nonzero(mask)[:, 1].cpu()
-            # target_rating_i = target_rating[mask].cpu()
-            target_item_i = target_item.cpu()
-            target_rating_i = target_rating.cpu()
-        else:
-            raise ValueError('Not valid target mode')
-    else:
-        raise ValueError('Not valid data mode')
+    target_user_i = target_user.cpu()
+    target_item_i = target_item.cpu()
+    target_rating_i = target_rating.cpu()
     return target_user_i, target_item_i, target_rating_i
 
 
