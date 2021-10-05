@@ -424,12 +424,12 @@ def make_df(extracted_processed_result):
 def make_vis(df):
     control_dict = {'Joint': 'Joint', 'constant-0.1_constant': 'AAE ($\eta=0.1$)',
                     'constant-0.3_constant': 'AAE ($\eta=0.3$)', 'optim-0.1_constant': 'AAE (line search)',
-                    'constant-0.1_optim': 'AAE, (weight)', 'Alone': 'Alone'}
+                    'constant-0.1_optim': 'AAE (weight)', 'Alone': 'Alone'}
     color = {'Joint': 'black', 'constant-0.1_constant': 'red', 'constant-0.3_constant': 'orange',
              'optim-0.1_constant': 'dodgerblue', 'constant-0.1_optim': 'blue', 'Alone': 'green'}
     linestyle = {'Joint': '-', 'constant-0.1_constant': '--', 'constant-0.3_constant': ':', 'optim-0.1_constant': '-.',
                  'constant-0.1_optim': (0, (1, 5)), 'Alone': (0, (5, 5))}
-    loc_dict = {'Loss': 'upper right', 'RMSE': 'upper right', 'MAP': 'lower right'}
+    loc_dict = {'Loss': 'upper right', 'RMSE': 'upper right', 'Accuracy': 'lower right'}
     fontsize = {'legend': 16, 'label': 16, 'ticks': 16}
     linewidth = 3
     fig = {}
@@ -446,7 +446,7 @@ def make_vis(df):
             df_name_alone = '_'.join([data_name, data_mode, target_mode, info, data_split_mode])
             fig_name = '_'.join([data_name, data_mode, target_mode, info, data_split_mode, assist, metric_name])
             fig[fig_name] = plt.figure(fig_name)
-            for ((index, row), (_, row_std)) in zip(df[p][df_name].iterrows(), df[p][df_name_std].iterrows()):
+            for ((index, row), (_,  row_std)) in zip(df[p][df_name].iterrows(), df[p][df_name_std].iterrows()):
                 model_name = index.split('_')[0]
                 control = '_'.join(index.split('_')[1:])
                 y = row.to_numpy()
