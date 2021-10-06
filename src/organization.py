@@ -138,7 +138,6 @@ class Organization:
                                             shape=(cfg['num_items']['target'], cfg['num_users']['target']))
             else:
                 raise ValueError('Not valid data mode')
-
         cfg['model_name'] = model_name
         return output, target
 

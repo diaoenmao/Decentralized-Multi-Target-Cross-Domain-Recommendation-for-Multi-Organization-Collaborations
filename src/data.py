@@ -209,7 +209,10 @@ def split_dataset(dataset):
                     for i in range(num_organizations):
                         data_split_i = np.where(data_split_idx == i)[0]
                         data_split.append(data_split_i)
-                        if len(data_split_i) == 0:
+                        if len(data_split_i) == 0 or len(dataset['train'].data[:, data_split_i].data) == 0 or len(
+                                dataset['test'].data[:, data_split_i].data) == 0 or len(
+                                dataset['train'].target[:, data_split_i].data) == 0 or len(
+                                dataset['test'].target[:, data_split_i].data) == 0:
                             all_filled = False
             elif cfg['data_mode'] == 'item':
                 raise NotImplementedError
