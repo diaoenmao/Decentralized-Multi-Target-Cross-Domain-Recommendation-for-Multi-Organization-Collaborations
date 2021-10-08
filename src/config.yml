@@ -4,7 +4,7 @@ control:
   data_name: ML100K
   data_mode: user
   target_mode: implicit
-  model_name: mf
+  model_name: ae
   info: 1
   data_split_mode: random-2
   ar: constant-0.1

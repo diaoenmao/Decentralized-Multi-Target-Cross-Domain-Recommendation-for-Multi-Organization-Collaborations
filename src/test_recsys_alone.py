@@ -39,7 +39,7 @@ def runExperiment():
     if cfg['target_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
     elif cfg['target_mode'] == 'implicit':
-        metric = Metric({'train': ['Loss', 'Accuracy'], 'test': ['Loss', 'Accuracy']})
+        metric = Metric({'train': ['Loss', 'Accuracy'], 'test': ['Loss', 'Accuracy', 'MAP']})
     else:
         raise ValueError('Not valid target mode')
     result = resume(cfg['model_tag'], load_tag='best')
@@ -65,7 +65,8 @@ def runExperiment():
         model[i].load_state_dict(result['model_state_dict'][i])
     test_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))
     test_each_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))
-    test(data_loader['test'], model, metric, test_logger, last_epoch, test_each_logger)
+    test_each(data_loader['test'], model, metric, test_each_logger, last_epoch)
+    test(data_loader['test'], model, metric, test_logger, last_epoch)
     result = resume(cfg['model_tag'], load_tag='checkpoint')
     train_logger = result['logger'] if 'logger' in result else None
     result = {'cfg': cfg, 'epoch': last_epoch,
@@ -74,8 +75,7 @@ def runExperiment():
     return
 
 
-def test(data_loader, model, metric, logger, epoch, each_logger):
-    logger.safe(True)
+def test_each(data_loader, model, metric, each_logger, epoch):
     with torch.no_grad():
         for m in range(len(data_loader)):
             each_logger.safe(True)
@@ -89,7 +89,6 @@ def test(data_loader, model, metric, logger, epoch, each_logger):
                 output = model[m](input)
                 output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
                 evaluation = metric.evaluate(metric.metric_name['test'], input, output)
-                logger.append(evaluation, 'test', input_size)
                 each_logger.append(evaluation, 'test', input_size)
             info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.),
                              'ID: {}/{}'.format(m + 1, len(data_loader))]}
@@ -97,11 +96,41 @@ def test(data_loader, model, metric, logger, epoch, each_logger):
             print(each_logger.write('test', metric.metric_name['test']))
             each_logger.safe(False)
             each_logger.reset()
+    return
+
+
+def test(data_loader, model, metric, logger, epoch):
+    logger.safe(True)
+    for m in range(len(data_loader)):
+        model[m].train(False)
+    with torch.no_grad():
+        for i, input in enumerate(zip(*data_loader)):
+            input_target_user = []
+            input_target_item = []
+            input_target_rating = []
+            output_target_rating = []
+            for m in range(len(input)):
+                input_m = collate(input[m])
+                input_m = to_device(input_m, cfg['device'])
+                output_m = model[m](input_m)
+                input_target_user.append(input_m['target_user'])
+                input_target_item.append(input_m['target_item'])
+                input_target_rating.append(input_m['target_rating'])
+                output_target_rating.append(output_m['target_rating'])
+            output = {'target_rating': torch.cat(output_target_rating)}
+            input = {'target_user': torch.cat(input_target_user), 'target_item': torch.cat(input_target_item),
+                     'target_rating': torch.cat(input_target_rating)}
+            input_size = len(input['target_{}'.format(cfg['data_mode'])])
+            if input_size == 0:
+                continue
+            evaluation = metric.evaluate(metric.metric_name['test'][1:], input, output)
+            logger.append(evaluation, 'test', input_size)
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
         logger.append(info, 'test', mean=False)
-        print(logger.write('test', metric.metric_name['test']))
-    logger.safe(False)
+        print(logger.write('test', metric.metric_name['test'][1:]))
+        logger.safe(False)
     return
+
 
 if __name__ == "__main__":
     main()

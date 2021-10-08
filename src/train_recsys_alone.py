@@ -41,6 +41,9 @@ def runExperiment():
     dataset = fetch_dataset(cfg['data_name'])
     process_dataset(dataset)
     data_split = split_dataset(dataset)
+    if cfg['resume_mode'] == 1:
+        result = resume(cfg['model_tag'])
+        data_split = result['data_split']
     dataset = make_split_dataset(data_split)
     data_loader = {'train': [], 'test': []}
     model = []
@@ -156,23 +159,34 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
 
 def test(data_loader, model, metric, logger, epoch):
     logger.safe(True)
+    for m in range(len(data_loader)):
+        model[m].train(False)
     with torch.no_grad():
-        for m in range(len(data_loader)):
-            model[m].train(False)
-            for i, input in enumerate(data_loader[m]):
-                input = collate(input)
-                input_size = len(input['target_{}'.format(cfg['data_mode'])])
-                if input_size == 0:
-                    continue
-                input = to_device(input, cfg['device'])
-                output = model[m](input)
-                output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
-                evaluation = metric.evaluate(metric.metric_name['test'], input, output)
-                logger.append(evaluation, 'test', input_size)
+        for i, input in enumerate(zip(*data_loader)):
+            input_target_user = []
+            input_target_item = []
+            input_target_rating = []
+            output_target_rating = []
+            for m in range(len(input)):
+                input_m = collate(input[m])
+                input_m = to_device(input_m, cfg['device'])
+                output_m = model[m](input_m)
+                input_target_user.append(input_m['target_user'])
+                input_target_item.append(input_m['target_item'])
+                input_target_rating.append(input_m['target_rating'])
+                output_target_rating.append(output_m['target_rating'])
+            input = {'target_user': torch.cat(input_target_user), 'target_item': torch.cat(input_target_item),
+                     'target_rating': torch.cat(input_target_rating)}
+            output = {'target_rating': torch.cat(output_target_rating)}
+            input_size = len(input['target_{}'.format(cfg['data_mode'])])
+            if input_size == 0:
+                continue
+            evaluation = metric.evaluate(metric.metric_name['test'][1:], input, output)
+            logger.append(evaluation, 'test', input_size)
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
         logger.append(info, 'test', mean=False)
-        print(logger.write('test', metric.metric_name['test']))
-    logger.safe(False)
+        print(logger.write('test', metric.metric_name['test'][1:]))
+        logger.safe(False)
     return
 
 

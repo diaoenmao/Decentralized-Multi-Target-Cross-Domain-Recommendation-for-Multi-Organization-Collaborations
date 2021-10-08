@@ -44,6 +44,9 @@ def runExperiment():
     dataset = fetch_dataset(cfg['data_name'])
     process_dataset(dataset)
     data_split = split_dataset(dataset)
+    if cfg['resume_mode'] == 1:
+        result = resume(cfg['model_tag'])
+        data_split = result['data_split']
     dataset = make_split_dataset(data_split)
     assist = Assist(data_split)
     organization = assist.make_organization()
@@ -66,7 +69,8 @@ def runExperiment():
         last_epoch = 1
         logger = make_logger('output/runs/train_{}'.format(cfg['model_tag']))
     if last_epoch == 1:
-        initialize(dataset, assist, organization, metric, logger, 0)
+        initialize(dataset, assist, organization, 0)
+        test(assist, metric, logger, 0)
     for epoch in range(last_epoch, cfg['global']['num_epochs'] + 1):
         dataset = assist.make_dataset(dataset, epoch)
         train(dataset, organization, metric, logger, epoch)
@@ -84,8 +88,7 @@ def runExperiment():
     return
 
 
-def initialize(dataset, assist, organization, metric, logger, epoch):
-    logger.safe(True)
+def initialize(dataset, assist, organization, epoch):
     output_data = {'train': [], 'test': []}
     output_row = {'train': [], 'test': []}
     output_col = {'train': [], 'test': []}
@@ -93,15 +96,7 @@ def initialize(dataset, assist, organization, metric, logger, epoch):
     target_row = {'train': [], 'test': []}
     target_col = {'train': [], 'test': []}
     for i in range(len(dataset)):
-        output_i, target_i = organization[i].initialize(dataset[i], metric, logger, epoch)
-        info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Train Epoch: {}({:.0f}%)'.format(epoch, 100.),
-                         'ID: {}/{}'.format(i + 1, len(dataset))]}
-        logger.append(info, 'train', mean=False)
-        print(logger.write('train', metric.metric_name['train']))
-        info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.),
-                         'ID: {}/{}'.format(i + 1, len(dataset))]}
-        logger.append(info, 'test', mean=False)
-        print(logger.write('test', metric.metric_name['test']))
+        output_i, target_i = organization[i].initialize(dataset[i], epoch)
         for k in dataset[0]:
             output_coo_i_k = output_i[k].tocoo()
             output_data[k].append(output_coo_i_k.data)
@@ -129,8 +124,6 @@ def initialize(dataset, assist, organization, metric, logger, epoch):
                 shape=(cfg['num_items']['target'], cfg['num_users']['target']))
     else:
         raise ValueError('Not valid data mode')
-    logger.safe(False)
-    logger.reset()
     return
 
 
@@ -171,43 +164,27 @@ def test(assist, metric, logger, epoch):
         organization_output = assist.organization_output[epoch]['test']
         organization_target = assist.organization_target[0]['test']
         batch_size = cfg[cfg['model_name']]['batch_size']['test']
-        for i in range(len(assist.data_split)):
-            output_i = organization_output[:, assist.data_split[i]]
-            target_i = organization_target[:, assist.data_split[i]]
-            for j in range(0, output_i.shape[0], batch_size):
-                output_i_j = output_i[j:j + batch_size]
-                target_i_j = target_i[j:j + batch_size]
-                output_i_j_coo = output_i_j.tocoo()
-                output_i_j_rating = torch.tensor(output_i_j_coo.data)
-                target_i_j_coo = target_i_j.tocoo()
-                target_i_j_user = torch.tensor(target_i_j_coo.row, dtype=torch.long)
-                target_i_j_item = torch.tensor(target_i_j_coo.col, dtype=torch.long)
-                target_i_j_rating = torch.tensor(target_i_j_coo.data)
-                if cfg['data_mode'] == 'user':
-                    user, _ = torch.unique(target_i_j_user, return_inverse=True)
-                    input_size = len(user)
-                elif cfg['data_mode'] == 'item':
-                    item, _ = torch.unique(target_i_j_item, return_inverse=True)
-                    input_size = len(item)
-                else:
-                    raise ValueError('Not valid data mode')
-                if input_size == 0:
-                    continue
-                if cfg['target_mode'] == 'explicit':
-                    output = {'target_rating': output_i_j_rating}
-                    input = {'target_rating': target_i_j_rating}
-                elif cfg['target_mode'] == 'implicit':
-                    output = {'target_rating': output_i_j_rating}
-                    input = {'target_rating': target_i_j_rating, 'target_user': target_i_j_user,
-                             'target_item': target_i_j_item}
-                else:
-                    raise ValueError('Not valid target mode')
-                output['loss'] = models.loss_fn(output_i_j_rating, target_i_j_rating)
-                output = to_device(output, cfg['device'])
-                input = to_device(input, cfg['device'])
-                evaluation = metric.evaluate(metric.metric_name['test'], input, output)
-                logger.append(evaluation, 'test', n=input_size)
-        lr = assist.ar_state_dict[epoch]['assist_rate'].item()
+        for i in range(0, organization_output.shape[0], batch_size):
+            output_i = organization_output[i:i + batch_size]
+            target_i = organization_target[i:i + batch_size]
+            output_i_coo = output_i.tocoo()
+            output_i_rating = torch.tensor(output_i_coo.data)
+            target_i_coo = target_i.tocoo()
+            target_i_user = torch.tensor(target_i_coo.row, dtype=torch.long)
+            target_i_item = torch.tensor(target_i_coo.col, dtype=torch.long)
+            target_i_rating = torch.tensor(target_i_coo.data)
+            output = {'target_rating': output_i_rating}
+            input = {'target_rating': target_i_rating, 'target_user': target_i_user,
+                     'target_item': target_i_item}
+            input_size = len(input['target_{}'.format(cfg['data_mode'])])
+            if input_size == 0:
+                continue
+            output['loss'] = models.loss_fn(output_i_rating, target_i_rating)
+            output = to_device(output, cfg['device'])
+            input = to_device(input, cfg['device'])
+            evaluation = metric.evaluate(metric.metric_name['test'], input, output)
+            logger.append(evaluation, 'test', n=input_size)
+        lr = assist.ar_state_dict[epoch]['assist_rate'].item() if assist.ar_state_dict[epoch] is not None else 0
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.),
                          'Assist rate: {:.6f}'.format(lr)]}
         logger.append(info, 'test', mean=False)
