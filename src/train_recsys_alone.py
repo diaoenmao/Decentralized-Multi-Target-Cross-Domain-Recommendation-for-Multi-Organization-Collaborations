@@ -169,15 +169,21 @@ def test(data_loader, model, metric, logger, epoch):
             output_target_rating = []
             for m in range(len(input)):
                 input_m = collate(input[m])
+                input_size = len(input_m['target_{}'.format(cfg['data_mode'])])
+                if input_size == 0:
+                    continue
                 input_m = to_device(input_m, cfg['device'])
                 output_m = model[m](input_m)
                 input_target_user.append(input_m['target_user'])
                 input_target_item.append(input_m['target_item'])
                 input_target_rating.append(input_m['target_rating'])
                 output_target_rating.append(output_m['target_rating'])
+                output_m['loss'] = output_m['loss'].mean() if cfg['world_size'] > 1 else output_m['loss']
+                evaluation = metric.evaluate([metric.metric_name['test'][0]], input_m, output_m)
+                logger.append(evaluation, 'test', input_size)
+            output = {'target_rating': torch.cat(output_target_rating)}
             input = {'target_user': torch.cat(input_target_user), 'target_item': torch.cat(input_target_item),
                      'target_rating': torch.cat(input_target_rating)}
-            output = {'target_rating': torch.cat(output_target_rating)}
             input_size = len(input['target_{}'.format(cfg['data_mode'])])
             if input_size == 0:
                 continue
@@ -185,10 +191,9 @@ def test(data_loader, model, metric, logger, epoch):
             logger.append(evaluation, 'test', input_size)
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
         logger.append(info, 'test', mean=False)
-        print(logger.write('test', metric.metric_name['test'][1:]))
+        print(logger.write('test', metric.metric_name['test']))
         logger.safe(False)
     return
-
 
 if __name__ == "__main__":
     main()

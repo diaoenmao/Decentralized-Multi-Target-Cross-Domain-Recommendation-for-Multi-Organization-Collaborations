@@ -170,8 +170,14 @@ def test(assist, metric, logger, epoch):
             output_i_coo = output_i.tocoo()
             output_i_rating = torch.tensor(output_i_coo.data)
             target_i_coo = target_i.tocoo()
-            target_i_user = torch.tensor(target_i_coo.row, dtype=torch.long)
-            target_i_item = torch.tensor(target_i_coo.col, dtype=torch.long)
+            if cfg['data_mode'] == 'user':
+                target_i_user = torch.tensor(target_i_coo.row, dtype=torch.long)
+                target_i_item = torch.tensor(target_i_coo.col, dtype=torch.long)
+            elif cfg['data_mode'] == 'user':
+                target_i_user = torch.tensor(target_i_coo.col, dtype=torch.long)
+                target_i_item = torch.tensor(target_i_coo.row, dtype=torch.long)
+            else:
+                raise ValueError('Not valid data mode')
             target_i_rating = torch.tensor(target_i_coo.data)
             output = {'target_rating': output_i_rating}
             input = {'target_rating': target_i_rating, 'target_user': target_i_user,

@@ -26,10 +26,18 @@ def MAP(output, target, user, item, topk=10):
     user, user_idx = torch.unique(user, return_inverse=True)
     item, item_idx = torch.unique(item, return_inverse=True)
     num_users, num_items = len(user), len(item)
-    output_ = torch.full((num_users, num_items), -float('inf'), device=output.device)
-    target_ = torch.full((num_users, num_items), 0., device=target.device)
-    output_[user_idx, item_idx] = output
-    target_[user_idx, item_idx] = target
+    if cfg['data_mode'] == 'user':
+        output_ = torch.full((num_users, num_items), -float('inf'), device=output.device)
+        target_ = torch.full((num_users, num_items), 0., device=target.device)
+        output_[user_idx, item_idx] = output
+        target_[user_idx, item_idx] = target
+    elif cfg['data_mode'] == 'item':
+        output_ = torch.full((num_items, num_users), -float('inf'), device=output.device)
+        target_ = torch.full((num_items, num_users), 0., device=target.device)
+        output_[item_idx, user_idx] = output
+        target_[item_idx, user_idx] = target
+    else:
+        raise ValueError('Not valid data mode')
     topk = min(topk, target_.size(-1))
     idx = torch.sort(output_, dim=-1, descending=True)[1]
     topk_idx = idx[:, :topk]
@@ -49,7 +57,7 @@ class Metric(object):
                        'RMSE': (lambda input, output: RMSE(output['target_rating'], input['target_rating'])),
                        'Accuracy': (lambda input, output: Accuracy(output['target_rating'], input['target_rating'])),
                        'MAP': (lambda input, output: MAP(output['target_rating'], input['target_rating'],
-                                                              input['target_user'], input['target_item']))}
+                                                         input['target_user'], input['target_item']))}
 
     def make_metric_name(self, metric_name):
         return metric_name

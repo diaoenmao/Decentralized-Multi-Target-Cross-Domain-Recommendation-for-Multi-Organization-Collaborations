@@ -281,18 +281,15 @@ def make_control_list(data, file):
 
 
 def main():
-    data = ['ML100K', 'ML1M']
+    data = ['ML100K', 'ML1M', 'ML10M']
     joint_control_list = make_control_list(data, 'joint')
     alone_control_list = make_control_list(data, 'alone')
     assist_control_list = make_control_list(data, 'assist')
-    if 'ML100K' in data or 'ML1M' in data:
-        ar_control_list = make_control_list(data, 'ar')
-        ar_optim_control_list = make_control_list(data, 'ar-optim')
-        aw_epoch_control_list = make_control_list(data, 'aw')
-        controls = joint_control_list + alone_control_list + assist_control_list + ar_control_list + \
-                   ar_optim_control_list + aw_epoch_control_list
-    else:
-        controls = joint_control_list + alone_control_list + assist_control_list
+    ar_control_list = make_control_list(data, 'ar')
+    ar_optim_control_list = make_control_list(data, 'ar-optim')
+    aw_epoch_control_list = make_control_list(data, 'aw')
+    controls = joint_control_list + alone_control_list + assist_control_list + ar_control_list + \
+               ar_optim_control_list + aw_epoch_control_list
     processed_result = process_result(controls)
     save(processed_result, os.path.join(result_path, 'processed_result.pt'))
     extracted_processed_result = {}
@@ -364,6 +361,21 @@ def summarize_result(processed_result):
     for k, v in processed_result.items():
         if k in pivot:
             leaf = True
+            e1 = [len(x) for x in processed_result[k] if isinstance(x, list)]
+            flag = False
+            for i in range(len(e1)):
+                if e1[i] in [201, 12]:
+                    if isinstance(processed_result[k][i], list):
+                        tmp_processed_result = None
+                        for j in range(1, len(processed_result[k][i])):
+                            if processed_result[k][i][j-1] == processed_result[k][i][j]:
+                                tmp_processed_result = processed_result[k][i][:j] + processed_result[k][i][j+1:]
+                        flag = True
+                        if tmp_processed_result is not None:
+                            processed_result[k][i] = tmp_processed_result
+            e2 = [len(x) for x in processed_result[k] if isinstance(x, list)]
+            # if flag:
+                # print(k, e1, e2)
             stacked_result = np.stack(processed_result[k], axis=0)
             processed_result[k] = {}
             processed_result[k]['mean'] = np.mean(stacked_result, axis=0)
@@ -375,6 +387,7 @@ def summarize_result(processed_result):
             processed_result[k]['val'] = stacked_result.tolist()
     if not leaf:
         for k, v in processed_result.items():
+            # print(k)
             summarize_result(v)
         return
     return
@@ -446,7 +459,7 @@ def make_vis(df):
              'optim-0.1_constant': 'dodgerblue', 'constant-0.1_optim': 'blue', 'Alone': 'green'}
     linestyle = {'Joint': '-', 'constant-0.1_constant': '--', 'constant-0.3_constant': ':', 'optim-0.1_constant': '-.',
                  'constant-0.1_optim': (0, (1, 5)), 'Alone': (0, (5, 5))}
-    loc_dict = {'Loss': 'upper right', 'RMSE': 'upper right', 'Accuracy': 'lower right'}
+    loc_dict = {'Loss': 'upper right', 'RMSE': 'upper right', 'Accuracy': 'lower right', 'MAP': 'lower right'}
     fontsize = {'legend': 16, 'label': 16, 'ticks': 16}
     linewidth = 3
     fig = {}
