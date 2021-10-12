@@ -62,9 +62,8 @@ def runExperiment():
     initialize(dataset, assist, organization, 0)
     test_each(assist, metric, test_each_logger, 0)
     test(assist, metric, test_logger, 0)
+    test_logger.reset()
     for epoch in range(1, last_epoch):
-        test_logger.safe(True)
-        test_each_logger.safe(True)
         dataset = assist.make_dataset(dataset, epoch)
         organization_outputs = gather(dataset, organization, epoch)
         assist.update(organization_outputs, epoch)
@@ -181,7 +180,7 @@ def test(assist, metric, logger, epoch):
             if cfg['data_mode'] == 'user':
                 target_i_user = torch.tensor(target_i_coo.row, dtype=torch.long)
                 target_i_item = torch.tensor(target_i_coo.col, dtype=torch.long)
-            elif cfg['data_mode'] == 'user':
+            elif cfg['data_mode'] == 'item':
                 target_i_user = torch.tensor(target_i_coo.col, dtype=torch.long)
                 target_i_item = torch.tensor(target_i_coo.row, dtype=torch.long)
             else:

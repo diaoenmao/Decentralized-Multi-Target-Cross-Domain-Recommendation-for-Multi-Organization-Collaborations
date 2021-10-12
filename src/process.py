@@ -366,6 +366,7 @@ def summarize_result(processed_result):
             for i in range(len(e1)):
                 if e1[i] in [201, 12]:
                     if isinstance(processed_result[k][i], list):
+                        # print(processed_result[k][i])
                         tmp_processed_result = None
                         for j in range(1, len(processed_result[k][i])):
                             if processed_result[k][i][j-1] == processed_result[k][i][j]:
@@ -375,7 +376,7 @@ def summarize_result(processed_result):
                             processed_result[k][i] = tmp_processed_result
             e2 = [len(x) for x in processed_result[k] if isinstance(x, list)]
             # if flag:
-                # print(k, e1, e2)
+            #     print(k, e1, e2)
             stacked_result = np.stack(processed_result[k], axis=0)
             processed_result[k] = {}
             processed_result[k]['mean'] = np.mean(stacked_result, axis=0)
