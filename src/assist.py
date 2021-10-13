@@ -1,6 +1,7 @@
 import copy
 import torch
 import models
+import numpy as np
 from scipy.sparse import csr_matrix
 from config import cfg
 from data import make_data_loader
@@ -13,7 +14,8 @@ class Assist:
         self.data_split = data_split
         self.num_organizations = len(data_split)
         self.model_name = self.make_model_name()
-        self.ar_state_dict = [None for _ in range(cfg['global']['num_epochs'] + 1)]
+        self.ar_state_dict = [[None for _ in range(cfg['num_organizations'])] for _ in
+                              range(cfg['global']['num_epochs'] + 1)]
         self.reset()
 
     def reset(self):
@@ -67,49 +69,60 @@ class Assist:
         return dataset
 
     def update(self, organization_outputs, iter):
-        organization_outputs_ = {k: [] for k in organization_outputs[0]}
-        for k in organization_outputs[0]:
-            for i in range(len(organization_outputs)):
-                organization_outputs_[k].append(torch.tensor(organization_outputs[i][k].data))
-            organization_outputs_[k] = torch.stack(organization_outputs_[k], dim=-1)
-        if 'train' in organization_outputs[0]:
-            model = models.assist().to(cfg['device'])
-            if cfg['assist']['ar_mode'] == 'optim' or cfg['assist']['aw_mode'] == 'optim':
-                input = {'history': torch.tensor(self.organization_output[iter - 1]['train'].data),
-                         'output': organization_outputs_['train'],
-                         'target': torch.tensor(self.organization_target[0]['train'].data)}
-                input = to_device(input, cfg['device'])
-                model.train(True)
-                optimizer = make_optimizer(model, 'assist')
-                for _ in range(1, cfg['assist']['num_epochs'] + 1):
-                    def closure():
-                        output = model(input)
-                        optimizer.zero_grad()
-                        output['loss'].backward()
-                        return output['loss']
+        updated_data = {k: [None for i in range(len(organization_outputs))] for k in organization_outputs[0]}
+        updated_row = {k: [None for i in range(len(organization_outputs))] for k in organization_outputs[0]}
+        updated_col = {k: [None for i in range(len(organization_outputs))] for k in organization_outputs[0]}
+        for i in range(len(organization_outputs)):
+            for split in organization_outputs[0]:
+                if split == 'train':
+                    model = models.assist().to(cfg['device'])
+                    if cfg['assist']['ar_mode'] == 'optim' or cfg['assist']['aw_mode'] == 'optim':
+                        history = torch.tensor(self.organization_output[iter - 1][split][:, self.data_split[i]].data)
+                        output = [torch.tensor(organization_outputs[j][split][:, self.data_split[i]].data) for j in
+                                  range(len(organization_outputs))]
+                        output = torch.stack(output, dim=-1)
+                        target = torch.tensor(self.organization_target[0][split][:, self.data_split[i]].data)
+                        model.train(True)
+                        input = {'history': history, 'output': output, 'target': target}
+                        input = to_device(input, cfg['device'])
+                        optimizer = make_optimizer(model, 'assist')
+                        for _ in range(1, cfg['assist']['num_epochs'] + 1):
+                            def closure():
+                                output = model(input)
+                                optimizer.zero_grad()
+                                output['loss'].backward()
+                                return output['loss']
 
-                    optimizer.step(closure)
-            self.ar_state_dict[iter] = {k: v.cpu() for k, v in model.state_dict().items()}
-        with torch.no_grad():
-            model = models.assist().to(cfg['device'])
-            model.load_state_dict(self.ar_state_dict[iter])
-            model.train(False)
-            for k in organization_outputs[0]:
-                input = {'history': torch.tensor(self.organization_output[iter - 1][k].data),
-                         'output': organization_outputs_[k],
-                         'target': torch.tensor(self.organization_target[0][k].data)}
-                input = to_device(input, cfg['device'])
-                output = model(input)
-                coo = self.organization_output[iter - 1][k].tocoo()
-                row, col = coo.row, coo.col
-                if cfg['data_mode'] == 'user':
-                    self.organization_output[iter][k] = csr_matrix((output['target'].cpu().numpy(), (row, col)),
-                                                                   shape=(cfg['num_users']['target'],
-                                                                          cfg['num_items']['target']))
-                elif cfg['data_mode'] == 'item':
-                    self.organization_output[iter][k] = csr_matrix((output['target'].cpu().numpy(), (row, col)),
-                                                                   shape=(cfg['num_items']['target'],
-                                                                          cfg['num_users']['target']))
-                else:
-                    raise ValueError('Not valid data mode')
+                            optimizer.step(closure)
+                    self.ar_state_dict[iter][i] = {k: v.cpu() for k, v in model.state_dict().items()}
+                with torch.no_grad():
+                    model = models.assist().to(cfg['device'])
+                    model.load_state_dict(self.ar_state_dict[iter][i])
+                    model.train(False)
+                    history = torch.tensor(self.organization_output[iter - 1][split][:, self.data_split[i]].data)
+                    output = [torch.tensor(organization_outputs[j][split][:, self.data_split[i]].data) for j in
+                              range(len(organization_outputs))]
+                    output = torch.stack(output, dim=-1)
+                    target = torch.tensor(self.organization_target[0][split][:, self.data_split[i]].data)
+                    input = {'history': history, 'output': output, 'target': target}
+                    input = to_device(input, cfg['device'])
+                    output = model(input)
+                    updated_data[split][i] = output['target'].cpu().numpy()
+                    coo = self.organization_output[iter - 1][split][:, self.data_split[i]].tocoo()
+                    updated_row[split][i] = coo.row
+                    updated_col[split][i] = self.data_split[i][coo.col].cpu().numpy()
+        for k in organization_outputs[0]:
+            updated_data_k = np.concatenate(updated_data[k])
+            updated_row_k = np.concatenate(updated_row[k])
+            updated_col_k = np.concatenate(updated_col[k])
+            if cfg['data_mode'] == 'user':
+                self.organization_output[iter][k] = csr_matrix((updated_data_k, (updated_row_k, updated_col_k)),
+                                                               shape=(cfg['num_users']['target'],
+                                                                      cfg['num_items']['target']))
+            elif cfg['data_mode'] == 'item':
+                self.organization_output[iter][k] = csr_matrix((updated_data_k, (updated_row_k, updated_col_k)),
+                                                               shape=(cfg['num_items']['target'],
+                                                                      cfg['num_users']['target']))
+            else:
+                raise ValueError('Not valid data mode')
         return

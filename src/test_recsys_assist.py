@@ -197,7 +197,7 @@ def test(assist, metric, logger, epoch):
             input = to_device(input, cfg['device'])
             evaluation = metric.evaluate(metric.metric_name['test'], input, output)
             logger.append(evaluation, 'test', n=input_size)
-        lr = assist.ar_state_dict[epoch]['assist_rate'].item() if assist.ar_state_dict[epoch] is not None else 0
+        lr = assist.ar_state_dict[epoch][0]['assist_rate'].item() if assist.ar_state_dict[epoch][0] is not None else 0
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.),
                          'Assist rate: {:.6f}'.format(lr)]}
         logger.append(info, 'test', mean=False)
