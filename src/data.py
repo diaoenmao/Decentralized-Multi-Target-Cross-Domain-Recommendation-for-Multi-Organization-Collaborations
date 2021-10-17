@@ -112,7 +112,7 @@ class PairInput(torch.nn.Module):
             if self.info == 1:
                 if 'item_attr' in input:
                     input['item_attr'] = input['item_attr'].view(1, -1).repeat(input['user'].size(0), 1)
-                if 'target_user_profile' in input:
+                if 'target_item_attr' in input:
                     input['target_item_attr'] = input['target_item_attr'].view(1, -1).repeat(
                         input['target_user'].size(0), 1)
             else:
@@ -208,11 +208,11 @@ def split_dataset(dataset):
                     data_split_idx = torch.multinomial(item_attr, 1).view(-1).numpy()
                     for i in range(num_organizations):
                         data_split_i = np.where(data_split_idx == i)[0]
-                        data_split.append(data_split_i)
+                        data_split.append(torch.tensor(data_split_i))
                         if len(data_split_i) == 0 or len(dataset['train'].data[:, data_split_i].data) == 0 or len(
                                 dataset['test'].data[:, data_split_i].data) == 0 or len(
-                                dataset['train'].target[:, data_split_i].data) == 0 or len(
-                                dataset['test'].target[:, data_split_i].data) == 0:
+                            dataset['train'].target[:, data_split_i].data) == 0 or len(
+                            dataset['test'].target[:, data_split_i].data) == 0:
                             all_filled = False
             elif cfg['data_mode'] == 'item':
                 raise NotImplementedError
@@ -249,12 +249,17 @@ def make_split_dataset(data_split):
             dataset_i[k].target = dataset_i[k].target[:, data_split_i]
             if cfg['data_mode'] == 'user':
                 if hasattr(dataset_i[k], 'item_attr'):
-                    dataset_i[k].item_attr['data'] = dataset_i[k].item_attr['data'][data_split_i]
-                    dataset_i[k].item_attr['target'] = dataset_i[k].item_attr['target'][data_split_i]
+                    shape = (-1, dataset_i[k].item_attr['data'][data_split_i].shape[-1])
+                    dataset_i[k].item_attr['data'] = dataset_i[k].item_attr['data'][data_split_i].reshape(shape)
+                    shape = (-1, dataset_i[k].item_attr['target'][data_split_i].shape[-1])
+                    dataset_i[k].item_attr['target'] = dataset_i[k].item_attr['target'][data_split_i].reshape(shape)
             elif cfg['data_mode'] == 'item':
                 if hasattr(dataset_i[k], 'user_profile'):
-                    dataset_i[k].user_profile['data'] = dataset_i[k].user_profile['data'][data_split_i]
-                    dataset_i[k].user_profile['target'] = dataset_i[k].user_profile['target'][data_split_i]
+                    shape = (-1, dataset_i[k].user_profile['data'][data_split_i].shape[-1])
+                    dataset_i[k].user_profile['data'] = dataset_i[k].user_profile['data'][data_split_i].reshape(shape)
+                    shape = (-1, dataset_i[k].user_profile['target'][data_split_i].shape[-1])
+                    dataset_i[k].user_profile['target'] = dataset_i[k].user_profile['target'][data_split_i].reshape(
+                        shape)
             else:
                 raise ValueError('Not valid data mode')
         if cfg['model_name'] in ['base', 'mf', 'gmf', 'mlp', 'nmf']:

@@ -26,7 +26,7 @@ class Organization:
         self.model_name = model_name
         self.model_state_dict = [None for _ in range(cfg['global']['num_epochs'] + 1)]
 
-    def initialize(self, dataset, iter):
+    def initialize(self, dataset, metric, logger, iter):
         dataset = copy.deepcopy(dataset)
         dataset = make_pair_transform(dataset)
         model_name = cfg['model_name']
@@ -57,6 +57,8 @@ class Organization:
                     input = to_device(input, cfg['device'])
                     output_ = model(input)
                     output_['loss'] = output_['loss'].mean() if cfg['world_size'] > 1 else output_['loss']
+                    evaluation = metric.evaluate(metric.metric_name['train'], input, output_)
+                    logger.append(evaluation, 'train', input_size)
                     target_user_i, target_item_i, target_rating_i = process_output(input['target_user'],
                                                                                    input['target_item'],
                                                                                    output_['target_rating'])

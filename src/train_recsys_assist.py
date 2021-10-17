@@ -46,7 +46,8 @@ def runExperiment():
     data_split = split_dataset(dataset)
     if cfg['resume_mode'] == 1:
         result = resume(cfg['model_tag'])
-        data_split = result['data_split']
+        if 'data_split' in result:
+            data_split = result['data_split']
     dataset = make_split_dataset(data_split)
     assist = Assist(data_split)
     organization = assist.make_organization()
@@ -69,7 +70,7 @@ def runExperiment():
         last_epoch = 1
         logger = make_logger('output/runs/train_{}'.format(cfg['model_tag']))
     if last_epoch == 1:
-        initialize(dataset, assist, organization, 0)
+        initialize(dataset, assist, organization, metric, logger, 0)
         test(assist, metric, logger, 0)
         logger.reset()
     for epoch in range(last_epoch, cfg['global']['num_epochs'] + 1):
@@ -89,7 +90,7 @@ def runExperiment():
     return
 
 
-def initialize(dataset, assist, organization, epoch):
+def initialize(dataset, assist, organization, metric, logger, epoch):
     output_data = {'train': [], 'test': []}
     output_row = {'train': [], 'test': []}
     output_col = {'train': [], 'test': []}
@@ -97,7 +98,12 @@ def initialize(dataset, assist, organization, epoch):
     target_row = {'train': [], 'test': []}
     target_col = {'train': [], 'test': []}
     for i in range(len(dataset)):
-        output_i, target_i = organization[i].initialize(dataset[i], epoch)
+        output_i, target_i = organization[i].initialize(dataset[i], metric, logger, epoch)
+        if i % int((len(dataset) * cfg['log_interval']) + 1) == 0:
+            info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Train Epoch: {}({:.0f}%)'.format(epoch, 100.),
+                             'ID: {}/{}'.format(i + 1, len(dataset))]}
+            logger.append(info, 'train', mean=False)
+            print(logger.write('train', metric.metric_name['train']))
         for k in dataset[0]:
             output_coo_i_k = output_i[k].tocoo()
             output_data[k].append(output_coo_i_k.data)
@@ -125,6 +131,8 @@ def initialize(dataset, assist, organization, epoch):
                 shape=(cfg['num_items']['target'], cfg['num_users']['target']))
     else:
         raise ValueError('Not valid data mode')
+    logger.safe(False)
+    logger.reset()
     return
 
 

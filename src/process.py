@@ -40,17 +40,17 @@ def make_control_list(data, file):
             ml1m_controls = make_controls(control_name)
             controls.extend(ml1m_controls)
         if 'ML10M' in data:
-            control_name = [[['ML10M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'],
+            control_name = [[['ML10M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             ml10m_controls = make_controls(control_name)
             controls.extend(ml10m_controls)
         if 'ML20M' in data:
-            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'],
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             ml20m_controls = make_controls(control_name)
             controls.extend(ml20m_controls)
         if 'NFP' in data:
-            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['ae'],
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             nfp_controls = make_controls(control_name)
             controls.extend(nfp_controls)
@@ -81,25 +81,25 @@ def make_control_list(data, file):
             ml1m_controls = ml1m_user_controls + ml1m_item_controls
             controls.extend(ml1m_controls)
         if 'ML10M' in data:
-            control_name = [[['ML10M'], ['user'], ['explicit', 'implicit'], ['ae'],
+            control_name = [[['ML10M'], ['user'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['genre', 'random-8']]]
             ml10m_user_controls = make_controls(control_name)
-            control_name = [[['ML10M'], ['item'], ['explicit', 'implicit'], ['ae'],
+            control_name = [[['ML10M'], ['item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['random-8']]]
             ml10m_item_controls = make_controls(control_name)
             ml10m_controls = ml10m_user_controls + ml10m_item_controls
             controls.extend(ml10m_controls)
         if 'ML20M' in data:
-            control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['ae'],
+            control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['genre', 'random-8']]]
             ml20m_user_controls = make_controls(control_name)
-            control_name = [[['ML20M'], ['item'], ['explicit', 'implicit'], ['ae'],
+            control_name = [[['ML20M'], ['item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['random-8']]]
             ml20m_item_controls = make_controls(control_name)
             ml20m_controls = ml20m_user_controls + ml20m_item_controls
             controls.extend(ml20m_controls)
         if 'NFP' in data:
-            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['ae'],
+            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['random-8']]]
             nfp_controls = make_controls(control_name)
             controls.extend(nfp_controls)
@@ -486,7 +486,7 @@ def make_vis(df):
                 plt.plot(x, y, color=color[control], linestyle=linestyle[control], label=control_dict[control],
                          linewidth=linewidth)
                 plt.fill_between(x, (y - y_err), (y + y_err), color=color[control], alpha=.1)
-                plt.xlabel('Communication Rounds', fontsize=fontsize['label'])
+                plt.xlabel('Assistance Rounds', fontsize=fontsize['label'])
                 plt.ylabel(metric_name, fontsize=fontsize['label'])
                 plt.xticks(fontsize=fontsize['ticks'])
                 plt.yticks(fontsize=fontsize['ticks'])

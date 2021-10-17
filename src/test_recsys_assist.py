@@ -87,7 +87,7 @@ def initialize(dataset, assist, organization, epoch):
     target_row = {'test': []}
     target_col = {'test': []}
     for i in range(len(dataset)):
-        output_i, target_i = organization[i].initialize(dataset[i], epoch)
+        output_i, target_i = organization[i].initialize(dataset[i], None, None, epoch)
         for k in dataset[0]:
             output_coo_i_k = output_i[k].tocoo()
             output_data[k].append(output_coo_i_k.data)
