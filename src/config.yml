@@ -9,6 +9,7 @@ control:
   data_split_mode: random-2
   ar: constant-0.1
   aw: constant
+  match_rate: 1
 # experiment
 num_workers: 0
 init_seed: 0

@@ -43,7 +43,8 @@ def runExperiment():
     data_split = split_dataset(dataset)
     if cfg['resume_mode'] == 1:
         result = resume(cfg['model_tag'])
-        data_split = result['data_split']
+        if 'data_split' in result:
+            data_split = result['data_split']
     dataset = make_split_dataset(data_split)
     data_loader = {'train': [], 'test': []}
     model = []

@@ -144,6 +144,8 @@ def process_control():
         cfg['assist']['ar'] = float(ar_list[1])
     if 'aw' in cfg['control']:
         cfg['assist']['aw_mode'] = cfg['control']['aw']
+    if 'match_rate' in cfg['control']:
+        cfg['assist']['match_rate'] = float(cfg['control']['match_rate'])
     cfg['base'] = {}
     cfg['mf'] = {'hidden_size': 128}
     cfg['gmf'] = {'hidden_size': 128}

@@ -212,7 +212,7 @@ class ML100K(Dataset):
         item_attr = pd.read_csv(os.path.join(self.raw_folder, 'ml-100k', 'u.item'), delimiter='|', header=None,
                                 encoding="latin", engine='python')
         genre = item_attr.iloc[:, 5:].to_numpy().astype(np.float32)
-        item_attr = genre
+        item_attr = genre[:, 1:]
         return user_profile, item_attr
 
 
