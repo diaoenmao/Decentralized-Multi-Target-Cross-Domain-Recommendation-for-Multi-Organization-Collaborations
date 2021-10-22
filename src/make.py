@@ -49,31 +49,31 @@ def main():
         base_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode, control_name)
         controls.extend(base_controls)
         if 'ML100K' in data:
-            control_name = [[['ML100K'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML100K'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             ml100k_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                             control_name)
             controls.extend(ml100k_controls)
         if 'ML1M' in data:
-            control_name = [[['ML1M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML1M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             ml1m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                           control_name)
             controls.extend(ml1m_controls)
         if 'ML10M' in data:
-            control_name = [[['ML10M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML10M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             ml10m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                            control_name)
             controls.extend(ml10m_controls)
         if 'ML20M' in data:
-            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             ml20m_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                            control_name)
             controls.extend(ml20m_controls)
         if 'NFP' in data:
-            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)
@@ -90,51 +90,51 @@ def main():
         base_controls = base_user_controls + base_item_controls
         controls.extend(base_controls)
         if 'ML100K' in data:
-            control_name = [[['ML100K'], ['user'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML100K'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['genre', 'random-8']]]
             ml100k_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                  control_name)
-            control_name = [[['ML100K'], ['item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML100K'], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['random-8']]]
             ml100k_item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                  control_name)
             ml100k_controls = ml100k_user_controls + ml100k_item_controls
             controls.extend(ml100k_controls)
         if 'ML1M' in data:
-            control_name = [[['ML1M'], ['user'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML1M'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['genre', 'random-8']]]
             ml1m_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                control_name)
-            control_name = [[['ML1M'], ['item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML1M'], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['random-8']]]
             ml1m_item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                control_name)
             ml1m_controls = ml1m_user_controls + ml1m_item_controls
             controls.extend(ml1m_controls)
         if 'ML10M' in data:
-            control_name = [[['ML10M'], ['user'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML10M'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['genre', 'random-8']]]
             ml10m_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                 control_name)
-            control_name = [[['ML10M'], ['item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML10M'], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['random-8']]]
             ml10m_item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                 control_name)
             ml10m_controls = ml10m_user_controls + ml10m_item_controls
             controls.extend(ml10m_controls)
         if 'ML20M' in data:
-            control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['genre', 'random-8']]]
             ml20m_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                 control_name)
-            control_name = [[['ML20M'], ['item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML20M'], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['random-8']]]
             ml20m_item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                 control_name)
             ml20m_controls = ml20m_user_controls + ml20m_item_controls
             controls.extend(ml20m_controls)
         if 'NFP' in data:
-            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['random-8']]]
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)

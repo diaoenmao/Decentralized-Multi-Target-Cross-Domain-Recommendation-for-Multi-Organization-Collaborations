@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 
 result_path = './output/result'
-save_format = 'png'
+save_format = 'pdf'
 vis_path = './output/vis/{}'.format(save_format)
 num_experiments = 4
 exp = [str(x) for x in list(range(num_experiments))]
@@ -30,27 +30,27 @@ def make_control_list(data, file):
         base_controls = make_controls(control_name)
         controls.extend(base_controls)
         if 'ML100K' in data:
-            control_name = [[['ML100K'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML100K'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             ml100k_controls = make_controls(control_name)
             controls.extend(ml100k_controls)
         if 'ML1M' in data:
-            control_name = [[['ML1M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML1M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             ml1m_controls = make_controls(control_name)
             controls.extend(ml1m_controls)
         if 'ML10M' in data:
-            control_name = [[['ML10M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML10M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             ml10m_controls = make_controls(control_name)
             controls.extend(ml10m_controls)
         if 'ML20M' in data:
-            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             ml20m_controls = make_controls(control_name)
             controls.extend(ml20m_controls)
         if 'NFP' in data:
-            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML20M'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1']]]
             nfp_controls = make_controls(control_name)
             controls.extend(nfp_controls)
@@ -63,43 +63,43 @@ def make_control_list(data, file):
         base_controls = base_user_controls + base_item_controls
         controls.extend(base_controls)
         if 'ML100K' in data:
-            control_name = [[['ML100K'], ['user'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML100K'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['genre', 'random-8']]]
             ml100k_user_controls = make_controls(control_name)
-            control_name = [[['ML100K'], ['item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML100K'], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['random-8']]]
             ml100k_item_controls = make_controls(control_name)
             ml100k_controls = ml100k_user_controls + ml100k_item_controls
             controls.extend(ml100k_controls)
         if 'ML1M' in data:
-            control_name = [[['ML1M'], ['user'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML1M'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['genre', 'random-8']]]
             ml1m_user_controls = make_controls(control_name)
-            control_name = [[['ML1M'], ['item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML1M'], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['random-8']]]
             ml1m_item_controls = make_controls(control_name)
             ml1m_controls = ml1m_user_controls + ml1m_item_controls
             controls.extend(ml1m_controls)
         if 'ML10M' in data:
-            control_name = [[['ML10M'], ['user'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML10M'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['genre', 'random-8']]]
             ml10m_user_controls = make_controls(control_name)
-            control_name = [[['ML10M'], ['item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML10M'], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['random-8']]]
             ml10m_item_controls = make_controls(control_name)
             ml10m_controls = ml10m_user_controls + ml10m_item_controls
             controls.extend(ml10m_controls)
         if 'ML20M' in data:
-            control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['genre', 'random-8']]]
             ml20m_user_controls = make_controls(control_name)
-            control_name = [[['ML20M'], ['item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['ML20M'], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['random-8']]]
             ml20m_item_controls = make_controls(control_name)
             ml20m_controls = ml20m_user_controls + ml20m_item_controls
             controls.extend(ml20m_controls)
         if 'NFP' in data:
-            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'gmf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0', '1'], ['random-8']]]
             nfp_controls = make_controls(control_name)
             controls.extend(nfp_controls)
@@ -275,6 +275,49 @@ def make_control_list(data, file):
                              ['random-8'], ['optim-0.1'], ['constant']]]
             nfp_controls = make_controls(control_name)
             controls.extend(nfp_controls)
+    elif file == 'match':
+        controls = []
+        if 'ML100K' in data:
+            control_name = [[['ML100K'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre', 'random-8'], ['constant-0.1'], ['constant'], ['0.5']]]
+            ml100k_user_controls = make_controls(control_name)
+            control_name = [[['ML100K'], ['item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.1'], ['constant'], ['0.5']]]
+            ml100k_item_controls = make_controls(control_name)
+            ml100k_controls = ml100k_user_controls + ml100k_item_controls
+            controls.extend(ml100k_controls)
+        if 'ML1M' in data:
+            control_name = [[['ML1M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre', 'random-8'], ['constant-0.1'], ['constant'], ['0.5']]]
+            ml1m_user_controls = make_controls(control_name)
+            control_name = [[['ML1M'], ['item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.1'], ['constant'], ['0.5']]]
+            ml1m_item_controls = make_controls(control_name)
+            ml1m_controls = ml1m_user_controls + ml1m_item_controls
+            controls.extend(ml1m_controls)
+        if 'ML10M' in data:
+            control_name = [[['ML10M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre', 'random-8'], ['constant-0.1'], ['constant'], ['0.5']]]
+            ml10m_user_controls = make_controls(control_name)
+            control_name = [[['ML10M'], ['item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.1'], ['constant'], ['0.5']]]
+            ml10m_item_controls = make_controls(control_name)
+            ml10m_controls = ml10m_user_controls + ml10m_item_controls
+            controls.extend(ml10m_controls)
+        if 'ML20M' in data:
+            control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['genre', 'random-8'], ['constant-0.1'], ['constant'], ['0.5']]]
+            ml20m_user_controls = make_controls(control_name)
+            control_name = [[['ML20M'], ['item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.1'], ['constant'], ['0.5']]]
+            ml20m_item_controls = make_controls(control_name)
+            ml20m_controls = ml20m_user_controls + ml20m_item_controls
+            controls.extend(ml20m_controls)
+        if 'NFP' in data:
+            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0', '1'],
+                             ['random-8'], ['constant-0.1'], ['constant'], ['0.5']]]
+            nfp_controls = make_controls(control_name)
+            controls.extend(nfp_controls)
     else:
         raise ValueError('Not valid file')
     return controls
@@ -288,8 +331,9 @@ def main():
     ar_control_list = make_control_list(data, 'ar')
     ar_optim_control_list = make_control_list(data, 'ar-optim')
     aw_epoch_control_list = make_control_list(data, 'aw')
+    match_epoch_control_list = make_control_list(data, 'match')
     controls = joint_control_list + alone_control_list + assist_control_list + ar_control_list + \
-               ar_optim_control_list + aw_epoch_control_list
+               ar_optim_control_list + aw_epoch_control_list + match_epoch_control_list
     processed_result = process_result(controls)
     save(processed_result, os.path.join(result_path, 'processed_result.pt'))
     extracted_processed_result = {}
@@ -339,10 +383,36 @@ def extract_result(control, model_tag, processed_result):
                     if metric_name not in processed_result:
                         processed_result[metric_name] = {'train': [None for _ in range(num_experiments)],
                                                          'test': [None for _ in range(num_experiments)],
-                                                         'test_each': [None for _ in range(num_experiments)]}
+                                                         'test_each': [None for _ in range(num_experiments)],
+                                                         'test_history': [None for _ in range(num_experiments)]}
                     processed_result[metric_name]['train'][exp_idx] = base_result['logger']['train'].history[k]
-                    processed_result[metric_name]['test'][exp_idx] = base_result['logger']['test'].history[k]
-                    processed_result[metric_name]['test_each'][exp_idx] = base_result['logger']['test'].history[k]
+                    if metric_name in ['Loss', 'RMSE']:
+                        processed_result[metric_name]['test'][exp_idx] = min(base_result['logger']['test'].history[k])
+                        processed_result[metric_name]['test_each'][exp_idx] = \
+                            np.array(base_result['logger']['test_each'].history[k]).reshape(-1, 11).min(axis=-1)
+                    else:
+                        processed_result[metric_name]['test'][exp_idx] = max(base_result['logger']['test'].history[k])
+                        processed_result[metric_name]['test_each'][exp_idx] = \
+                            np.array(base_result['logger']['test_each'].history[k]).reshape(-1, 11).max(axis=-1)
+                    processed_result[metric_name]['test_history'][exp_idx] = base_result['logger']['test'].history[k]
+            elif len(model_tag_list) == 10:
+                for k in base_result['logger']['test'].history:
+                    metric_name = k.split('/')[1]
+                    if metric_name not in processed_result:
+                        processed_result[metric_name] = {'train': [None for _ in range(num_experiments)],
+                                                         'test': [None for _ in range(num_experiments)],
+                                                         'test_each': [None for _ in range(num_experiments)],
+                                                         'test_history': [None for _ in range(num_experiments)]}
+                    processed_result[metric_name]['train'][exp_idx] = base_result['logger']['train'].history[k]
+                    if metric_name in ['Loss', 'RMSE']:
+                        processed_result[metric_name]['test'][exp_idx] = min(base_result['logger']['test'].history[k])
+                        processed_result[metric_name]['test_each'][exp_idx] = \
+                            np.array(base_result['logger']['test_each'].history[k]).reshape(-1, 11).min(axis=-1)
+                    else:
+                        processed_result[metric_name]['test'][exp_idx] = max(base_result['logger']['test'].history[k])
+                        processed_result[metric_name]['test_each'][exp_idx] = \
+                            np.array(base_result['logger']['test_each'].history[k]).reshape(-1, 11).max(axis=-1)
+                    processed_result[metric_name]['test_history'][exp_idx] = base_result['logger']['test'].history[k]
             else:
                 raise ValueError('Not valid model tag')
         else:
@@ -356,11 +426,17 @@ def extract_result(control, model_tag, processed_result):
 
 
 def summarize_result(processed_result):
-    pivot = ['train', 'test', 'test_each']
+    pivot = ['train', 'test', 'test_each', 'test_history']
     leaf = False
     for k, v in processed_result.items():
         if k in pivot:
             leaf = True
+            for x in processed_result[k]:
+                if x is not None:
+                    tmp = x
+            for i in range(len(processed_result[k])):
+                if processed_result[k][i] is None:
+                    processed_result[k][i] = tmp
             e1 = [len(x) for x in processed_result[k] if isinstance(x, list)]
             flag = False
             for i in range(len(e1)):
@@ -369,14 +445,24 @@ def summarize_result(processed_result):
                         # print(processed_result[k][i])
                         tmp_processed_result = None
                         for j in range(1, len(processed_result[k][i])):
-                            if processed_result[k][i][j-1] == processed_result[k][i][j]:
-                                tmp_processed_result = processed_result[k][i][:j] + processed_result[k][i][j+1:]
+                            if processed_result[k][i][j - 1] == processed_result[k][i][j]:
+                                tmp_processed_result = processed_result[k][i][:j] + processed_result[k][i][j + 1:]
                         flag = True
                         if tmp_processed_result is not None:
                             processed_result[k][i] = tmp_processed_result
+                if e1[i] > 12 and e1[i] < 200:
+                    if isinstance(processed_result[k][i], list):
+                        flag = True
+                        tmp_processed_result = processed_result[k][i] + [processed_result[k][i][-1]] * (
+                                    200 - len(processed_result[k][i]))
+                        processed_result[k][i] = tmp_processed_result
+                if e1[i] > 200:
+                    if isinstance(processed_result[k][i], list):
+                        flag = True
+                        tmp_processed_result = processed_result[k][i][:200]
+                        processed_result[k][i] = tmp_processed_result
             e2 = [len(x) for x in processed_result[k] if isinstance(x, list)]
-            # if flag:
-            #     print(k, e1, e2)
+            # print(k, e1, e2)
             stacked_result = np.stack(processed_result[k], axis=0)
             processed_result[k] = {}
             processed_result[k]['mean'] = np.mean(stacked_result, axis=0)
@@ -395,7 +481,7 @@ def summarize_result(processed_result):
 
 
 def extract_processed_result(extracted_processed_result, processed_result, control):
-    pivot = ['train', 'test', 'test_each']
+    pivot = ['train', 'test', 'test_each', 'test_history']
     leaf = False
     for k, v in processed_result.items():
         if k in pivot:
@@ -413,7 +499,7 @@ def extract_processed_result(extracted_processed_result, processed_result, contr
 
 
 def make_df(extracted_processed_result):
-    pivot = ['train', 'test', 'test_each']
+    pivot = ['train', 'test', 'test_each', 'test_history']
     df = {p: defaultdict(list) for p in pivot}
     for exp_name in extracted_processed_result:
         control = exp_name.split('_')
@@ -430,16 +516,22 @@ def make_df(extracted_processed_result):
                 data_name, data_mode, target_mode, model_name, info, data_split_mode, ar, aw = control
                 index_name = ['_'.join([model_name, ar, aw])]
                 df_name = '_'.join([data_name, data_mode, target_mode, info, data_split_mode, 'assist'])
+            elif len(control) == 9:
+                data_name, data_mode, target_mode, model_name, info, data_split_mode, ar, aw, match_rate = control
+                index_name = ['_'.join([model_name, ar, aw, match_rate])]
+                df_name = '_'.join([data_name, data_mode, target_mode, info, data_split_mode, 'assist'])
             else:
                 raise ValueError('Not valid control')
             metric = list(extracted_processed_result[exp_name][p].keys())
-            if len(extracted_processed_result[exp_name][p][metric[0]].shape) == 0:
-                df[p][df_name].append(pd.DataFrame(data=extracted_processed_result[exp_name][p], index=index_name))
-            else:
-                for m in metric:
-                    df_name_ = '{}_{}'.format(df_name, m)
-                    df[p][df_name_].append(
-                        pd.DataFrame(data=extracted_processed_result[exp_name][p][m].reshape(1, -1), index=index_name))
+            if len(metric) > 0:
+                if len(extracted_processed_result[exp_name][p][metric[0]].shape) == 0:
+                    df[p][df_name].append(pd.DataFrame(data=extracted_processed_result[exp_name][p], index=index_name))
+                else:
+                    for m in metric:
+                        df_name_ = '{}_{}'.format(df_name, m)
+                        df[p][df_name_].append(
+                            pd.DataFrame(data=extracted_processed_result[exp_name][p][m].reshape(1, -1),
+                                         index=index_name))
     for p in pivot:
         startrow = 0
         writer = pd.ExcelWriter('{}/{}.xlsx'.format(result_path, p), engine='xlsxwriter')
@@ -453,18 +545,20 @@ def make_df(extracted_processed_result):
 
 
 def make_vis(df):
-    control_dict = {'Joint': 'Joint', 'constant-0.1_constant': 'AAE ($\eta=0.1$)',
-                    'constant-0.3_constant': 'AAE ($\eta=0.3$)', 'optim-0.1_constant': 'AAE (line search)',
-                    'constant-0.1_optim': 'AAE (weight)', 'Alone': 'Alone'}
+    control_dict = {'Joint': 'Joint', 'constant-0.1_constant': 'AAE ($\eta_k=0.1$)',
+                    'constant-0.3_constant': 'AAE ($\eta_k=0.3$)', 'optim-0.1_constant': 'AAE (Optimize $\eta_k$)',
+                    'constant-0.1_optim': 'AAE (Optimize $w_k$)', 'constant-0.1_constant_0.5': 'AAE ($50\%$ alignment)',
+                    'Alone': 'Alone'}
     color = {'Joint': 'black', 'constant-0.1_constant': 'red', 'constant-0.3_constant': 'orange',
-             'optim-0.1_constant': 'dodgerblue', 'constant-0.1_optim': 'blue', 'Alone': 'green'}
+             'optim-0.1_constant': 'dodgerblue', 'constant-0.1_optim': 'blue', 'constant-0.1_constant_0.5': 'purple',
+             'Alone': 'green'}
     linestyle = {'Joint': '-', 'constant-0.1_constant': '--', 'constant-0.3_constant': ':', 'optim-0.1_constant': '-.',
-                 'constant-0.1_optim': (0, (1, 5)), 'Alone': (0, (5, 5))}
+                 'constant-0.1_optim': (0, (1, 5)), 'constant-0.1_constant_0.5': (0, (5, 1)), 'Alone': (0, (5, 5))}
     loc_dict = {'Loss': 'upper right', 'RMSE': 'upper right', 'Accuracy': 'lower right', 'MAP': 'lower right'}
-    fontsize = {'legend': 16, 'label': 16, 'ticks': 16}
+    fontsize = {'legend': 12, 'label': 16, 'ticks': 16}
     linewidth = 3
     fig = {}
-    p = 'test'
+    p = 'test_history'
     for df_name in df[p]:
         df_name_list = df_name.split('_')
         if 'assist' in df_name_list:
@@ -477,7 +571,7 @@ def make_vis(df):
             df_name_alone = '_'.join([data_name, data_mode, target_mode, info, data_split_mode])
             fig_name = '_'.join([data_name, data_mode, target_mode, info, data_split_mode, assist, metric_name])
             fig[fig_name] = plt.figure(fig_name)
-            for ((index, row), (_,  row_std)) in zip(df[p][df_name].iterrows(), df[p][df_name_std].iterrows()):
+            for ((index, row), (_, row_std)) in zip(df[p][df_name].iterrows(), df[p][df_name_std].iterrows()):
                 model_name = index.split('_')[0]
                 control = '_'.join(index.split('_')[1:])
                 y = row.to_numpy()
@@ -490,15 +584,15 @@ def make_vis(df):
                 plt.ylabel(metric_name, fontsize=fontsize['label'])
                 plt.xticks(fontsize=fontsize['ticks'])
                 plt.yticks(fontsize=fontsize['ticks'])
-            y_joint = df[p][df_name_joint]['{}_{}'.format(metric_name, stat)].loc[model_name]
+            y_joint = df['test'][df_name_joint]['{}_{}'.format(metric_name, stat)].loc[model_name]
             y_joint = np.full(x.shape, y_joint)
-            y_err_joint = df[p][df_name_joint]['{}_std'.format(metric_name)].loc[model_name]
+            y_err_joint = df['test'][df_name_joint]['{}_std'.format(metric_name)].loc[model_name]
             plt.plot(x, y_joint, color=color['Joint'], linestyle=linestyle['Joint'], label=control_dict['Joint'],
                      linewidth=linewidth)
             plt.fill_between(x, (y_joint - y_err_joint), (y_joint + y_err_joint), color=color['Joint'], alpha=.1)
-            y_alone = df[p][df_name_alone]['{}_{}'.format(metric_name, stat)].loc[model_name]
+            y_alone = df['test'][df_name_alone]['{}_{}'.format(metric_name, stat)].loc[model_name]
             y_alone = np.full(x.shape, y_alone)
-            y_err_alone = df[p][df_name_joint]['{}_std'.format(metric_name)].loc[model_name]
+            y_err_alone = df['test'][df_name_joint]['{}_std'.format(metric_name)].loc[model_name]
             plt.plot(x, y_alone, color=color['Alone'], linestyle=linestyle['Alone'], label=control_dict['Alone'],
                      linewidth=linewidth)
             plt.fill_between(x, (y_alone - y_err_alone), (y_alone + y_err_alone), color=color['Alone'], alpha=.1)
