@@ -131,6 +131,8 @@ def process_control():
         if 'genre' in cfg['data_split_mode']:
             if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
                 cfg['num_organizations'] = 18
+            elif cfg['data_name'] in ['Amazon']:
+                cfg['num_organizations'] = 4
             else:
                 raise ValueError('Not valid data name')
         elif 'random' in cfg['data_split_mode']:
@@ -152,8 +154,8 @@ def process_control():
     cfg['mlp'] = {'hidden_size': [128, 64, 32, 16]}
     cfg['nmf'] = {'hidden_size': [128, 64, 32, 16]}
     cfg['ae'] = {'encoder_hidden_size': [256, 128], 'decoder_hidden_size': [128, 256]}
-    batch_size = {'user': {'ML100K': 100, 'ML1M': 500, 'ML10M': 5000, 'ML20M': 5000, 'NFP': 5000},
-                  'item': {'ML100K': 100, 'ML1M': 500, 'ML10M': 1000, 'ML20M': 1000, 'NFP': 1000}}
+    batch_size = {'user': {'ML100K': 100, 'ML1M': 500, 'ML10M': 5000, 'ML20M': 5000, 'NFP': 5000, 'Amazon': 5000},
+                  'item': {'ML100K': 100, 'ML1M': 500, 'ML10M': 1000, 'ML20M': 1000, 'NFP': 1000, 'Amazon': 10000}}
     model_name = cfg['model_name']
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
     cfg[model_name]['optimizer_name'] = 'Adam'

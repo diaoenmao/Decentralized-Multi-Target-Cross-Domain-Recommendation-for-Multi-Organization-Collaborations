@@ -18,7 +18,7 @@ def fetch_dataset(data_name, model_name=None, verbose=True):
     if verbose:
         print('fetching data {}...'.format(data_name))
     root = './data/{}'.format(data_name)
-    if data_name in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
+    if data_name in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP', 'Amazon']:
         dataset['train'] = eval(
             'datasets.{}(root=root, split=\'train\', data_mode=cfg["data_mode"], '
             'target_mode=cfg["target_mode"])'.format(data_name))
@@ -194,7 +194,7 @@ class FlatInput(torch.nn.Module):
 
 
 def split_dataset(dataset):
-    if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']:
+    if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP', 'Amazon']:
         if 'genre' in cfg['data_split_mode']:
             if cfg['data_mode'] == 'user':
                 num_organizations = cfg['num_organizations']

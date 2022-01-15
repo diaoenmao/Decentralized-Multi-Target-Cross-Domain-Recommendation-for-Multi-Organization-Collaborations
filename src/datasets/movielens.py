@@ -31,7 +31,7 @@ class ML100K(Dataset):
             self.data = csr_matrix((data_coo.data, (data_coo.col, data_coo.row)),
                                    shape=(self.data.shape[1], self.data.shape[0]))
             self.target = csr_matrix((target_coo.data, (target_coo.col, target_coo.row)),
-                                   shape=(self.target.shape[1], self.target.shape[0]))
+                                     shape=(self.target.shape[1], self.target.shape[0]))
         else:
             raise ValueError('Not valid data mode')
         user_profile = load(os.path.join(self.processed_folder, 'user_profile.pt'), mode='pickle')
@@ -238,7 +238,7 @@ class ML1M(Dataset):
             self.data = csr_matrix((data_coo.data, (data_coo.col, data_coo.row)),
                                    shape=(self.data.shape[1], self.data.shape[0]))
             self.target = csr_matrix((target_coo.data, (target_coo.col, target_coo.row)),
-                                   shape=(self.target.shape[1], self.target.shape[0]))
+                                     shape=(self.target.shape[1], self.target.shape[0]))
         else:
             raise ValueError('Not valid data mode')
         user_profile = load(os.path.join(self.processed_folder, 'user_profile.pt'), mode='pickle')
@@ -414,7 +414,7 @@ class ML1M(Dataset):
         occupation = np.eye(len(le.classes_), dtype=np.float32)[occupation]
         user_profile = np.hstack([age, gender, occupation])
         item_attr = pd.read_csv(os.path.join(self.raw_folder, 'ml-1m', 'movies.dat'), delimiter='::',
-                                names=['id', 'name', 'genre'], engine='python')
+                                names=['id', 'name', 'genre'], encoding='latin', engine='python')
         item_attr = item_attr[item_attr['id'].isin(list(item_id_map.keys()))]
         genre_list = ['Action', 'Adventure', 'Animation', "Children's", 'Comedy', 'Crime', 'Documentary', 'Drama',
                       'Fantasy', 'Film-Noir', 'Horror', 'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War',
@@ -447,7 +447,7 @@ class ML10M(Dataset):
             self.data = csr_matrix((data_coo.data, (data_coo.col, data_coo.row)),
                                    shape=(self.data.shape[1], self.data.shape[0]))
             self.target = csr_matrix((target_coo.data, (target_coo.col, target_coo.row)),
-                                   shape=(self.target.shape[1], self.target.shape[0]))
+                                     shape=(self.target.shape[1], self.target.shape[0]))
         else:
             raise ValueError('Not valid data mode')
         item_attr = load(os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')
@@ -634,7 +634,7 @@ class ML20M(Dataset):
             self.data = csr_matrix((data_coo.data, (data_coo.col, data_coo.row)),
                                    shape=(self.data.shape[1], self.data.shape[0]))
             self.target = csr_matrix((target_coo.data, (target_coo.col, target_coo.row)),
-                                   shape=(self.target.shape[1], self.target.shape[0]))
+                                     shape=(self.target.shape[1], self.target.shape[0]))
         else:
             raise ValueError('Not valid data mode')
         item_attr = load(os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')
