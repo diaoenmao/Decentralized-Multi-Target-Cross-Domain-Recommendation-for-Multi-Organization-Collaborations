@@ -7,7 +7,7 @@ from config import cfg
 from data import make_data_loader
 from organization import Organization
 from utils import make_optimizer, to_device
-
+from privacy import make_privacy
 
 class Assist:
     def __init__(self, data_split):
@@ -46,7 +46,9 @@ class Assist:
             output_k.requires_grad = True
             loss = models.loss_fn(output_k, target_k, reduction='sum')
             loss.backward()
-            residual_k = - copy.deepcopy(output_k.grad)
+            residual_k = - copy.deepcopy(output_k.grad).cpu().numpy()
+            if 'pl' in cfg and cfg['pl'] != 'none':
+                residual_k = make_privacy(residual_k, cfg['pl_mode'], cfg['pl_param'])
             output_k.detach_()
             for i in range(len(dataset)):
                 coo = self.organization_target[0][k].tocoo()
@@ -78,7 +80,7 @@ class Assist:
                     model = models.assist().to(cfg['device'])
                     if cfg['assist']['ar_mode'] == 'optim' or cfg['assist']['aw_mode'] == 'optim':
                         history = torch.tensor(self.organization_output[iter - 1][split][:, self.data_split[i]].data)
-                        if 'match_rate' in cfg['assist']:
+                        if 'match_rate' in cfg['assist'] and cfg['assist']['match_rate'] < 1:
                             output = []
                             for j in range(len(organization_outputs)):
                                 output_j = torch.tensor(organization_outputs[i][split][:, self.data_split[i]].data)
@@ -110,7 +112,7 @@ class Assist:
                     model.load_state_dict(self.ar_state_dict[iter][i])
                     model.train(False)
                     history = torch.tensor(self.organization_output[iter - 1][split][:, self.data_split[i]].data)
-                    if 'match_rate' in cfg['assist']:
+                    if 'match_rate' in cfg['assist'] and cfg['assist']['match_rate'] < 1:
                         output = []
                         for j in range(len(organization_outputs)):
                             output_j = torch.tensor(organization_outputs[i][split][:, self.data_split[i]].data)

@@ -148,6 +148,11 @@ def process_control():
         cfg['assist']['aw_mode'] = cfg['control']['aw']
     if 'match_rate' in cfg['control']:
         cfg['assist']['match_rate'] = float(cfg['control']['match_rate'])
+    if 'pl' in cfg['control']:
+        cfg['pl'] = cfg['control']['pl']
+        if cfg['pl'] != 'none':
+            pl_list = cfg['pl'].split('-')
+            cfg['pl_mode'], cfg['pl_param'] = pl_list[0], float(pl_list[1])
     cfg['base'] = {}
     cfg['mf'] = {'hidden_size': 128}
     cfg['gmf'] = {'hidden_size': 128}
