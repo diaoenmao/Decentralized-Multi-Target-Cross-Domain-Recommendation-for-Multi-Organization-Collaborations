@@ -42,6 +42,7 @@ class Decoder(nn.Module):
             blocks.append(nn.Linear(hidden_size[i], hidden_size[i + 1]))
             blocks.append(nn.Tanh())
         blocks.append(nn.Linear(hidden_size[-1], output_size))
+        blocks.append(nn.Tanh())
         self.blocks = nn.Sequential(*blocks)
         self.reset_parameters()
 
@@ -64,8 +65,16 @@ class AE(nn.Module):
         super().__init__()
         self.info_size = info_size
         if cfg['data_mode'] == 'user':
-            self.encoder = Encoder(encoder_num_items, encoder_hidden_size)
-            self.decoder = Decoder(decoder_num_items, decoder_hidden_size)
+            self.encoder_num_items = encoder_num_items
+            self.decoder_num_items = decoder_num_items
+            self.encoder = Encoder(encoder_hidden_size[0], encoder_hidden_size[1:])
+            self.decoder = Decoder(decoder_hidden_size[-1], decoder_hidden_size[:-1])
+            self.encoder_linear = nn.Linear(encoder_num_items, encoder_hidden_size[0])
+            nn.init.xavier_uniform_(self.encoder_linear.weight)
+            self.encoder_linear.bias.data.zero_()
+            self.decoder_linear = nn.Linear(decoder_hidden_size[-1], decoder_num_items)
+            nn.init.xavier_uniform_(self.decoder_linear.weight)
+            self.decoder_linear.bias.data.zero_()
         elif cfg['data_mode'] == 'item':
             self.encoder = Encoder(encoder_num_users, encoder_hidden_size)
             self.decoder = Decoder(decoder_num_users, decoder_hidden_size)
@@ -80,26 +89,37 @@ class AE(nn.Module):
 
     def forward(self, input):
         output = {}
-        with torch.no_grad():
-            if cfg['data_mode'] == 'user':
-                user, user_idx = torch.unique(torch.cat([input['user'], input['target_user']]), return_inverse=True)
-                num_users = len(user)
-                rating = torch.zeros((num_users, self.encoder.input_size), device=user.device)
-                rating[user_idx[:len(input['user'])], input['item']] = input['rating']
-                input['rating'] = rating
-                rating = torch.full((num_users, self.decoder.output_size), float('nan'), device=user.device)
-                rating[user_idx[len(input['user']):], input['target_item']] = input['target_rating']
-                input['target_rating'] = rating
-            elif cfg['data_mode'] == 'item':
-                item, item_idx = torch.unique(torch.cat([input['item'], input['target_item']]), return_inverse=True)
-                num_items = len(item)
-                rating = torch.zeros((num_items, self.encoder.input_size), device=item.device)
-                rating[item_idx[:len(input['item'])], input['user']] = input['rating']
-                input['rating'] = rating
-                rating = torch.full((num_items, self.decoder.output_size), float('nan'), device=item.device)
-                rating[item_idx[len(input['item']):], input['target_user']] = input['target_rating']
-                input['target_rating'] = rating
-        x = input['rating']
+        if cfg['data_mode'] == 'user':
+            # input['user'], sorted_indices = torch.sort(input['user'])
+            # input['item'] = input['item'][sorted_indices]
+            # input['rating'] = input['rating'][sorted_indices]
+            encoder_item_weight = self.encoder_linear.weight.t()[input['item']]
+            user, user_count = torch.unique_consecutive(input['user'], return_counts=True)
+            user_indices = torch.cat([torch.tensor([0], device=user.device), torch.cumsum(user_count, dim=0)])
+            x = encoder_item_weight * input['rating'].view(-1, 1)
+            x = [x[user_indices[i]:user_indices[i + 1]].sum(dim=0) for i in range(len(user))]
+            x = torch.stack(x, dim=0)
+            x = torch.tanh(x + self.encoder_linear.bias)
+
+            # user, user_idx = torch.unique(torch.cat([input['user'], input['target_user']]), return_inverse=True)
+            # num_users = len(user)
+            # rating = torch.zeros((num_users, self.encoder_num_items), device=user.device)
+            # rating[user_idx[:len(input['user'])], input['item']] = input['rating']
+            # input['rating'] = rating
+            # rating = torch.full((num_users, self.decoder_num_items), float('nan'), device=user.device)
+            # rating[user_idx[len(input['user']):], input['target_item']] = input['target_rating']
+            # input['target_rating'] = rating
+            # x = input['rating']
+            # x = torch.tanh(self.encoder_linear(x))
+        elif cfg['data_mode'] == 'item':
+            item, item_idx = torch.unique(torch.cat([input['item'], input['target_item']]), return_inverse=True)
+            num_items = len(item)
+            rating = torch.zeros((num_items, self.encoder.input_size), device=item.device)
+            rating[item_idx[:len(input['item'])], input['user']] = input['rating']
+            input['rating'] = rating
+            rating = torch.full((num_items, self.decoder.output_size), float('nan'), device=item.device)
+            rating[item_idx[len(input['item']):], input['target_user']] = input['target_rating']
+            input['target_rating'] = rating
         encoded = self.encoder(x)
         if self.info_size is not None:
             if 'user_profile' in input:
@@ -112,10 +132,34 @@ class AE(nn.Module):
                 encoded = encoded + item_attr
         code = self.dropout(encoded)
         decoded = self.decoder(code)
-        output['target_rating'] = decoded
-        target_mask = ~(input['target_rating'].isnan())
-        output['target_rating'], input['target_rating'] = output['target_rating'][target_mask], input['target_rating'][
-            target_mask]
+        if cfg['data_mode'] == 'user':
+            decoder_item_weight = self.decoder_linear.weight[input['target_item']]
+            decoder_item_bias = self.decoder_linear.bias[input['target_item']]
+            target_user, target_user_count_ = torch.unique_consecutive(input['target_user'], return_counts=True)
+            target_mask = torch.isin(user, target_user)
+            target_user_count = user_count.new_zeros(user_count.size())
+            target_user_count[target_mask] = target_user_count_
+            target_user_indices = torch.cat(
+                [torch.tensor([0], device=user.device), torch.cumsum(target_user_count, dim=0)])
+            x = [(decoder_item_weight[target_user_indices[i]:target_user_indices[i + 1]] * decoded[i]).sum(dim=-1) for i
+                 in range(len(user)) if target_mask[i]]
+            x = torch.cat(x, dim=0)
+            x = x + decoder_item_bias
+            output['target_rating'] = x
+            # decoded = self.decoder_linear(decoded)
+            # output['target_rating'] = decoded
+            # target_mask = ~(input['target_rating'].isnan())
+            # output['target_rating'], input['target_rating'] = output['target_rating'][target_mask], \
+            #                                                   input['target_rating'][
+            #                                                       target_mask]
+        elif cfg['data_mode'] == 'item':
+            decoder_user_weight = self.decoder_user_weight(input['target_user'])
+            decoder_user_bias = self.decoder_user_bias(input['target_user'])
+            item, item_count = torch.unique_consecutive(input['target_item'], return_counts=True)
+            item_idx = torch.cat([torch.tensor([0], device=item.device), torch.cumsum(item_count, dim=0)])
+            x = [(decoder_user_weight[item_idx[i]:item_idx[i + 1]] * decoded[i] +
+                  decoder_user_bias[item_idx[i]:item_idx[i + 1]]).sum(dim=-1) for i in range(len(item_idx) - 1)]
+            x = torch.cat(x, dim=0)
         if 'local' in input and input['local']:
             output['loss'] = F.mse_loss(output['target_rating'], input['target_rating'])
         else:
