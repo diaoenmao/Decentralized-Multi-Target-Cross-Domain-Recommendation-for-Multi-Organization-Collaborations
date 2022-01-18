@@ -335,19 +335,36 @@ import models
 #     print(a[:, 0].toarray())
 
 
-if __name__ == "__main__":
-    process_control()
-    cfg['seed'] = 0
-    batch_size = {'train': 10, 'test': 10}
-    # data_names = ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']
-    # data_names = ['ML100K']
-    # data_names = ['Amazon']
-    for data_name in data_names:
-        dataset = fetch_dataset(data_name)
-        print(dataset['train'].num_users, dataset['train'].num_items)
-        data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
-        for i, input in enumerate(data_loader['test']):
-            input = collate(input)
-            print(input['user'].size(), input['item'].size(), input['rating'].size(),
-                  input['target_user'].size(), input['target_item'].size(), input['target_rating'].size())
-            break
+# if __name__ == "__main__":
+#     process_control()
+#     cfg['seed'] = 0
+#     batch_size = {'train': 1000, 'test': 5000}
+#     # data_names = ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP']
+#     # data_names = ['ML10M']
+#     data_names = ['NFP']
+#     for data_name in data_names:
+#         dataset = fetch_dataset(data_name)
+#         print(dataset['train'].num_users, dataset['train'].num_items)
+#         data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
+#         for i, input in enumerate(data_loader['train']):
+#             input = collate(input)
+#             print(input['user'].size(), input['item'].size(), input['rating'].size(),
+#                   input['target_user'].size(), input['target_item'].size(), input['target_rating'].size())
+#             break
+
+# if __name__ == "__main__":
+#     # inputs
+#     sizes = torch.tensor([3, 7, 5, 9], dtype=torch.long)
+#     x = torch.ones(sizes.sum())
+#     print(x)
+#     # prepare an index vector for summation (what elements of x are summed to each element of y)
+#     # ind = torch.zeros(sizes.sum(), dtype=torch.long)
+#     # ind[torch.cumsum(sizes, dim=0)[:-1]] = 1
+#     # ind = torch.cumsum(ind, dim=0)
+#     ind = torch.arange(len(sizes)).repeat_interleave(sizes)
+#     print(ind)
+#     # prepare the output
+#     y = torch.zeros(len(sizes))
+#     # do the actual summation
+#     y.index_add_(0, ind, x)
+#     print(y)
