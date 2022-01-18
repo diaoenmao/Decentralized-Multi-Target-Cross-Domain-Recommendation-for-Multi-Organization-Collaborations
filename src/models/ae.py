@@ -91,15 +91,12 @@ class AE(nn.Module):
     def forward(self, input):
         output = {}
         if cfg['data_mode'] == 'user':
-            total_user = torch.unique(torch.cat([input['user'], input['target_user']]), sorted=True)
             encoder_item_weight = self.encoder_linear.weight.t()[input['item']]
-            sorted_user, sorted_idx = torch.sort(input['user'])
-            user, user_count = torch.unique_consecutive(sorted_user, return_counts=True)
-            mask = torch.isin(total_user, user)
+            user, user_count = torch.unique_consecutive(input['user'], return_counts=True)
             user_indices = torch.arange(len(user_count), device=user.device).repeat_interleave(user_count)
             x = encoder_item_weight * input['rating'].view(-1, 1)
-            x_ = torch.zeros((len(total_user), encoder_item_weight.size(-1)), device=user.device)
-            x_[mask].index_add_(0, user_indices, x[sorted_idx])
+            x_ = torch.zeros((len(user_count), encoder_item_weight.size(-1)), device=user.device)
+            x_.index_add_(0, user_indices, x)
             x = torch.tanh(x_ + self.encoder_linear.bias)
         elif cfg['data_mode'] == 'item':
             encoder_user_weight = self.encoder_linear.weight.t()[input['user']]
@@ -124,11 +121,9 @@ class AE(nn.Module):
         if cfg['data_mode'] == 'user':
             decoder_target_item_weight = self.decoder_linear.weight[input['target_item']]
             decoder_target_item_bias = self.decoder_linear.bias[input['target_item']]
-            sorted_target_user, sorted_target_idx = torch.sort(input['target_user'])
-            _, inverse_idx = torch.sort(sorted_target_idx)
-            target_user, target_user_count = torch.unique_consecutive(sorted_target_user, return_counts=True)
-            target_mask = torch.isin(total_user, target_user)
-            x = decoded[target_mask].repeat_interleave(target_user_count, dim=0)[inverse_idx]
+            target_user, target_user_count = torch.unique_consecutive(input['target_user'], return_counts=True)
+            target_mask = torch.isin(user, target_user)
+            x = decoded[target_mask].repeat_interleave(target_user_count, dim=0)
             x = (x * decoder_target_item_weight).sum(dim=-1) + decoder_target_item_bias
         elif cfg['data_mode'] == 'item':
             decoder_target_user_weight = self.decoder_linear.weight[input['target_user']]
