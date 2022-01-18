@@ -91,20 +91,26 @@ class AE(nn.Module):
     def forward(self, input):
         output = {}
         if cfg['data_mode'] == 'user':
+            total_user = torch.unique(torch.cat([input['user'], input['target_user']]), sorted=True)
             encoder_item_weight = self.encoder_linear.weight.t()[input['item']]
-            user, user_count = torch.unique_consecutive(input['user'], return_counts=True)
+            sorted_user, sorted_user_idx = torch.sort(input['user'])
+            user, user_count = torch.unique_consecutive(sorted_user, return_counts=True)
+            mask = torch.isin(total_user, user)
             user_indices = torch.arange(len(user_count), device=user.device).repeat_interleave(user_count)
             x = encoder_item_weight * input['rating'].view(-1, 1)
-            x_ = torch.zeros((len(user_count), encoder_item_weight.size(-1)), device=user.device)
-            x_.index_add_(0, user_indices, x)
+            x_ = torch.zeros((len(total_user), encoder_item_weight.size(-1)), device=user.device)
+            x_[mask] = x_[mask].index_add(0, user_indices, x[sorted_user_idx])
             x = torch.tanh(x_ + self.encoder_linear.bias)
         elif cfg['data_mode'] == 'item':
+            total_item = torch.unique(torch.cat([input['item'], input['target_item']]), sorted=True)
             encoder_user_weight = self.encoder_linear.weight.t()[input['user']]
-            item, item_count = torch.unique_consecutive(input['item'], return_counts=True)
+            sorted_item, sorted_item_idx = torch.sort(input['item'])
+            item, item_count = torch.unique_consecutive(sorted_item, return_counts=True)
+            mask = torch.isin(total_item, item)
             item_indices = torch.arange(len(item_count), device=item.device).repeat_interleave(item_count)
             x = encoder_user_weight * input['rating'].view(-1, 1)
-            x_ = torch.zeros((len(item_count), encoder_user_weight.size(-1)), device=item.device)
-            x_.index_add_(0, item_indices, x)
+            x_ = torch.zeros((len(total_item), encoder_user_weight.size(-1)), device=item.device)
+            x_[mask] = x_[mask].index_add(0, item_indices, x[sorted_item_idx])
             x = torch.tanh(x_ + self.encoder_linear.bias)
         encoded = self.encoder(x)
         if self.info_size is not None:
@@ -121,17 +127,20 @@ class AE(nn.Module):
         if cfg['data_mode'] == 'user':
             decoder_target_item_weight = self.decoder_linear.weight[input['target_item']]
             decoder_target_item_bias = self.decoder_linear.bias[input['target_item']]
-            target_user, target_user_count = torch.unique_consecutive(input['target_user'], return_counts=True)
-            target_mask = torch.isin(user, target_user)
-            x = decoded[target_mask].repeat_interleave(target_user_count, dim=0)
+            sorted_target_user, sorted_target_user_idx = torch.sort(input['target_user'])
+            _, inverse_idx = torch.sort(sorted_target_user_idx)
+            target_user, target_user_count = torch.unique_consecutive(sorted_target_user, return_counts=True)
+            target_mask = torch.isin(total_user, target_user)
+            x = decoded[target_mask].repeat_interleave(target_user_count, dim=0)[inverse_idx]
             x = (x * decoder_target_item_weight).sum(dim=-1) + decoder_target_item_bias
         elif cfg['data_mode'] == 'item':
             decoder_target_user_weight = self.decoder_linear.weight[input['target_user']]
             decoder_target_user_bias = self.decoder_linear.bias[input['target_user']]
-            target_item, target_item_count = torch.unique_consecutive(input['target_item'], return_counts=True)
-            target_mask = torch.isin(item, target_item)
-            print(decoded.shape, decoded[[target_mask]].shape, target_item_count.shape)
-            x = decoded[target_mask].repeat_interleave(target_item_count, dim=0)
+            sorted_target_item, sorted_target_item_idx = torch.sort(input['target_item'])
+            _, inverse_idx = torch.sort(sorted_target_item_idx)
+            target_item, target_item_count = torch.unique_consecutive(sorted_target_item, return_counts=True)
+            target_mask = torch.isin(total_item, target_item)
+            x = decoded[target_mask].repeat_interleave(target_item_count, dim=0)[inverse_idx]
             x = (x * decoder_target_user_weight).sum(dim=-1) + decoder_target_user_bias
         output['target_rating'] = x
         if 'local' in input and input['local']:
