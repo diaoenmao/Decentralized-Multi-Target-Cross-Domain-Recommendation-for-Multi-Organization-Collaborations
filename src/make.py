@@ -12,6 +12,7 @@ parser.add_argument('--num_experiments', default=1, type=int)
 parser.add_argument('--resume_mode', default=0, type=int)
 parser.add_argument('--file', default=None, type=str)
 parser.add_argument('--data', default=None, type=str)
+parser.add_argument('--split_round', default=65535, type=int)
 args = vars(parser.parse_args())
 
 
@@ -35,13 +36,14 @@ def main():
     num_experiments = args['num_experiments']
     resume_mode = args['resume_mode']
     file = args['file']
+    split_round = args['split_round']
     data = args['data'].split('_')
     gpu_ids = [','.join(str(i) for i in list(range(x, x + world_size))) for x in list(range(0, num_gpus, world_size))]
     init_seeds = [list(range(init_seed, init_seed + num_experiments, experiment_step))]
     world_size = [[world_size]]
     num_experiments = [[experiment_step]]
     resume_mode = [[resume_mode]]
-    filename = '{}_{}'.format(run, file)
+    filename = '{}_{}_{}'.format(run, file, args['data'])
     if file == 'joint':
         controls = []
         script_name = [['{}_recsys_joint.py'.format(run)]]
@@ -87,7 +89,7 @@ def main():
     elif file == 'alone':
         controls = []
         script_name = [['{}_recsys_alone.py'.format(run)]]
-        control_name = [[data, ['user'], ['explicit', 'implicit'], ['base'], ['0'], [['genre']]]]
+        control_name = [[data, ['user'], ['explicit', 'implicit'], ['base'], ['0'], ['genre']]]
         base_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                            control_name)
         control_name = [[data, ['item'], ['explicit', 'implicit'], ['base'], ['0'], ['random-8']]]
@@ -97,7 +99,7 @@ def main():
         controls.extend(base_controls)
         if 'ML100K' in data:
             control_name = [[['ML100K'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
-                             ['0'], [['genre']]]]
+                             ['0'], ['genre']]]
             ml100k_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                  control_name)
             control_name = [[['ML100K'], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
@@ -108,7 +110,7 @@ def main():
             controls.extend(ml100k_controls)
         if 'ML1M' in data:
             control_name = [[['ML1M'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
-                             ['0'], [['genre']]]]
+                             ['0'], ['genre']]]
             ml1m_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                control_name)
             control_name = [[['ML1M'], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
@@ -119,7 +121,7 @@ def main():
             controls.extend(ml1m_controls)
         if 'ML10M' in data:
             control_name = [[['ML10M'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
-                             ['0'], [['genre']]]]
+                             ['0'], ['genre']]]
             ml10m_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                 control_name)
             control_name = [[['ML10M'], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
@@ -130,7 +132,7 @@ def main():
             controls.extend(ml10m_controls)
         if 'ML20M' in data:
             control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
-                             ['0'], [['genre']]]]
+                             ['0'], ['genre']]]
             ml20m_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                 control_name)
             control_name = [[['ML20M'], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
@@ -514,7 +516,7 @@ def main():
             controls.extend(ml100k_controls)
         if 'ML1M' in data:
             control_name = [[['ML1M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'],
-                             ['genre'], ['constant-0.1'], ['constant'], ['0.5']]]
+                             ['genre'], ['constant-0.1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
             ml1m_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                control_name)
             control_name = [[['ML1M'], ['item'], ['explicit', 'implicit'], ['ae'], ['0'],
@@ -566,20 +568,30 @@ def main():
     else:
         raise ValueError('Not valid file')
     s = '#!/bin/bash\n'
-    k = 0
+    j = 1
+    k = 1
     for i in range(len(controls)):
         controls[i] = list(controls[i])
-        s = s + 'CUDA_VISIBLE_DEVICES=\"{}\" python {} --init_seed {} --world_size {} --num_experiments {} ' \
-                '--resume_mode {} --control_name {}&\n'.format(gpu_ids[k % len(gpu_ids)], *controls[i])
-        if k % round == round - 1:
+        s = s + 'CUDA_VISIBLE_DEVICES=\"{}\" python {} --init_seed {} --world_size {} ' \
+                '--num_experiments {} --resume_mode {} --control_name {}&\n'.format(
+            gpu_ids[i % len(gpu_ids)], *controls[i])
+        if i % round == round - 1:
             s = s[:-2] + '\nwait\n'
-        k = k + 1
-    if s[-5:-1] != 'wait':
-        s = s + 'wait\n'
-    print(s)
-    run_file = open('./{}.sh'.format(filename), 'w')
-    run_file.write(s)
-    run_file.close()
+            if j % split_round == 0:
+                print(s)
+                run_file = open('./{}_{}.sh'.format(filename, k), 'w')
+                run_file.write(s)
+                run_file.close()
+                s = '#!/bin/bash\n'
+                k = k + 1
+            j = j + 1
+    if s != '#!/bin/bash\n':
+        if s[-5:-1] != 'wait':
+            s = s + 'wait\n'
+        print(s)
+        run_file = open('./{}_{}.sh'.format(filename, k), 'w')
+        run_file.write(s)
+        run_file.close()
     return
 
 
