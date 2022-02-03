@@ -81,7 +81,7 @@ def main():
                                          control_name)
             controls.extend(nfp_controls)
         if 'Amazon' in data:
-            control_name = [[['Amazon'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0']]]
             amazon_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                             control_name)
@@ -124,11 +124,7 @@ def main():
                              ['0'], ['genre']]]
             ml10m_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                 control_name)
-            control_name = [[['ML10M'], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
-                             ['0'], ['random-8']]]
-            ml10m_item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
-                                                control_name)
-            ml10m_controls = ml10m_user_controls + ml10m_item_controls
+            ml10m_controls = ml10m_user_controls
             controls.extend(ml10m_controls)
         if 'ML20M' in data:
             control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
@@ -150,13 +146,8 @@ def main():
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0'], ['genre']]]
-            amazon_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+            amazon_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                  control_name)
-            control_name = [[['Amazon'], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
-                             ['0'], ['random-8']]]
-            amazon_item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
-                                                 control_name)
-            amazon_controls = amazon_user_controls + amazon_item_controls
             controls.extend(amazon_controls)
     elif file == 'assist':
         controls = []
@@ -214,14 +205,8 @@ def main():
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
                              ['constant']]]
-            amazon_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+            amazon_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                  control_name)
-            control_name = [
-                [['Amazon'], ['item'], ['explicit', 'implicit'], ['ae'], ['0'], ['random-8'], ['constant-0.1'],
-                 ['constant']]]
-            amazon_item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
-                                                 control_name)
-            amazon_controls = amazon_user_controls + amazon_item_controls
             controls.extend(amazon_controls)
     elif file == 'info':
         controls = []
@@ -296,14 +281,8 @@ def main():
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.3'],
                              ['constant']]]
-            amazon_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+            amazon_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                  control_name)
-            control_name = [
-                [['Amazon'], ['item'], ['explicit', 'implicit'], ['ae'], ['0'], ['random-8'], ['constant-0.3'],
-                 ['constant']]]
-            amazon_item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
-                                                 control_name)
-            amazon_controls = amazon_user_controls + amazon_item_controls
             controls.extend(amazon_controls)
     elif file == 'aw':
         controls = []
@@ -361,14 +340,8 @@ def main():
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
                              ['optim']]]
-            amazon_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+            amazon_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                  control_name)
-            control_name = [
-                [['Amazon'], ['item'], ['explicit', 'implicit'], ['ae'], ['0'], ['random-8'], ['constant-0.1'],
-                 ['optim']]]
-            amazon_item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
-                                                 control_name)
-            amazon_controls = amazon_user_controls + amazon_item_controls
             controls.extend(amazon_controls)
     elif file == 'ar-optim':
         controls = []
@@ -426,14 +399,8 @@ def main():
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['optim-0.1'],
                              ['constant']]]
-            amazon_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+            amazon_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                  control_name)
-            control_name = [
-                [['Amazon'], ['item'], ['explicit', 'implicit'], ['ae'], ['0'], ['random-8'], ['optim-0.1'],
-                 ['constant']]]
-            amazon_item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
-                                                 control_name)
-            amazon_controls = amazon_user_controls + amazon_item_controls
             controls.extend(amazon_controls)
     elif file == 'match':
         controls = []
@@ -491,14 +458,8 @@ def main():
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
                              ['constant'], ['0.5']]]
-            amazon_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+            amazon_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                  control_name)
-            control_name = [
-                [['Amazon'], ['item'], ['explicit', 'implicit'], ['ae'], ['0'], ['random-8'], ['constant-0.1'],
-                 ['constant'], ['0.5']]]
-            amazon_item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
-                                                 control_name)
-            amazon_controls = amazon_user_controls + amazon_item_controls
             controls.extend(amazon_controls)
     elif file == 'pl':
         controls = []
@@ -556,14 +517,8 @@ def main():
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
                              ['constant'], ['1'], ['dp-10', 'ip-10']]]
-            amazon_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+            amazon_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                  control_name)
-            control_name = [
-                [['Amazon'], ['item'], ['explicit', 'implicit'], ['ae'], ['0'], ['random-8'], ['constant-0.1'],
-                 ['constant'], ['1'], ['dp-10', 'ip-10']]]
-            amazon_item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
-                                                 control_name)
-            amazon_controls = amazon_user_controls + amazon_item_controls
             controls.extend(amazon_controls)
     else:
         raise ValueError('Not valid file')

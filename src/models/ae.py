@@ -64,8 +64,12 @@ class AE(nn.Module):
                  decoder_hidden_size, info_size):
         super().__init__()
         self.info_size = info_size
-        self.encoder = Encoder(encoder_hidden_size[0], encoder_hidden_size[1:])
-        self.decoder = Decoder(decoder_hidden_size[-1], decoder_hidden_size[:-1])
+        if len(encoder_hidden_size) > 1:
+            self.encoder = Encoder(encoder_hidden_size[0], encoder_hidden_size[1:])
+            self.decoder = Decoder(decoder_hidden_size[-1], decoder_hidden_size[:-1])
+        else:
+            self.encoder = nn.Identity()
+            self.decoder = nn.Identity()
         if cfg['data_mode'] == 'user':
             self.encoder_linear = nn.Linear(encoder_num_items, encoder_hidden_size[0])
             self.decoder_linear = nn.Linear(decoder_hidden_size[-1], decoder_num_items)
@@ -74,7 +78,7 @@ class AE(nn.Module):
             self.decoder_linear = nn.Linear(decoder_hidden_size[-1], decoder_num_users)
         else:
             raise ValueError('Not valid data mode')
-        self.dropout = nn.Dropout(p=0.5)
+        self.dropout = nn.Dropout(p=0.8)
         if info_size is not None:
             if 'user_profile' in info_size:
                 self.user_profile = Encoder(info_size['user_profile'], encoder_hidden_size)
@@ -86,6 +90,9 @@ class AE(nn.Module):
         nn.init.xavier_uniform_(self.encoder_linear.weight)
         if self.encoder_linear.bias is not None:
             self.encoder_linear.bias.data.zero_()
+        nn.init.xavier_uniform_(self.decoder_linear.weight)
+        if self.decoder_linear.bias is not None:
+            self.decoder_linear.bias.data.zero_()
         return
 
     def forward(self, input):
