@@ -431,6 +431,7 @@ def main():
     extracted_processed_result = {}
     extract_processed_result(extracted_processed_result, processed_result, [])
     df = make_df(extracted_processed_result)
+    exit()
     make_vis(df)
     return
 
@@ -521,7 +522,7 @@ def summarize_result(processed_result):
                                 tmp_processed_result = processed_result[k][i][:j] + processed_result[k][i][j + 1:]
                         if tmp_processed_result is not None:
                             processed_result[k][i] = tmp_processed_result
-                if e1[i] > 12 and e1[i] < 200:
+                if e1[i] > 18 and e1[i] < 200:
                     if isinstance(processed_result[k][i], list):
                         tmp_processed_result = processed_result[k][i] + [processed_result[k][i][-1]] * (
                                 200 - len(processed_result[k][i]))
