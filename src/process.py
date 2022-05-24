@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 
 result_path = './output/result'
-save_format = 'pdf'
+save_format = 'png'
 vis_path = './output/vis/{}'.format(save_format)
 num_experiments = 4
 exp = [str(x) for x in list(range(num_experiments))]
@@ -319,6 +319,54 @@ def make_control_list(data, file):
                              ['constant']]]
             amazon_controls = make_controls(control_name)
             controls.extend(amazon_controls)
+    elif file == 'optim-optim':
+        controls = []
+        if 'ML100K' in data:
+            control_name = [[['ML100K'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['genre'], ['optim-0.1'], ['optim']]]
+            ml100k_user_controls = make_controls(control_name)
+            control_name = [[['ML100K'], ['item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['random-8'], ['optim-0.1'], ['optim']]]
+            ml100k_item_controls = make_controls(control_name)
+            ml100k_controls = ml100k_user_controls + ml100k_item_controls
+            controls.extend(ml100k_controls)
+        if 'ML1M' in data:
+            control_name = [[['ML1M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['genre'], ['optim-0.1'], ['optim']]]
+            ml1m_user_controls = make_controls(control_name)
+            control_name = [[['ML1M'], ['item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['random-8'], ['optim-0.1'], ['optim']]]
+            ml1m_item_controls = make_controls(control_name)
+            ml1m_controls = ml1m_user_controls + ml1m_item_controls
+            controls.extend(ml1m_controls)
+        if 'ML10M' in data:
+            control_name = [[['ML10M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['genre'], ['optim-0.1'], ['optim']]]
+            ml10m_user_controls = make_controls(control_name)
+            control_name = [[['ML10M'], ['item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['random-8'], ['optim-0.1'], ['optim']]]
+            ml10m_item_controls = make_controls(control_name)
+            ml10m_controls = ml10m_user_controls + ml10m_item_controls
+            controls.extend(ml10m_controls)
+        if 'ML20M' in data:
+            control_name = [[['ML20M'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['genre'], ['optim-0.1'], ['optim']]]
+            ml20m_user_controls = make_controls(control_name)
+            control_name = [[['ML20M'], ['item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['random-8'], ['optim-0.1'], ['optim']]]
+            ml20m_item_controls = make_controls(control_name)
+            ml20m_controls = ml20m_user_controls + ml20m_item_controls
+            controls.extend(ml20m_controls)
+        if 'NFP' in data:
+            control_name = [[['NFP'], ['user', 'item'], ['explicit', 'implicit'], ['ae'], ['0'],
+                             ['random-8'], ['optim-0.1'], ['constant']]]
+            nfp_controls = make_controls(control_name)
+            controls.extend(nfp_controls)
+        if 'Amazon' in data:
+            control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['optim-0.1'],
+                             ['constant']]]
+            amazon_controls = make_controls(control_name)
+            controls.extend(amazon_controls)
     elif file == 'match':
         controls = []
         if 'ML100K' in data:
@@ -431,7 +479,6 @@ def main():
     extracted_processed_result = {}
     extract_processed_result(extracted_processed_result, processed_result, [])
     df = make_df(extracted_processed_result)
-    exit()
     make_vis(df)
     return
 
@@ -659,13 +706,24 @@ def make_vis(df):
                 plt.xticks(fontsize=fontsize['ticks'])
                 plt.yticks(fontsize=fontsize['ticks'])
             if len(df['test'][df_name_joint]) > 1:
-                joint_loss_pivot = np.inf
-                joint_best = None
-                for ((index, row), (_, row_std)) in zip(df['test'][df_name_joint].iterrows(),
-                                                        df['test'][df_name_joint].iterrows()):
-                    if row['Loss_mean'] < joint_loss_pivot:
-                        joint_loss_pivot = row['Loss_mean']
-                        joint_best = index
+                if metric_name in ['Loss', 'RMSE']:
+                    joint_pivot = np.inf
+                    joint_best = None
+                    for ((index, row), (_, row_std)) in zip(df['test'][df_name_joint].iterrows(),
+                                                            df['test'][df_name_joint].iterrows()):
+                        if row['{}_mean'.format(metric_name)] < joint_pivot:
+                            joint_pivot = row['{}_mean'.format(metric_name)]
+                            joint_best = index
+                elif metric_name in ['Accuracy', 'MAP']:
+                    joint_pivot = -np.inf
+                    joint_best = None
+                    for ((index, row), (_, row_std)) in zip(df['test'][df_name_joint].iterrows(),
+                                                            df['test'][df_name_joint].iterrows()):
+                        if row['{}_mean'.format(metric_name)] > joint_pivot:
+                            joint_pivot = row['{}_mean'.format(metric_name)]
+                            joint_best = index
+                else:
+                    raise ValueError('Not valid metric name')
                 y_joint = df['test'][df_name_joint]['{}_{}'.format(metric_name, stat)].loc[joint_best]
                 y_joint = np.full(x.shape, y_joint)
                 y_err_joint = df['test'][df_name_joint]['{}_std'.format(metric_name)].loc[joint_best]
@@ -675,13 +733,24 @@ def make_vis(df):
                 plt.fill_between(x, (y_joint - y_err_joint), (y_joint + y_err_joint), color=color['Joint'],
                                  alpha=.1)
             if len(df['test'][df_name_alone]) > 1:
-                alone_loss_pivot = np.inf
-                alone_best = None
-                for ((index, row), (_, row_std)) in zip(df['test'][df_name_joint].iterrows(),
-                                                        df['test'][df_name_joint].iterrows()):
-                    if row['Loss_mean'] < alone_loss_pivot:
-                        alone_loss_pivot = row['Loss_mean']
-                        alone_best = index
+                if metric_name in ['Loss', 'RMSE']:
+                    alone_pivot = np.inf
+                    alone_best = None
+                    for ((index, row), (_, row_std)) in zip(df['test'][df_name_joint].iterrows(),
+                                                            df['test'][df_name_joint].iterrows()):
+                        if row['{}_mean'.format(metric_name)] < alone_pivot:
+                            alone_pivot = row['{}_mean'.format(metric_name)]
+                            alone_best = index
+                elif metric_name in ['Accuracy', 'MAP']:
+                    alone_pivot = -np.inf
+                    alone_best = None
+                    for ((index, row), (_, row_std)) in zip(df['test'][df_name_joint].iterrows(),
+                                                            df['test'][df_name_joint].iterrows()):
+                        if row['{}_mean'.format(metric_name)] > alone_pivot:
+                            alone_pivot = row['{}_mean'.format(metric_name)]
+                            alone_best = index
+                else:
+                    raise ValueError('Not valid metric name')
                 y_alone = df['test'][df_name_alone]['{}_{}'.format(metric_name, stat)].loc[alone_best]
                 y_alone = np.full(x.shape, y_alone)
                 y_err_alone = df['test'][df_name_joint]['{}_std'.format(metric_name)].loc[alone_best]
