@@ -81,7 +81,7 @@ def main():
                                          control_name)
             controls.extend(nfp_controls)
         if 'Douban' in data:
-            control_name = [[['Douban'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0']]]
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)

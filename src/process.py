@@ -470,7 +470,7 @@ def make_control_list(data, file):
 
 def main():
     data = ['ML100K', 'ML1M', 'ML10M', 'Amazon']
-    files = ['joint', 'alone', 'assist', 'info', 'ar', 'aw', 'ar-optim', 'match', 'pl']
+    files = ['joint', 'alone', 'assist', 'info', 'ar', 'aw', 'ar-optim', 'match', 'optim-optim', 'pl']
     controls = []
     for file in files:
         controls += make_control_list(data, file)
@@ -666,12 +666,13 @@ def make_vis(df):
     control_dict = {'Joint': 'Joint', 'constant-0.1_constant': 'AAE ($\eta_k=0.1$)',
                     'constant-0.3_constant': 'AAE ($\eta_k=0.3$)', 'optim-0.1_constant': 'AAE (Optimize $\eta_k$)',
                     'constant-0.1_optim': 'AAE (Optimize $w_k$)', 'constant-0.1_constant_0.5': 'AAE ($50\%$ alignment)',
-                    'Alone': 'Alone'}
+                    'optim-0.1_optim': 'AAE (Optimize $\eta_k$, Optimize $w_k$)', 'Alone': 'Alone'}
     color = {'Joint': 'black', 'constant-0.1_constant': 'red', 'constant-0.3_constant': 'orange',
              'optim-0.1_constant': 'dodgerblue', 'constant-0.1_optim': 'blue', 'constant-0.1_constant_0.5': 'purple',
-             'Alone': 'green'}
+             'optim-0.1_optim': 'lightblue', 'Alone': 'green'}
     linestyle = {'Joint': '-', 'constant-0.1_constant': '--', 'constant-0.3_constant': ':', 'optim-0.1_constant': '-.',
-                 'constant-0.1_optim': (0, (1, 5)), 'constant-0.1_constant_0.5': (0, (5, 1)), 'Alone': (0, (5, 5))}
+                 'constant-0.1_optim': (0, (1, 5)), 'constant-0.1_constant_0.5': (0, (5, 1)),
+                 'optim-0.1_optim': (0, (10, 1)), 'Alone': (0, (5, 5))}
     loc_dict = {'Loss': 'upper right', 'RMSE': 'upper right', 'Accuracy': 'lower right', 'MAP': 'lower right'}
     fontsize = {'legend': 16, 'label': 16, 'ticks': 16}
     linewidth = 3

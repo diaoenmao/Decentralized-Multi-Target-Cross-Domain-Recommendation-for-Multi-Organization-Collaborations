@@ -120,6 +120,7 @@ class Douban(Dataset):
     def process(self):
         if not check_exists(self.raw_folder):
             self.download()
+        extract_file(os.path.join(self.raw_folder, self.filename))
         train_set, test_set = self.make_explicit_data()
         save(train_set, os.path.join(self.processed_folder, 'explicit', 'train.pt'), mode='pickle')
         save(test_set, os.path.join(self.processed_folder, 'explicit', 'test.pt'), mode='pickle')
@@ -133,7 +134,6 @@ class Douban(Dataset):
 
     def download(self):
         makedir_exist_ok(self.raw_folder)
-        extract_file(os.path.join(self.raw_folder, self.filename))
         return
 
     def __repr__(self):
