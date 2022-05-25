@@ -80,6 +80,12 @@ def main():
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user', 'item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
+                             ['0']]]
+            nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                         control_name)
+            controls.extend(nfp_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0']]]
@@ -143,6 +149,12 @@ def main():
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
+                             ['0'], ['genre']]]
+            amazon_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                                 control_name)
+            controls.extend(amazon_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0'], ['genre']]]
@@ -202,6 +214,12 @@ def main():
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
+                             ['constant']]]
+            amazon_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                                 control_name)
+            controls.extend(amazon_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
                              ['constant']]]
@@ -213,14 +231,21 @@ def main():
         script_name = [['{}_recsys_assist.py'.format(run)]]
         if 'ML100K' in data:
             control_name = [[['ML100K'], ['user'], ['explicit', 'implicit'], ['ae'], ['1'],
-                             ['genre'], ['constant-0.1'], ['constant']]]
+                             ['genre'], ['constant-0.3'], ['constant']]]
             ml100k_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                  control_name)
             ml100k_controls = ml100k_user_controls
             controls.extend(ml100k_controls)
         if 'ML1M' in data:
             control_name = [[['ML1M'], ['user'], ['explicit', 'implicit'], ['ae'], ['1'],
-                             ['genre'], ['constant-0.1'], ['constant']]]
+                             ['genre'], ['constant-0.3'], ['constant']]]
+            ml1m_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                               control_name)
+            ml1m_controls = ml1m_user_controls
+            controls.extend(ml1m_controls)
+        if 'Douban' in data:
+            control_name = [[['ML1M'], ['user'], ['explicit', 'implicit'], ['ae'], ['1'],
+                             ['genre'], ['constant-0.3'], ['constant']]]
             ml1m_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                control_name)
             ml1m_controls = ml1m_user_controls
@@ -278,6 +303,12 @@ def main():
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.3'],
+                             ['constant']]]
+            amazon_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                                 control_name)
+            controls.extend(amazon_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.3'],
                              ['constant']]]
@@ -337,6 +368,12 @@ def main():
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
+                             ['optim']]]
+            amazon_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                                 control_name)
+            controls.extend(amazon_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
                              ['optim']]]
@@ -396,6 +433,12 @@ def main():
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['optim-0.1'],
+                             ['constant']]]
+            amazon_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                                 control_name)
+            controls.extend(amazon_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['optim-0.1'],
                              ['constant']]]
@@ -455,6 +498,12 @@ def main():
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['optim-0.1'],
+                             ['optim']]]
+            amazon_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                                 control_name)
+            controls.extend(amazon_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['optim-0.1'],
                              ['optim']]]
@@ -514,6 +563,12 @@ def main():
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
+                             ['constant'], ['0.5']]]
+            amazon_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                                 control_name)
+            controls.extend(amazon_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
                              ['constant'], ['0.5']]]
@@ -573,6 +628,12 @@ def main():
             nfp_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                          control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
+                             ['constant'], ['1'], ['dp-10', 'ip-10']]]
+            amazon_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                                 control_name)
+            controls.extend(amazon_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
                              ['constant'], ['1'], ['dp-10', 'ip-10']]]

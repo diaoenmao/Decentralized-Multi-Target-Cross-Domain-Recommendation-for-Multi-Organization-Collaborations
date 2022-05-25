@@ -160,16 +160,21 @@ def process_control():
     cfg['nmf'] = {'hidden_size': [128, 64, 32, 16]}
     if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M']:
         cfg['ae'] = {'encoder_hidden_size': [256, 128], 'decoder_hidden_size': [128, 256]}
+    elif cfg['data_name'] in ['Douban']:
+        cfg['ae'] = {'encoder_hidden_size': [256, 128], 'decoder_hidden_size': [128, 256]}
     elif cfg['data_name'] in ['Amazon']:
         cfg['ae'] = {'encoder_hidden_size': [256, 128], 'decoder_hidden_size': [128, 256]}
     else:
         raise ValueError('Not valid data name')
-    batch_size = {'user': {'ML100K': 100, 'ML1M': 500, 'ML10M': 5000, 'ML20M': 5000, 'NFP': 5000, 'Amazon': 500},
-                  'item': {'ML100K': 100, 'ML1M': 500, 'ML10M': 1000, 'ML20M': 1000, 'NFP': 1000, 'Amazon': 500}}
+    batch_size = {
+        'user': {'ML100K': 100, 'ML1M': 500, 'ML10M': 5000, 'ML20M': 5000, 'NFP': 5000, 'Douban': 500, 'Amazon': 500},
+        'item': {'ML100K': 100, 'ML1M': 500, 'ML10M': 1000, 'ML20M': 1000, 'NFP': 1000, 'Douban': 1000, 'Amazon': 500}}
     model_name = cfg['model_name']
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
     cfg[model_name]['optimizer_name'] = 'Adam'
     if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M']:
+        cfg[model_name]['lr'] = 1e-3
+    elif cfg['data_name'] in ['Douban']:
         cfg[model_name]['lr'] = 1e-3
     elif cfg['data_name'] in ['Amazon']:
         cfg[model_name]['lr'] = 1e-3
@@ -187,6 +192,8 @@ def process_control():
     cfg['local']['shuffle'] = {'train': True, 'test': False}
     cfg['local']['optimizer_name'] = 'Adam'
     if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M']:
+        cfg['local']['lr'] = 1e-3
+    elif cfg['data_name'] in ['Douban']:
         cfg['local']['lr'] = 1e-3
     elif cfg['data_name'] in ['Amazon']:
         cfg['local']['lr'] = 1e-3

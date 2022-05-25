@@ -18,7 +18,7 @@ def fetch_dataset(data_name, model_name=None, verbose=True):
     if verbose:
         print('fetching data {}...'.format(data_name))
     root = './data/{}'.format(data_name)
-    if data_name in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP', 'Amazon']:
+    if data_name in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP', 'Douban', 'Amazon']:
         dataset['train'] = eval(
             'datasets.{}(root=root, split=\'train\', data_mode=cfg["data_mode"], '
             'target_mode=cfg["target_mode"])'.format(data_name))
@@ -146,10 +146,6 @@ class FlatInput(torch.nn.Module):
                     input['user_profile'] = input['user_profile'].view(1, -1)
                     if input['item'].size(0) == 0 and input['target_item'].size(0) == 0:
                         input['user_profile'] = input['user_profile'].repeat(input['item'].size(0), 1)
-                if 'item_attr' in input:
-                    input['item_attr'] = input['item_attr'].sum(dim=0, keepdim=True)
-                    if input['item'].size(0) == 0 and input['target_item'].size(0) == 0:
-                        input['item_attr'] = input['item_attr'].repeat(input['item'].size(0), 1)
                 if 'target_user_profile' in input:
                     del input['target_user_profile']
                 if 'target_item_attr' in input:
@@ -167,10 +163,6 @@ class FlatInput(torch.nn.Module):
             input['item'] = input['item'].repeat(input['user'].size(0))
             input['target_item'] = input['target_item'].repeat(input['target_user'].size(0))
             if self.info == 1:
-                if 'user_profile' in input:
-                    input['user_profile'] = input['user_profile'].sum(dim=0, keepdim=True)
-                    if input['user'].size(0) == 0 and input['target_user'].size(0) == 0:
-                        input['user_profile'] = input['user_profile'].repeat(input['user'].size(0), 1)
                 if 'item_attr' in input:
                     input['item_attr'] = input['item_attr'].view(1, -1)
                     if input['user'].size(0) == 0 and input['target_user'].size(0) == 0:
@@ -194,7 +186,7 @@ class FlatInput(torch.nn.Module):
 
 
 def split_dataset(dataset):
-    if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP', 'Amazon']:
+    if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP', 'Douban','Amazon']:
         if 'genre' in cfg['data_split_mode']:
             if cfg['data_mode'] == 'user':
                 num_organizations = cfg['num_organizations']
