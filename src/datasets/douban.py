@@ -156,21 +156,9 @@ class Douban(Dataset):
                 item_i = item_i + len(item[i - 1])
             item.append(item_i)
             rating.append(rating_i)
-        # matched_user_id = []
-        # for i in range(len(self.genre)):
-        #     for j in range(i + 1, len(self.genre)):
-        #         matched_userid_i_j = set(user[i].tolist()).intersection(set(user[j].tolist()))
-        #         matched_user_id.append(matched_userid_i_j)
-        # matched_user_id = np.array(list(set.intersection(*matched_user_id)))
         user = np.concatenate(user, axis=0)
         item = np.concatenate(item, axis=0)
         rating = np.concatenate(rating, axis=0)
-        # user_id, user_inv = np.unique(user, return_inverse=True)
-        # _, _, unique_matched_user_inv = np.intersect1d(matched_user_id, user_id, return_indices=True)
-        # mask = np.isin(user_inv, unique_matched_user_inv)
-        # user = user[mask]
-        # item = item[mask]
-        # rating = rating[mask]
         user_id, user_inv = np.unique(user, return_inverse=True)
         item_id, item_inv = np.unique(item, return_inverse=True)
         M, N = len(user_id), len(item_id)
@@ -204,21 +192,9 @@ class Douban(Dataset):
                 item_i = item_i + len(item[i - 1])
             item.append(item_i)
             rating.append(rating_i)
-        # matched_user_id = []
-        # for i in range(len(self.genre)):
-        #     for j in range(i + 1, len(self.genre)):
-        #         matched_userid_i_j = set(user[i].tolist()).intersection(set(user[j].tolist()))
-        #         matched_user_id.append(matched_userid_i_j)
-        # matched_user_id = np.array(list(set.intersection(*matched_user_id)))
         user = np.concatenate(user, axis=0)
         item = np.concatenate(item, axis=0)
         rating = np.concatenate(rating, axis=0)
-        # user_id, user_inv = np.unique(user, return_inverse=True)
-        # _, _, unique_matched_user_inv = np.intersect1d(matched_user_id, user_id, return_indices=True)
-        # mask = np.isin(user_inv, unique_matched_user_inv)
-        # user = user[mask]
-        # item = item[mask]
-        # rating = rating[mask]
         user_id, user_inv = np.unique(user, return_inverse=True)
         item_id, item_inv = np.unique(item, return_inverse=True)
         M, N = len(user_id), len(item_id)
@@ -260,18 +236,9 @@ class Douban(Dataset):
                 item_i = item_i + len(item[i - 1])
             item.append(item_i)
             right_pivot.append(left_pivot[i] + len(item_i))
-        # matched_user_id = []
-        # for i in range(len(self.genre)):
-        #     for j in range(i + 1, len(self.genre)):
-        #         matched_userid_i_j = set(user[i].tolist()).intersection(set(user[j].tolist()))
-        #         matched_user_id.append(matched_userid_i_j)
-        # matched_user_id = np.array(list(set.intersection(*matched_user_id)))
         user = np.concatenate(user, axis=0)
         item = np.concatenate(item, axis=0)
         user_id, user_inv = np.unique(user, return_inverse=True)
-        # _, _, unique_matched_user_inv = np.intersect1d(matched_user_id, user_id, return_indices=True)
-        # mask = np.in1d(user_inv, unique_matched_user_inv)
-        # item_id, item_inv = np.unique(item[mask], return_inverse=True)
         item_id, item_inv = np.unique(item, return_inverse=True)
         item_attr = np.zeros((len(item_id), len(self.genre)), dtype=np.float32)
         for i in range(len(self.genre)):
@@ -282,7 +249,6 @@ class Douban(Dataset):
         user_id_info = user_info.iloc[:, -1].to_numpy()
         living_place = user_info.iloc[:, 1].to_numpy()
         _, user_id_info_idx, _ = np.intersect1d(user_id_info, user_id, return_indices=True)
-        # user_id_info = user_id_info[user_id_info_idx]
         living_place = living_place[user_id_info_idx].tolist()
         provinces = ['北京', '天津', '河北', '山西', '内蒙古', '辽宁', '吉林', '黑龙江', '上海', '江苏', '浙江', '安徽', '福建', '江西', '山东', '河南',
                      '湖北', '湖南', '广东', '广西', '海南', '重庆', '四川', '贵州', '云南', '西藏', '陕西', '甘肃', '青海', '宁夏', '新疆', '台湾',
