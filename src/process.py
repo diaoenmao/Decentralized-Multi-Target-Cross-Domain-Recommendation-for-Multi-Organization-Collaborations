@@ -1,4 +1,6 @@
 import os
+
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 import itertools
 import json
 import numpy as np
@@ -12,7 +14,7 @@ save_format = 'png'
 vis_path = './output/vis/{}'.format(save_format)
 num_experiments = 4
 exp = [str(x) for x in list(range(num_experiments))]
-
+dpi = 300
 
 def make_controls(control_name):
     control_names = []
@@ -54,6 +56,11 @@ def make_control_list(data, file):
                              ['0']]]
             nfp_controls = make_controls(control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
+                             ['0']]]
+            douban_controls = make_controls(control_name)
+            controls.extend(douban_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0']]]
@@ -108,6 +115,11 @@ def make_control_list(data, file):
                              ['0'], ['random-8']]]
             nfp_controls = make_controls(control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
+                             ['0'], ['genre']]]
+            douban_controls = make_controls(control_name)
+            controls.extend(douban_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf', 'ae'],
                              ['0'], ['genre']]]
@@ -156,6 +168,11 @@ def make_control_list(data, file):
                              ['random-8'], ['constant-0.1'], ['constant']]]
             nfp_controls = make_controls(control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
+                             ['constant']]]
+            douban_controls = make_controls(control_name)
+            controls.extend(douban_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
                              ['constant']]]
@@ -218,6 +235,11 @@ def make_control_list(data, file):
                              ['random-8'], ['constant-0.3'], ['constant']]]
             nfp_controls = make_controls(control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.3'],
+                             ['constant']]]
+            douban_controls = make_controls(control_name)
+            controls.extend(douban_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.3'],
                              ['constant']]]
@@ -266,6 +288,11 @@ def make_control_list(data, file):
                              ['random-8'], ['constant-0.1'], ['optim']]]
             nfp_controls = make_controls(control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
+                             ['optim']]]
+            douban_controls = make_controls(control_name)
+            controls.extend(douban_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
                              ['optim']]]
@@ -314,6 +341,11 @@ def make_control_list(data, file):
                              ['random-8'], ['optim-0.1'], ['constant']]]
             nfp_controls = make_controls(control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['optim-0.1'],
+                             ['constant']]]
+            douban_controls = make_controls(control_name)
+            controls.extend(douban_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['optim-0.1'],
                              ['constant']]]
@@ -362,6 +394,11 @@ def make_control_list(data, file):
                              ['random-8'], ['optim-0.1'], ['constant']]]
             nfp_controls = make_controls(control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['optim-0.1'],
+                             ['optim']]]
+            douban_controls = make_controls(control_name)
+            controls.extend(douban_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['optim-0.1'],
                              ['constant']]]
@@ -410,6 +447,11 @@ def make_control_list(data, file):
                              ['random-8'], ['constant-0.1'], ['constant'], ['0.5']]]
             nfp_controls = make_controls(control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
+                             ['constant'], ['0.5']]]
+            douban_controls = make_controls(control_name)
+            controls.extend(douban_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
                              ['constant'], ['0.5']]]
@@ -458,6 +500,11 @@ def make_control_list(data, file):
                              ['random-8'], ['constant-0.1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
             nfp_controls = make_controls(control_name)
             controls.extend(nfp_controls)
+        if 'Douban' in data:
+            control_name = [[['Douban'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
+                             ['constant'], ['1'], ['dp-10', 'ip-10']]]
+            douban_controls = make_controls(control_name)
+            controls.extend(douban_controls)
         if 'Amazon' in data:
             control_name = [[['Amazon'], ['user'], ['explicit', 'implicit'], ['ae'], ['0'], ['genre'], ['constant-0.1'],
                              ['constant'], ['1'], ['dp-10', 'ip-10']]]
@@ -469,8 +516,10 @@ def make_control_list(data, file):
 
 
 def main():
-    data = ['ML100K', 'ML1M', 'ML10M', 'Amazon']
-    files = ['joint', 'alone', 'assist', 'info', 'ar', 'aw', 'ar-optim', 'match', 'optim-optim', 'pl']
+    write = False
+    data = ['ML100K', 'ML1M', 'ML10M', 'Douban', 'Amazon']
+    # files = ['joint', 'alone', 'assist', 'info', 'ar', 'aw', 'ar-optim', 'match', 'optim-optim', 'pl']
+    files = ['joint', 'alone', 'assist', 'ar', 'ar-optim']
     controls = []
     for file in files:
         controls += make_control_list(data, file)
@@ -478,8 +527,9 @@ def main():
     save(processed_result, os.path.join(result_path, 'processed_result.pt'))
     extracted_processed_result = {}
     extract_processed_result(extracted_processed_result, processed_result, [])
-    df = make_df(extracted_processed_result)
-    make_vis(df)
+    df = make_df(extracted_processed_result, write)
+    make_vis(df, 'RMSE')
+    make_vis(df, 'MAP')
     return
 
 
@@ -493,6 +543,7 @@ def process_result(controls):
 
 
 def extract_result(control, model_tag, processed_result):
+    metric_name = ['MAP', 'RMSE']
     if len(control) == 1:
         exp_idx = exp.index(control[0])
         base_result_path_i = os.path.join(result_path, '{}.pt'.format(model_tag))
@@ -612,7 +663,7 @@ def extract_processed_result(extracted_processed_result, processed_result, contr
     return
 
 
-def make_df(extracted_processed_result):
+def make_df(extracted_processed_result, write):
     pivot = ['train', 'test', 'test_each', 'test_history']
     df = {p: defaultdict(list) for p in pivot}
     for exp_name in extracted_processed_result:
@@ -629,15 +680,15 @@ def make_df(extracted_processed_result):
             elif len(control) == 8:
                 data_name, data_mode, target_mode, model_name, info, data_split_mode, ar, aw = control
                 index_name = ['_'.join([model_name, ar, aw])]
-                df_name = '_'.join([data_name, data_mode, target_mode, info, data_split_mode, 'assist'])
+                df_name = '_'.join([data_name, data_mode, target_mode, info, data_split_mode])
             elif len(control) == 9:
                 data_name, data_mode, target_mode, model_name, info, data_split_mode, ar, aw, match = control
                 index_name = ['_'.join([model_name, ar, aw, match])]
-                df_name = '_'.join([data_name, data_mode, target_mode, info, data_split_mode, 'assist'])
+                df_name = '_'.join([data_name, data_mode, target_mode, info, data_split_mode])
             elif len(control) == 10:
                 data_name, data_mode, target_mode, model_name, info, data_split_mode, ar, aw, match, pl = control
                 index_name = ['_'.join([model_name, ar, aw, match, pl])]
-                df_name = '_'.join([data_name, data_mode, target_mode, info, data_split_mode, 'assist'])
+                df_name = '_'.join([data_name, data_mode, target_mode, info, data_split_mode])
             else:
                 raise ValueError('Not valid control')
             metric = list(extracted_processed_result[exp_name][p].keys())
@@ -650,121 +701,125 @@ def make_df(extracted_processed_result):
                         df[p][df_name_].append(
                             pd.DataFrame(data=extracted_processed_result[exp_name][p][m].reshape(1, -1),
                                          index=index_name))
-    for p in pivot:
-        startrow = 0
-        writer = pd.ExcelWriter('{}/{}.xlsx'.format(result_path, p), engine='xlsxwriter')
-        for df_name in df[p]:
-            df[p][df_name] = pd.concat(df[p][df_name])
-            df[p][df_name].to_excel(writer, sheet_name='Sheet1', startrow=startrow + 1)
-            writer.sheets['Sheet1'].write_string(startrow, 0, df_name)
-            startrow = startrow + len(df[p][df_name].index) + 3
-        writer.save()
+    if write:
+        for p in pivot:
+            startrow = 0
+            writer = pd.ExcelWriter('{}/{}.xlsx'.format(result_path, p), engine='xlsxwriter')
+            for df_name in df[p]:
+                df[p][df_name] = pd.concat(df[p][df_name])
+                df[p][df_name].to_excel(writer, sheet_name='Sheet1', startrow=startrow + 1)
+                writer.sheets['Sheet1'].write_string(startrow, 0, df_name)
+                startrow = startrow + len(df[p][df_name].index) + 3
+            writer.save()
+    else:
+        for p in pivot:
+            for df_name in df[p]:
+                df[p][df_name] = pd.concat(df[p][df_name])
     return df
 
 
-def make_vis(df):
-    control_dict = {'Joint': 'Joint', 'constant-0.1_constant': 'AAE ($\eta_k=0.1$)',
-                    'constant-0.3_constant': 'AAE ($\eta_k=0.3$)', 'optim-0.1_constant': 'AAE (Optimize $\eta_k$)',
-                    'constant-0.1_optim': 'AAE (Optimize $w_k$)', 'constant-0.1_constant_0.5': 'AAE ($50\%$ alignment)',
-                    'optim-0.1_optim': 'AAE (Optimize $\eta_k$, Optimize $w_k$)', 'Alone': 'Alone'}
-    color = {'Joint': 'black', 'constant-0.1_constant': 'red', 'constant-0.3_constant': 'orange',
-             'optim-0.1_constant': 'dodgerblue', 'constant-0.1_optim': 'blue', 'constant-0.1_constant_0.5': 'purple',
-             'optim-0.1_optim': 'lightblue', 'Alone': 'green'}
-    linestyle = {'Joint': '-', 'constant-0.1_constant': '--', 'constant-0.3_constant': ':', 'optim-0.1_constant': '-.',
-                 'constant-0.1_optim': (0, (1, 5)), 'constant-0.1_constant_0.5': (0, (5, 1)),
-                 'optim-0.1_optim': (0, (10, 1)), 'Alone': (0, (5, 5))}
-    loc_dict = {'Loss': 'upper right', 'RMSE': 'upper right', 'Accuracy': 'lower right', 'MAP': 'lower right'}
+def make_vis(df, vis_mode):
+    control_dict = {'Joint': 'Joint', 'ae': 'MTAL', 'Alone': 'Alone'}
+    color_dict = {'Joint': 'black', 'ae': 'red', 'Alone': 'blue'}
+    linestyle_dict = {'Joint': '-', 'ae': '--', 'Alone': ':'}
+    label_loc_dict = {'RMSE': 'upper right', 'MAP': 'lower right'}
+    marker_dict = {'Joint': 'X', 'ae': 'D', 'Alone': 's'}
     fontsize = {'legend': 16, 'label': 16, 'ticks': 16}
-    linewidth = 3
+    ae_ablation = ['constant-0.1_constant', 'constant-0.3_constant', 'optim-0.1_constant']
+    alone_ablation = ['base', 'mf', 'mlp', 'nmf', 'ae']
+    figsize = (5, 4)
     fig = {}
+    ax_dict_1 = {}
     for df_name in df['test_history']:
-        df_name_list = df_name.split('_')
-        if 'assist' in df_name_list:
-            data_name, data_mode, target_mode, info, data_split_mode, assist, metric_name, stat = df_name.split('_')
-            if stat == 'std':
-                continue
-            df_name_std = '_'.join(
-                [data_name, data_mode, target_mode, info, data_split_mode, assist, metric_name, 'std'])
+        data_name, data_mode, target_mode, info, data_split_mode, metric_name, stat = df_name.split('_')
+        valid_mask = stat == 'mean' and metric_name == vis_mode
+        if valid_mask:
+            df_name_std = '_'.join([data_name, data_mode, target_mode, info, data_split_mode, metric_name, 'std'])
             df_name_joint = '_'.join([data_name, data_mode, target_mode, info])
             df_name_alone = '_'.join([data_name, data_mode, target_mode, info, data_split_mode])
-            fig_name = '_'.join([data_name, data_mode, target_mode, info, data_split_mode, assist, metric_name])
-            fig[fig_name] = plt.figure(fig_name)
+            fig_name = '_'.join([data_name, data_mode, target_mode, info, data_split_mode, metric_name])
+            fig[fig_name] = plt.figure(fig_name, figsize=figsize)
+            if fig_name not in ax_dict_1:
+                ax_dict_1[fig_name] = fig[fig_name].add_subplot(111)
+            ax_1 = ax_dict_1[fig_name]
+            print(df_name, df_name_std, df_name_joint, df_name_alone)
+            x = np.arange(11)
+            pivot = float('inf') if vis_mode in ['RMSE'] else -float('inf')
+            pivot_index = None
+            for (index, row) in df['test'][df_name_joint].iterrows():
+                y_index = row['{}_mean'.format(metric_name)]
+                if vis_mode in ['RMSE']:
+                    if y_index < pivot:
+                        pivot_index = index
+                        pivot = y_index
+                else:
+                    if y_index > pivot:
+                        pivot_index = index
+                        pivot = y_index
+            control = 'Joint'
+            y_joint = df['test'][df_name_joint]['{}_mean'.format(metric_name)].loc[pivot_index]
+            y_joint = np.full(x.shape, y_joint)
+            y_err_joint = df['test'][df_name_joint]['{}_std'.format(metric_name)].loc[pivot_index]
+            y_err_joint = np.full(x.shape, y_err_joint)
+            ax_1.errorbar(x, y_joint, yerr=y_err_joint, color=color_dict[control], linestyle=linestyle_dict[control],
+                          label=control_dict[control])
+            pivot = float('inf') if vis_mode in ['RMSE'] else -float('inf')
+            pivot_index = None
+            for (index, row) in df['test'][df_name_alone].iterrows():
+                control = index
+                if control in alone_ablation:
+                    y_index = row['{}_mean'.format(metric_name)]
+                    if vis_mode in ['RMSE']:
+                        if y_index < pivot:
+                            pivot_index = index
+                            pivot = y_index
+                    else:
+                        if y_index > pivot:
+                            pivot_index = index
+                            pivot = y_index
+            control = 'Alone'
+            y_alone = df['test'][df_name_alone]['{}_mean'.format(metric_name)].loc[pivot_index]
+            y_alone = np.full(x.shape, y_alone)
+            y_err_alone = df['test'][df_name_alone]['{}_std'.format(metric_name)].loc[pivot_index]
+            y_err_alone = np.full(x.shape, y_err_alone)
+            ax_1.errorbar(x, y_alone, yerr=y_err_alone, color=color_dict[control], linestyle=linestyle_dict[control],
+                          label=control_dict[control])
+            pivot = float('inf') if vis_mode in ['RMSE'] else -float('inf')
+            pivot_index = None
             for ((index, row), (_, row_std)) in zip(df['test_history'][df_name].iterrows(),
                                                     df['test_history'][df_name_std].iterrows()):
-                index_list = index.split('_')
-                if len(index_list) > 3:
-                    continue
-                model_name = index_list[0]
-                control = '_'.join(index_list[1:])
-                y = row.to_numpy()
-                y_err = row_std.to_numpy()
-                x = np.arange(len(y))
-                plt.plot(x, y, color=color[control], linestyle=linestyle[control], label=control_dict[control],
-                         linewidth=linewidth)
-                plt.fill_between(x, (y - y_err), (y + y_err), color=color[control], alpha=.1)
-                plt.xlabel('Assistance Rounds', fontsize=fontsize['label'])
-                plt.ylabel(metric_name, fontsize=fontsize['label'])
-                plt.xticks(fontsize=fontsize['ticks'])
-                plt.yticks(fontsize=fontsize['ticks'])
-            if len(df['test'][df_name_joint]) > 1:
-                if metric_name in ['Loss', 'RMSE']:
-                    joint_pivot = np.inf
-                    joint_best = None
-                    for ((index, row), (_, row_std)) in zip(df['test'][df_name_joint].iterrows(),
-                                                            df['test'][df_name_joint].iterrows()):
-                        if row['{}_mean'.format(metric_name)] < joint_pivot:
-                            joint_pivot = row['{}_mean'.format(metric_name)]
-                            joint_best = index
-                elif metric_name in ['Accuracy', 'MAP']:
-                    joint_pivot = -np.inf
-                    joint_best = None
-                    for ((index, row), (_, row_std)) in zip(df['test'][df_name_joint].iterrows(),
-                                                            df['test'][df_name_joint].iterrows()):
-                        if row['{}_mean'.format(metric_name)] > joint_pivot:
-                            joint_pivot = row['{}_mean'.format(metric_name)]
-                            joint_best = index
-                else:
-                    raise ValueError('Not valid metric name')
-                y_joint = df['test'][df_name_joint]['{}_{}'.format(metric_name, stat)].loc[joint_best]
-                y_joint = np.full(x.shape, y_joint)
-                y_err_joint = df['test'][df_name_joint]['{}_std'.format(metric_name)].loc[joint_best]
-                plt.plot(x, y_joint, color=color['Joint'], linestyle=linestyle['Joint'],
-                         label=control_dict['Joint'],
-                         linewidth=linewidth)
-                plt.fill_between(x, (y_joint - y_err_joint), (y_joint + y_err_joint), color=color['Joint'],
-                                 alpha=.1)
-            if len(df['test'][df_name_alone]) > 1:
-                if metric_name in ['Loss', 'RMSE']:
-                    alone_pivot = np.inf
-                    alone_best = None
-                    for ((index, row), (_, row_std)) in zip(df['test'][df_name_joint].iterrows(),
-                                                            df['test'][df_name_joint].iterrows()):
-                        if row['{}_mean'.format(metric_name)] < alone_pivot:
-                            alone_pivot = row['{}_mean'.format(metric_name)]
-                            alone_best = index
-                elif metric_name in ['Accuracy', 'MAP']:
-                    alone_pivot = -np.inf
-                    alone_best = None
-                    for ((index, row), (_, row_std)) in zip(df['test'][df_name_joint].iterrows(),
-                                                            df['test'][df_name_joint].iterrows()):
-                        if row['{}_mean'.format(metric_name)] > alone_pivot:
-                            alone_pivot = row['{}_mean'.format(metric_name)]
-                            alone_best = index
-                else:
-                    raise ValueError('Not valid metric name')
-                y_alone = df['test'][df_name_alone]['{}_{}'.format(metric_name, stat)].loc[alone_best]
-                y_alone = np.full(x.shape, y_alone)
-                y_err_alone = df['test'][df_name_joint]['{}_std'.format(metric_name)].loc[alone_best]
-                plt.plot(x, y_alone, color=color['Alone'], linestyle=linestyle['Alone'], label=control_dict['Alone'],
-                         linewidth=linewidth)
-                plt.fill_between(x, (y_alone - y_err_alone), (y_alone + y_err_alone), color=color['Alone'], alpha=.1)
-                plt.legend(loc=loc_dict[metric_name], fontsize=fontsize['legend'])
+                control = '_'.join(index.split('_')[1:])
+                if control in ae_ablation:
+                    if vis_mode in ['RMSE']:
+                        y_index = min(row.to_numpy()).item()
+                        if y_index < pivot:
+                            pivot_index = index
+                            pivot = y_index
+                    else:
+                        y_index = max(row.to_numpy()).item()
+                        if y_index > pivot:
+                            pivot_index = index
+                            pivot = y_index
+            control = 'ae'
+            y = df['test_history'][df_name].loc[pivot_index].to_numpy()
+            y_err = df['test_history'][df_name_std].loc[pivot_index].to_numpy()
+            ax_1.errorbar(x, y, yerr=y_err, color=color_dict[control], linestyle=linestyle_dict[control],
+                          label=control_dict[control], marker=marker_dict[control])
+            ax_1.set_xticks(x)
+            ax_1.set_xlabel('Assistance Rounds', fontsize=fontsize['label'])
+            ax_1.set_ylabel(vis_mode, fontsize=fontsize['label'])
+            ax_1.xaxis.set_tick_params(labelsize=fontsize['ticks'])
+            ax_1.yaxis.set_tick_params(labelsize=fontsize['ticks'])
+            ax_1.legend(loc=label_loc_dict[vis_mode], fontsize=fontsize['legend'])
     for fig_name in fig:
         fig[fig_name] = plt.figure(fig_name)
-        plt.grid()
-        fig_path = '{}/{}.{}'.format(vis_path, fig_name, save_format)
-        makedir_exist_ok(vis_path)
-        plt.savefig(fig_path, dpi=500, bbox_inches='tight', pad_inches=0)
+        ax_dict_1[fig_name].grid(linestyle='--', linewidth='0.5')
+        fig[fig_name].tight_layout()
+        control = fig_name.split('_')
+        dir_path = os.path.join(vis_path, vis_mode, *control[:-1])
+        fig_path = os.path.join(dir_path, '{}.{}'.format(fig_name, save_format))
+        makedir_exist_ok(dir_path)
+        plt.savefig(fig_path, dpi=dpi, bbox_inches='tight', pad_inches=0)
         plt.close(fig_name)
     return
 

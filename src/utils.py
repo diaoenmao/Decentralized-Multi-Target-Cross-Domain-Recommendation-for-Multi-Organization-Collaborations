@@ -173,7 +173,7 @@ def process_control():
         'item': {'ML100K': 100, 'ML1M': 500, 'ML10M': 1000, 'ML20M': 1000, 'NFP': 1000, 'Douban': 1000, 'Amazon': 1000}}
     model_name = cfg['model_name']
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
-    cfg[model_name]['optimizer_name'] = 'Adam'
+    cfg[model_name]['optimizer_name'] = 'SGD'
     if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M']:
         cfg[model_name]['lr'] = 1e-3
     elif cfg['data_name'] in ['Douban']:
@@ -192,7 +192,7 @@ def process_control():
     cfg[model_name]['num_epochs'] = 200 if model_name != 'base' else 1
     cfg['local'] = {}
     cfg['local']['shuffle'] = {'train': True, 'test': False}
-    cfg['local']['optimizer_name'] = 'Adam'
+    cfg['local']['optimizer_name'] = 'SGD'
     if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M']:
         cfg['local']['lr'] = 1e-3
     elif cfg['data_name'] in ['Douban']:

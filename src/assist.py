@@ -9,6 +9,7 @@ from organization import Organization
 from utils import make_optimizer, to_device
 from privacy import make_privacy
 
+
 class Assist:
     def __init__(self, data_split):
         self.data_split = data_split
