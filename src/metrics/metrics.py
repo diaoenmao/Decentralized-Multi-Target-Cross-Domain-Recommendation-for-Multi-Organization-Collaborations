@@ -6,6 +6,7 @@ from utils import recur
 
 
 def RMSE(output, target):
+
     with torch.no_grad():
         rmse = F.mse_loss(output, target).sqrt().item()
     return rmse

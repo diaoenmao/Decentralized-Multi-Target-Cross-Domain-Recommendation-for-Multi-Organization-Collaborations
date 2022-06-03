@@ -175,11 +175,11 @@ def process_control():
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
     cfg[model_name]['optimizer_name'] = 'SGD'
     if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M']:
-        cfg[model_name]['lr'] = 1e-3
+        cfg[model_name]['lr'] = 1e-1
     elif cfg['data_name'] in ['Douban']:
-        cfg[model_name]['lr'] = 1e-3
+        cfg[model_name]['lr'] = 1e-1
     elif cfg['data_name'] in ['Amazon']:
-        cfg[model_name]['lr'] = 1e-3
+        cfg[model_name]['lr'] = 1e-1
     else:
         raise ValueError('Not valid data name')
     cfg[model_name]['momentum'] = 0.9
@@ -194,11 +194,11 @@ def process_control():
     cfg['local']['shuffle'] = {'train': True, 'test': False}
     cfg['local']['optimizer_name'] = 'SGD'
     if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M']:
-        cfg['local']['lr'] = 1e-3
+        cfg['local']['lr'] = 1e-1
     elif cfg['data_name'] in ['Douban']:
-        cfg['local']['lr'] = 1e-3
+        cfg['local']['lr'] = 1e-1
     elif cfg['data_name'] in ['Amazon']:
-        cfg['local']['lr'] = 1e-3
+        cfg['local']['lr'] = 1e-1
     else:
         raise ValueError('Not valid data name')
     cfg['local']['momentum'] = 0.9

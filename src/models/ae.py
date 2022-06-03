@@ -78,7 +78,7 @@ class AE(nn.Module):
             self.decoder_linear = nn.Linear(decoder_hidden_size[-1], decoder_num_users)
         else:
             raise ValueError('Not valid data mode')
-        self.dropout = nn.Dropout(p=0.8)
+        self.dropout = nn.Dropout(p=0.5)
         if info_size is not None:
             if 'user_profile' in info_size:
                 self.user_profile = Encoder(info_size['user_profile'], encoder_hidden_size)
