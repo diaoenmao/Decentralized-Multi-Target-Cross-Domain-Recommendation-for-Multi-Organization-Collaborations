@@ -51,7 +51,7 @@ def runExperiment():
     if cfg['target_mode'] == 'explicit':
         metric = Metric({'train': ['Loss', 'RMSE'], 'test': ['Loss', 'RMSE']})
     elif cfg['target_mode'] == 'implicit':
-        metric = Metric({'train': ['Loss', 'Accuracy'], 'test': ['Loss', 'Accuracy']})
+        metric = Metric({'train': ['Loss', 'NDCG'], 'test': ['Loss', 'NDCG']})
     else:
         raise ValueError('Not valid target mode')
     if cfg['resume_mode'] == 1:
@@ -108,7 +108,7 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
         if optimizer is not None:
             optimizer.zero_grad()
             output['loss'].backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
             optimizer.step()
         evaluation = metric.evaluate(metric.metric_name['train'], input, output)
         logger.append(evaluation, 'train', n=input_size)

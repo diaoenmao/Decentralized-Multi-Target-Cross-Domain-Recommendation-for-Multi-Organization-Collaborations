@@ -6,7 +6,6 @@ from utils import recur
 
 
 def RMSE(output, target):
-
     with torch.no_grad():
         rmse = F.mse_loss(output, target).sqrt().item()
     return rmse
@@ -50,6 +49,64 @@ def MAP(output, target, user, item, topk=10):
     return map
 
 
+def div_no_nan(a, b, na_value=0.):
+    return (a / b).nan_to_num_(nan=na_value, posinf=na_value, neginf=na_value)
+
+
+def DCG(target):
+    batch_size, k = target.shape
+    rank_positions = torch.arange(1, k + 1, dtype=torch.float32, device=target.device).tile((batch_size, 1))
+    dcg = (target / torch.log2(rank_positions + 1)).sum(dim=-1)
+    return dcg
+
+
+def NDCG(output, target, user, item, topk=10):
+    user, user_idx = torch.unique(user, return_inverse=True)
+    item, item_idx = torch.unique(item, return_inverse=True)
+    num_users, num_items = len(user), len(item)
+    if cfg['data_mode'] == 'user':
+        output_ = torch.full((num_users, num_items), -float('inf'), device=output.device)
+        target_ = torch.full((num_users, num_items), 0., device=target.device)
+        output_[user_idx, item_idx] = output
+        target_[user_idx, item_idx] = target
+    elif cfg['data_mode'] == 'item':
+        output_ = torch.full((num_items, num_users), -float('inf'), device=output.device)
+        target_ = torch.full((num_items, num_users), 0., device=target.device)
+        output_[item_idx, user_idx] = output
+        target_[item_idx, user_idx] = target
+    else:
+        raise ValueError('Not valid data mode')
+    topk_ = min(topk, output_.size(-1))
+    _, output_topk_idx = output_.topk(topk_, dim=-1)
+    sorted_target = target_.take_along_dim(output_topk_idx, dim=-1)
+    ideal_target, _ = target_.topk(topk_, dim=-1)
+    ndcg = div_no_nan(DCG(sorted_target), DCG(ideal_target)).mean().item()
+    return ndcg
+
+
+def HR(output, target, user, item, topk=10):
+    user, user_idx = torch.unique(user, return_inverse=True)
+    item, item_idx = torch.unique(item, return_inverse=True)
+    num_users, num_items = len(user), len(item)
+    if cfg['data_mode'] == 'user':
+        output_ = torch.full((num_users, num_items), -float('inf'), device=output.device)
+        target_ = torch.full((num_users, num_items), 0., device=target.device)
+        output_[user_idx, item_idx] = output
+        target_[user_idx, item_idx] = target
+    elif cfg['data_mode'] == 'item':
+        output_ = torch.full((num_items, num_users), -float('inf'), device=output.device)
+        target_ = torch.full((num_items, num_users), 0., device=target.device)
+        output_[item_idx, user_idx] = output
+        target_[item_idx, user_idx] = target
+    else:
+        raise ValueError('Not valid data mode')
+    topk_ = min(topk, output_.size(-1))
+    _, output_topk_idx = output_.topk(topk_, dim=-1)
+    sorted_target = target_.take_along_dim(output_topk_idx, dim=-1)
+    hr = (sorted_target.float().sum(dim=-1) > 0).float().mean().item()
+    return hr
+
+
 class Metric(object):
     def __init__(self, metric_name):
         self.metric_name = self.make_metric_name(metric_name)
@@ -58,7 +115,11 @@ class Metric(object):
                        'RMSE': (lambda input, output: RMSE(output['target_rating'], input['target_rating'])),
                        'Accuracy': (lambda input, output: Accuracy(output['target_rating'], input['target_rating'])),
                        'MAP': (lambda input, output: MAP(output['target_rating'], input['target_rating'],
-                                                         input['target_user'], input['target_item']))}
+                                                         input['target_user'], input['target_item'])),
+                       'HR': (lambda input, output: HR(output['target_rating'], input['target_rating'],
+                                                       input['target_user'], input['target_item'])),
+                       'NDCG': (lambda input, output: NDCG(output['target_rating'], input['target_rating'],
+                                                           input['target_user'], input['target_item']))}
 
     def make_metric_name(self, metric_name):
         return metric_name
@@ -72,7 +133,7 @@ class Metric(object):
             elif cfg['target_mode'] == 'implicit':
                 pivot = -float('inf')
                 pivot_direction = 'up'
-                pivot_name = 'Accuracy'
+                pivot_name = 'NDCG'
             else:
                 raise ValueError('Not valid target mode')
         else:
