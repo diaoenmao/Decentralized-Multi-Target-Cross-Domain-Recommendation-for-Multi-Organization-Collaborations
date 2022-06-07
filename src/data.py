@@ -186,7 +186,7 @@ class FlatInput(torch.nn.Module):
 
 
 def split_dataset(dataset):
-    if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP', 'Douban','Amazon']:
+    if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban','Amazon']:
         if 'genre' in cfg['data_split_mode']:
             if cfg['data_mode'] == 'user':
                 num_organizations = cfg['num_organizations']

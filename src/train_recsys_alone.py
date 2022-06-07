@@ -52,8 +52,8 @@ def runExperiment():
     scheduler = []
     for i in range(len(dataset)):
         data_loader_i = make_data_loader(dataset[i], cfg['model_name'])
-        num_users = dataset[i]["train"].num_users['data']
-        num_items = dataset[i]["train"].num_items['data']
+        num_users = dataset[i]['train'].num_users['data']
+        num_items = dataset[i]['train'].num_items['data']
         if cfg['model_name'] == 'ae':
             model_i = eval(
                 'models.{}(num_users, num_items, num_users, num_items).to(cfg["device"])'.format(cfg['model_name']))
@@ -193,8 +193,9 @@ def test(data_loader, model, metric, logger, epoch):
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
         logger.append(info, 'test', mean=False)
         print(logger.write('test', metric.metric_name['test']))
-        logger.safe(False)
+    logger.safe(False)
     return
+
 
 if __name__ == "__main__":
     main()
