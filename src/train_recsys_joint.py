@@ -100,7 +100,7 @@ def runExperiment():
         if cfg['model_name'] != 'base':
             optimizer_state_dict = optimizer.state_dict()
             scheduler_state_dict = scheduler.state_dict()
-            result = {'cfg': cfg, 'epoch': epoch + 1, 'model_state_dict': model_state_dict,
+            result = {'cfg': cfg, 'epoch': epoch + 1, 'data_split': data_split,'model_state_dict': model_state_dict,
                       'optimizer_state_dict': optimizer_state_dict, 'scheduler_state_dict': scheduler_state_dict,
                       'logger': logger}
         else:
