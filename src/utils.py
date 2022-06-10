@@ -174,19 +174,19 @@ def process_control():
         'item': {'ML100K': 100, 'ML1M': 500, 'ML10M': 1000, 'ML20M': 1000, 'NFP': 1000, 'Douban': 1000, 'Amazon': 1000}}
     model_name = cfg['model_name']
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
-    if cfg['target_mode'] == 'explicit':
-        cfg[model_name]['optimizer_name'] = 'SGD'
-        cfg[model_name]['lr'] = 1e-1
-        cfg[model_name]['momentum'] = 0.9
-        cfg[model_name]['nesterov'] = True
-        cfg[model_name]['weight_decay'] = 5e-4
-        cfg[model_name]['scheduler_name'] = 'CosineAnnealingLR'
-    else:
-        cfg[model_name]['optimizer_name'] = 'Adam'
-        cfg[model_name]['lr'] = 1e-4
-        cfg[model_name]['betas'] = (0.9, 0.999)
-        cfg[model_name]['weight_decay'] = 5e-4
-        cfg[model_name]['scheduler_name'] = 'None'
+    # if cfg['target_mode'] == 'explicit':
+    cfg[model_name]['optimizer_name'] = 'SGD'
+    cfg[model_name]['lr'] = 1e-1
+    cfg[model_name]['momentum'] = 0.9
+    cfg[model_name]['nesterov'] = True
+    cfg[model_name]['weight_decay'] = 5e-4
+    cfg[model_name]['scheduler_name'] = 'CosineAnnealingLR'
+    # else:
+    #     cfg[model_name]['optimizer_name'] = 'Adam'
+    #     cfg[model_name]['lr'] = 1e-4
+    #     cfg[model_name]['betas'] = (0.9, 0.999)
+    #     cfg[model_name]['weight_decay'] = 5e-4
+    #     cfg[model_name]['scheduler_name'] = 'None'
     cfg[model_name]['batch_size'] = {'train': batch_size[cfg['data_mode']][cfg['data_name']],
                                      'test': batch_size[cfg['data_mode']][cfg['data_name']]}
     cfg[model_name]['num_epochs'] = 200 if model_name != 'base' else 1
