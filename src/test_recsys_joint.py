@@ -4,7 +4,7 @@ import torch
 import torch.backends.cudnn as cudnn
 import models
 from config import cfg, process_args
-from data import fetch_dataset, make_data_loader
+from data import fetch_dataset, make_data_loader, make_split_dataset
 from metrics import Metric
 from utils import save, to_device, process_control, process_dataset, resume, collate
 from logger import make_logger
@@ -47,10 +47,10 @@ def runExperiment():
     last_epoch = result['epoch']
     data_split = result['data_split']
     dataset = make_split_dataset(data_split)
-    data_loader = {'train': [], 'test': []}
+    local_data_loader = {'train': [], 'test': []}
     local_model = []
     for i in range(len(dataset)):
-        data_loader_i = make_data_loader(dataset[i], cfg['model_name'])
+        local_data_loader_i = make_data_loader(dataset[i], cfg['model_name'])
         num_users = dataset[i]["train"].num_users['data']
         num_items = dataset[i]["train"].num_items['data']
         if cfg['model_name'] == 'ae':
@@ -59,16 +59,15 @@ def runExperiment():
         else:
             local_model_i = eval(
                 'models.{}(num_users, num_items).to(cfg["device"])'.format(cfg['model_name']))
-        data_loader['train'].append(data_loader_i['train'])
-        data_loader['test'].append(data_loader_i['test'])
+        local_data_loader['train'].append(local_data_loader_i['train'])
+        local_data_loader['test'].append(local_data_loader_i['test'])
         local_model.append(local_model_i)
-    data_loader = make_data_loader(dataset, cfg['model_name'])
     test_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))
     test_each_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))
     model.load_state_dict(result['model_state_dict'])
     models.distribute(model, local_model, data_split)
-    test_each(data_loader['test'], local_model, metric, test_each_logger, last_epoch)
-    test(data_loader['test'], local_model, metric, test_logger, last_epoch)
+    test_each(local_data_loader['test'], local_model, metric, test_each_logger, last_epoch)
+    test(local_data_loader['test'], local_model, metric, test_logger, last_epoch)
     result = resume(cfg['model_tag'], load_tag='checkpoint')
     train_logger = result['logger'] if 'logger' in result else None
     result = {'cfg': cfg, 'epoch': last_epoch,
