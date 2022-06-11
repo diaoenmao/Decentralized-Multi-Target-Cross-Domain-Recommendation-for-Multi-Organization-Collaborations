@@ -794,18 +794,5 @@ class ML20M(Dataset):
                       'Western']
         genre_map = lambda x: [1 if g in x else 0 for g in genre_list]
         genre = np.array(item_attr['genres'].apply(genre_map).to_list(), dtype=np.float32)
-        genome_tags = pd.read_csv(os.path.join(self.raw_folder, 'ml-20m', 'genome-tags.csv'), delimiter=',',
-                                  dtype={'tagId': int, 'tag': str})
-        item_attr = pd.read_csv(os.path.join(self.raw_folder, 'ml-20m', 'genome-scores.csv'), delimiter=',',
-                                dtype={'movieId': int, 'tagId': int, 'relevance': float})
-        item = item_attr['movieId'].astype(np.int64)
-        valid_mask = np.in1d(item, item_id)
-        item_attr = item_attr[valid_mask]
-        relevance = np.zeros((len(item_id), len(genome_tags['tagId'])), dtype=np.float32)
-        item = item_attr['movieId'].astype(np.int64)
-        item_id, item_inv = np.unique(item, return_inverse=True)
-        item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
-        tag_id = item_attr['tagId'].to_numpy().astype(np.int64)
-        relevance[item, tag_id - 1] = item_attr['relevance'].to_numpy()
-        item_attr = np.hstack([genre, relevance])
+        item_attr = genre
         return item_attr

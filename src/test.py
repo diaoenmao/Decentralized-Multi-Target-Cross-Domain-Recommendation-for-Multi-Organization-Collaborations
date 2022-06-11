@@ -335,21 +335,21 @@ import models
 #     print(a[:, 0].toarray())
 
 
-# if __name__ == "__main__":
-#     process_control()
-#     cfg['seed'] = 0
-#     batch_size = {'train': 100, 'test': 5000}
-#     data_names = ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP', 'Amazon']
-#     # data_names = ['Amazon']
-#     for data_name in data_names:
-#         dataset = fetch_dataset(data_name)
-#         print(dataset['train'].num_users, dataset['train'].num_items)
-#         data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
-#         for i, input in enumerate(data_loader['train']):
-#             input = collate(input)
-#             print(input['user'].size(), input['item'].size(), input['rating'].size(),
-#                   input['target_user'].size(), input['target_item'].size(), input['target_rating'].size())
-#             break
+if __name__ == "__main__":
+    process_control()
+    cfg['seed'] = 0
+    batch_size = {'train': 100, 'test': 5000}
+    # data_names = ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'NFP', 'Amazon']
+    data_names = ['Douban']
+    for data_name in data_names:
+        dataset = fetch_dataset(data_name)
+        print(dataset['train'].num_users, dataset['train'].num_items)
+        data_loader = make_data_loader(dataset, cfg['model_name'], batch_size=batch_size)
+        for i, input in enumerate(data_loader['train']):
+            input = collate(input)
+            print(input['user'].size(), input['item'].size(), input['rating'].size(),
+                  input['target_user'].size(), input['target_item'].size(), input['target_rating'].size())
+            break
 
 # if __name__ == "__main__":
 #     # inputs
