@@ -79,26 +79,34 @@ def main():
         if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
             control_name = [[[data], ['user'], ['explicit', 'implicit'], ['ae'],
                              ['0'], ['genre'], ['assist'], ['constant-0.3'],
-                             ['constant'], ['0.2', '0.4', '0.6', '0.8']]]
+                             ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
             user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                           control_name)
             control_name = [[[data], ['item'], ['explicit', 'implicit'], ['ae'],
                              ['0'], ['random-8'], ['assist'], ['constant-0.3'],
-                             ['constant'], ['0.2', '0.4', '0.6', '0.8']]]
+                             ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
             item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                           control_name)
             controls = user_controls + item_controls
         else:
             raise ValueError('Not valid data')
     elif mode == 'info':
-        script_name = [['{}_recsys_assist.py'.format(run)]]
         if data in ['ML100K', 'ML1M', 'Douban']:
+            script_name = [['{}_recsys_joint.py'.format(run)]]
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['ae'], ['1'], ['genre'], ['joint']]]
+            joint_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                           control_name)
+            script_name = [['{}_recsys_alone.py'.format(run)]]
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['ae'], ['1'], ['genre'], ['alone']]]
+            alone_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                           control_name)
+            script_name = [['{}_recsys_assist.py'.format(run)]]
             control_name = [[[data], ['user'], ['explicit', 'implicit'], ['ae'],
                              ['1'], ['genre'], ['assist'], ['constant-0.3'],
-                             ['constant']]]
-            user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                             ['constant'], ['1']]]
+            assist_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                           control_name)
-            controls = user_controls
+            controls = joint_controls + alone_controls + assist_controls
         else:
             raise ValueError('Not valid data')
     elif mode == 'pl':
