@@ -50,6 +50,7 @@ class Amazon(Dataset):
     #          'Prime_Pantry', 'Software', 'Sports_and_Outdoors', 'Tools_and_Home_Improvement', 'Toys_and_Games',
     #          'Video_Games']
     genre = ['Books', 'Digital_Music', 'Movies_and_TV', 'Video_Games']
+
     # genre = ['AMAZON_FASHION', 'All_Beauty', 'Luxury_Beauty', 'Magazine_Subscriptions']
 
     def __init__(self, root, split, data_mode, target_mode, transform=None):
@@ -147,12 +148,12 @@ class Amazon(Dataset):
     def process(self):
         if not check_exists(self.raw_folder):
             self.download()
-        train_set, test_set = self.make_explicit_data()
-        save(train_set, os.path.join(self.processed_folder, 'explicit', 'train.pt'), mode='pickle')
-        save(test_set, os.path.join(self.processed_folder, 'explicit', 'test.pt'), mode='pickle')
-        train_set, test_set = self.make_implicit_data()
-        save(train_set, os.path.join(self.processed_folder, 'implicit', 'train.pt'), mode='pickle')
-        save(test_set, os.path.join(self.processed_folder, 'implicit', 'test.pt'), mode='pickle')
+        # train_set, test_set = self.make_explicit_data()
+        # save(train_set, os.path.join(self.processed_folder, 'explicit', 'train.pt'), mode='pickle')
+        # save(test_set, os.path.join(self.processed_folder, 'explicit', 'test.pt'), mode='pickle')
+        # train_set, test_set = self.make_implicit_data()
+        # save(train_set, os.path.join(self.processed_folder, 'implicit', 'train.pt'), mode='pickle')
+        # save(test_set, os.path.join(self.processed_folder, 'implicit', 'test.pt'), mode='pickle')
         item_attr = self.make_info()
         save(item_attr, os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')
         return
@@ -177,8 +178,13 @@ class Amazon(Dataset):
             data_i = pd.read_csv(os.path.join(self.raw_folder, '{}.csv'.format(self.genre[i])), header=None)
             user_i = data_i.iloc[:, 1].to_numpy()
             item_i = data_i.iloc[:, 0].to_numpy()
+            item_id_i, item_inv_i = np.unique(item_i, return_inverse=True)
+            item_id_map_i = {item_id_i[i]: i for i in range(len(item_id_i))}
+            item_i = np.array([item_id_map_i[i] for i in item_id_i], dtype=np.int64)[item_inv_i].reshape(item_i.shape)
             rating_i = data_i.iloc[:, 2].astype(np.float32)
             user.append(user_i)
+            if i > 0:
+                item_i = item_i + len(item[i - 1])
             item.append(item_i)
             rating.append(rating_i)
         matched_user_id = []
@@ -196,6 +202,7 @@ class Amazon(Dataset):
         user = user[mask]
         item = item[mask]
         rating = rating[mask]
+
         user_id, user_inv = np.unique(user, return_inverse=True)
         item_id, item_inv = np.unique(item, return_inverse=True)
         M, N = len(user_id), len(item_id)
@@ -203,6 +210,28 @@ class Amazon(Dataset):
         item_id_map = {item_id[i]: i for i in range(len(item_id))}
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(user.shape)
+
+        data = csr_matrix((rating, (user, item)), shape=(M, N))
+        nonzero_user, nonzero_item = data.nonzero()
+        _, count_nonzero_user = np.unique(nonzero_user, return_counts=True)
+        _, count_nonzero_item = np.unique(nonzero_item, return_counts=True)
+        dense_user_mask = count_nonzero_user >= 20
+        dense_item_mask = count_nonzero_item >= 20
+        dense_user_id = np.arange(len(user_id))[dense_user_mask]
+        dense_item_id = np.arange(len(item_id))[dense_item_mask]
+        dense_mask = np.logical_and(np.isin(user, dense_user_id), np.isin(item, dense_item_id))
+        user = user[dense_mask]
+        item = item[dense_mask]
+        rating = rating[dense_mask]
+
+        user_id, user_inv = np.unique(user, return_inverse=True)
+        item_id, item_inv = np.unique(item, return_inverse=True)
+        M, N = len(user_id), len(item_id)
+        user_id_map = {user_id[i]: i for i in range(len(user_id))}
+        item_id_map = {item_id[i]: i for i in range(len(item_id))}
+        user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
+        item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
+
         idx = np.random.permutation(user.shape[0])
         num_train = int(user.shape[0] * 0.9)
         train_idx, test_idx = idx[:num_train], idx[num_train:]
@@ -222,8 +251,13 @@ class Amazon(Dataset):
             data_i = pd.read_csv(os.path.join(self.raw_folder, '{}.csv'.format(self.genre[i])), header=None)
             user_i = data_i.iloc[:, 1].to_numpy()
             item_i = data_i.iloc[:, 0].to_numpy()
+            item_id_i, item_inv_i = np.unique(item_i, return_inverse=True)
+            item_id_map_i = {item_id_i[i]: i for i in range(len(item_id_i))}
+            item_i = np.array([item_id_map_i[i] for i in item_id_i], dtype=np.int64)[item_inv_i].reshape(item_i.shape)
             rating_i = data_i.iloc[:, 2].astype(np.float32)
             user.append(user_i)
+            if i > 0:
+                item_i = item_i + len(item[i - 1])
             item.append(item_i)
             rating.append(rating_i)
         matched_user_id = []
@@ -241,6 +275,7 @@ class Amazon(Dataset):
         user = user[mask]
         item = item[mask]
         rating = rating[mask]
+
         user_id, user_inv = np.unique(user, return_inverse=True)
         item_id, item_inv = np.unique(item, return_inverse=True)
         M, N = len(user_id), len(item_id)
@@ -248,6 +283,28 @@ class Amazon(Dataset):
         item_id_map = {item_id[i]: i for i in range(len(item_id))}
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
+
+        data = csr_matrix((rating, (user, item)), shape=(M, N))
+        nonzero_user, nonzero_item = data.nonzero()
+        _, count_nonzero_user = np.unique(nonzero_user, return_counts=True)
+        _, count_nonzero_item = np.unique(nonzero_item, return_counts=True)
+        dense_user_mask = count_nonzero_user >= 20
+        dense_item_mask = count_nonzero_item >= 20
+        dense_user_id = np.arange(len(user_id))[dense_user_mask]
+        dense_item_id = np.arange(len(item_id))[dense_item_mask]
+        dense_mask = np.logical_and(np.isin(user, dense_user_id), np.isin(item, dense_item_id))
+        user = user[dense_mask]
+        item = item[dense_mask]
+        rating = rating[dense_mask]
+
+        user_id, user_inv = np.unique(user, return_inverse=True)
+        item_id, item_inv = np.unique(item, return_inverse=True)
+        M, N = len(user_id), len(item_id)
+        user_id_map = {user_id[i]: i for i in range(len(user_id))}
+        item_id_map = {item_id[i]: i for i in range(len(item_id))}
+        user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
+        item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
+
         idx = np.random.permutation(user.shape[0])
         num_train = int(user.shape[0] * 0.9)
         train_idx, test_idx = idx[:num_train], idx[num_train:]
@@ -266,33 +323,78 @@ class Amazon(Dataset):
     def make_info(self):
         user = []
         item = []
-        left_pivot = []
-        right_pivot = []
+        rating = []
         for i in range(len(self.genre)):
-            if len(left_pivot) > 0:
-                left_pivot.append(right_pivot[i - 1])
-            else:
-                left_pivot.append(0)
             data_i = pd.read_csv(os.path.join(self.raw_folder, '{}.csv'.format(self.genre[i])), header=None)
             user_i = data_i.iloc[:, 1].to_numpy()
             item_i = data_i.iloc[:, 0].to_numpy()
+            item_id_i, item_inv_i = np.unique(item_i, return_inverse=True)
+            item_id_map_i = {item_id_i[i]: i for i in range(len(item_id_i))}
+            item_i = np.array([item_id_map_i[i] for i in item_id_i], dtype=np.int64)[item_inv_i].reshape(item_i.shape)
+            rating_i = data_i.iloc[:, 2].astype(np.float32)
             user.append(user_i)
+            if i > 0:
+                item_i = item_i + len(item[i - 1])
             item.append(item_i)
-            right_pivot.append(left_pivot[i] + len(item_i))
+            rating.append(rating_i)
         matched_user_id = []
         for i in range(len(self.genre)):
             for j in range(i + 1, len(self.genre)):
                 matched_userid_i_j = set(user[i].tolist()).intersection(set(user[j].tolist()))
                 matched_user_id.append(matched_userid_i_j)
         matched_user_id = np.array(list(set.intersection(*matched_user_id)))
+        num_items_genre = [len(x) for x in item]
         user = np.concatenate(user, axis=0)
         item = np.concatenate(item, axis=0)
+        rating = np.concatenate(rating, axis=0)
         user_id, user_inv = np.unique(user, return_inverse=True)
         _, _, unique_matched_user_inv = np.intersect1d(matched_user_id, user_id, return_indices=True)
         mask = np.in1d(user_inv, unique_matched_user_inv)
-        item_id, item_inv = np.unique(item[mask], return_inverse=True)
+        user = user[mask]
+        item = item[mask]
+        rating = rating[mask]
+
+        user_id, user_inv = np.unique(user, return_inverse=True)
+        item_id, item_inv = np.unique(item, return_inverse=True)
+        M, N = len(user_id), len(item_id)
+        user_id_map = {user_id[i]: i for i in range(len(user_id))}
+        item_id_map = {item_id[i]: i for i in range(len(item_id))}
+        user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
+        item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
+
+        data = csr_matrix((rating, (user, item)), shape=(M, N))
+        nonzero_user, nonzero_item = data.nonzero()
+        _, count_nonzero_user = np.unique(nonzero_user, return_counts=True)
+        _, count_nonzero_item = np.unique(nonzero_item, return_counts=True)
+        dense_user_mask = count_nonzero_user >= 20
+        dense_item_mask = count_nonzero_item >= 20
+        dense_user_id = np.arange(len(user_id))[dense_user_mask]
+        dense_item_id = np.arange(len(item_id))[dense_item_mask]
+        dense_mask = np.logical_and(np.isin(user, dense_user_id), np.isin(item, dense_item_id))
+        user = user[dense_mask]
+        item = item[dense_mask]
+        rating = rating[dense_mask]
+
+        user_id, user_inv = np.unique(user, return_inverse=True)
+        item_id, item_inv = np.unique(item, return_inverse=True)
+        M, N = len(user_id), len(item_id)
+        user_id_map = {user_id[i]: i for i in range(len(user_id))}
+        item_id_map = {item_id[i]: i for i in range(len(item_id))}
+        user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
+        item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
+
+        num_items_genre_ = []
+        pivot = 0
+        for i in range(len(num_items_genre)):
+            num_items_i = int(dense_mask[pivot:pivot + num_items_genre[i]].astype(np.float32).sum())
+            pivot = pivot + num_items_genre[i]
+            num_items_genre_.append(num_items_i)
+        num_items_genre = num_items_genre_
+        item_id, item_inv = np.unique(item, return_inverse=True)
         item_attr = np.zeros((len(item_id), len(self.genre)), dtype=np.float32)
-        for i in range(len(self.genre)):
-            item_inv_i = np.intersect1d(item_id, item[left_pivot[i]:right_pivot[i]], return_indices=True)[1]
+        pivot = 0
+        for i in range(len(num_items_genre)):
+            item_inv_i = np.intersect1d(item_id, item[pivot:pivot + num_items_genre[i]], return_indices=True)[1]
             item_attr[item_inv_i, i] += 1
+            pivot = pivot + num_items_genre[i]
         return item_attr

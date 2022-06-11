@@ -170,8 +170,8 @@ def process_control():
     else:
         raise ValueError('Not valid data name')
     batch_size = {
-        'user': {'ML100K': 100, 'ML1M': 500, 'ML10M': 5000, 'ML20M': 5000, 'NFP': 5000, 'Douban': 100, 'Amazon': 500},
-        'item': {'ML100K': 100, 'ML1M': 500, 'ML10M': 1000, 'ML20M': 1000, 'NFP': 1000, 'Douban': 1000, 'Amazon': 1000}}
+        'user': {'ML100K': 100, 'ML1M': 500, 'ML10M': 5000, 'ML20M': 5000, 'Douban': 100, 'Amazon': 500},
+        'item': {'ML100K': 100, 'ML1M': 500, 'ML10M': 1000, 'ML20M': 1000, 'Douban': 1000, 'Amazon': 500}}
     model_name = cfg['model_name']
     cfg[model_name]['shuffle'] = {'train': True, 'test': False}
     # if cfg['target_mode'] == 'explicit':

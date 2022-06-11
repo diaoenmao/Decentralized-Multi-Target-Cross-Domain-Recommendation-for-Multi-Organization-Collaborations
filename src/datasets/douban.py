@@ -150,6 +150,9 @@ class Douban(Dataset):
                                               '{}reviews_cleaned.txt'.format(self.genre[i])), delimiter='\t')
             user_i = data_i.iloc[:, 0].to_numpy()
             item_i = data_i.iloc[:, 1].to_numpy()
+            item_id_i, item_inv_i = np.unique(item_i, return_inverse=True)
+            item_id_map_i = {item_id_i[i]: i for i in range(len(item_id_i))}
+            item_i = np.array([item_id_map_i[i] for i in item_id_i], dtype=np.int64)[item_inv_i].reshape(item_i.shape)
             rating_i = data_i.iloc[:, 2].astype(np.float32)
             user.append(user_i)
             if i > 0:
@@ -209,6 +212,9 @@ class Douban(Dataset):
                                               '{}reviews_cleaned.txt'.format(self.genre[i])), delimiter='\t')
             user_i = data_i.iloc[:, 0].to_numpy()
             item_i = data_i.iloc[:, 1].to_numpy()
+            item_id_i, item_inv_i = np.unique(item_i, return_inverse=True)
+            item_id_map_i = {item_id_i[i]: i for i in range(len(item_id_i))}
+            item_i = np.array([item_id_map_i[i] for i in item_id_i], dtype=np.int64)[item_inv_i].reshape(item_i.shape)
             rating_i = data_i.iloc[:, 2].astype(np.float32)
             user.append(user_i)
             if i > 0:
@@ -355,10 +361,11 @@ class Douban(Dataset):
         num_items_genre_ = []
         pivot = 0
         for i in range(len(num_items_genre)):
-            num_items_i = int(dense_item_mask[pivot:pivot + num_items_genre[i]].astype(np.float32).sum())
+            num_items_i = int(dense_mask[pivot:pivot + num_items_genre[i]].astype(np.float32).sum())
             pivot = pivot + num_items_genre[i]
             num_items_genre_.append(num_items_i)
         num_items_genre = num_items_genre_
+        item_id, item_inv = np.unique(item, return_inverse=True)
         item_attr = np.zeros((len(item_id), len(self.genre)), dtype=np.float32)
         pivot = 0
         for i in range(len(num_items_genre)):
