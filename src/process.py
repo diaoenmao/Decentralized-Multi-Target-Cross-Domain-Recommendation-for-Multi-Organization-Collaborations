@@ -96,7 +96,7 @@ def make_control_list(data, mode):
 
 
 def main():
-    write = False
+    write = True
     # data = ['ML100K', 'ML1M', 'ML10M', 'Douban', 'Amazon']
     data = ['ML100K', 'ML1M']
     # mode = ['joint', 'alone', 'assist']
@@ -119,7 +119,6 @@ def main():
     df_history = make_df_result(extracted_processed_result_history, 'history', write)
     df_each = make_df_result(extracted_processed_result_each, 'each', write)
     make_vis_lc(df_exp, df_history)
-    make_vis_each(df_each)
     return
 
 
@@ -354,120 +353,6 @@ def make_vis_lc(df_exp, df_history):
         fig[fig_name].tight_layout()
         control = fig_name.split('_')
         dir_path = os.path.join(vis_path, 'lc', *control[:-1])
-        fig_path = os.path.join(dir_path, '{}.{}'.format(fig_name, save_format))
-        makedir_exist_ok(dir_path)
-        plt.savefig(fig_path, dpi=dpi, bbox_inches='tight', pad_inches=0)
-        plt.close(fig_name)
-    return
-
-
-def make_vis_each(df_each):
-    control_dict = {'Joint': 'Joint', 'Alone': 'Alone', 'constant-0.1_constant': 'MTAL ($\eta_k=0.1$)',
-                    'constant-0.3_constant': 'MTAL ($\eta_k=0.3$)', 'constant-1_constant': 'MTAL ($\eta_k=1.0$)',
-                    'optim-0.1_constant': 'MTAL (Optimize $\eta_k$)'}
-    color_dict = {'Joint': 'black', 'Alone': 'gray', 'constant-0.1_constant': 'red',
-                  'constant-0.3_constant': 'orange', 'constant-1_constant': 'blue',
-                  'optim-0.1_constant': 'lightblue'}
-    label_loc_dict = {'Loss': 'upper right', 'RMSE': 'upper right', 'NDCG': 'upper right'}
-    ML_genres = ['Action', 'Adventure', 'Animation', "Children's", 'Comedy', 'Crime', 'Documentary', 'Drama',
-                 'Fantasy', 'Film-Noir', 'Horror', 'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War',
-                 'Western']
-    xtick_dict = {'ML100K': ML_genres, 'ML1M': ML_genres, 'ML10M': ML_genres, 'ML20M': ML_genres,
-                  'Douban': ['Book', 'Movie', 'Music'],
-                  'Amazon': ['Books', 'Digital Music', 'Movies and TV', 'Video Games']}
-    fontsize = {'legend': 12, 'label': 16, 'ticks': 12}
-    width = 0.2
-    figsize = (20, 4)
-    fig = {}
-    ax_dict_1 = {}
-    for df_name in df_each:
-        df_name_list = df_name.split('_')
-        data_name, data_mode, target_mode, info, data_split_mode, metric_name, stat = df_name_list
-        valid_mask = stat == 'mean'
-        if valid_mask:
-            df_name_std = '_'.join([*df_name_list[:-1], 'std'])
-            joint = {}
-            alone = {}
-            for (index, row) in df_each[df_name].iterrows():
-                index_list = index.split('_')
-                if 'joint' in index_list:
-                    joint_ = row.to_numpy()
-                    joint[index] = joint_[~np.isnan(joint_)]
-                if 'alone' in index_list:
-                    alone_ = row.to_numpy()
-                    alone[index] = alone_[~np.isnan(alone_)]
-            assist = {}
-            for (index, row) in df_each[df_name].iterrows():
-                index_list = index.split('_')
-                if 'assist' in index_list and len(index_list) == 5:
-                    assist_ = row.to_numpy()
-                    assist[index] = assist_[~np.isnan(assist_)]
-            joint_std = {}
-            alone_std = {}
-            for (index, row) in df_each[df_name_std].iterrows():
-                index_list = index.split('_')
-                if 'joint' in index_list:
-                    joint_ = row.to_numpy()
-                    joint_std[index] = joint_[~np.isnan(joint_)]
-                if 'alone' in index_list:
-                    alone_ = row.to_numpy()
-                    alone_std[index] = alone_[~np.isnan(alone_)]
-            assist_std = {}
-            for (index, row) in df_each[df_name_std].iterrows():
-                index_list = index.split('_')
-                if 'assist' in index_list and len(index_list) == 5:
-                    assist_ = row.to_numpy()
-                    assist_std[index] = assist_[~np.isnan(assist_)]
-            joint_values = np.array(list(joint.values()))
-            joint_std_values = np.array(list(joint_std.values()))
-            alone_values = np.array(list(alone.values()))
-            alone_std_values = np.array(list(alone_std.values()))
-            if metric_name in ['NDCG']:
-                joint_best_idx = np.argmax(joint_values, axis=0)
-                alone_best_idx = np.argmax(alone_values, axis=0)
-            else:
-                joint_best_idx = np.argmin(joint_values, axis=0)
-                alone_best_idx = np.argmin(alone_values, axis=0)
-            joint = joint_values[joint_best_idx, np.arange(joint_values.shape[-1])]
-            joint_std = joint_std_values[joint_best_idx, np.arange(joint_std_values.shape[-1])]
-            alone = alone_values[alone_best_idx, np.arange(alone_values.shape[-1])]
-            alone_std = alone_std_values[alone_best_idx, np.arange(alone_std_values.shape[-1])]
-            x = np.arange(0, 3 * len(joint), 3)
-            fig_name = '_'.join([*df_name_list[:-1]])
-            fig[fig_name] = plt.figure(fig_name, figsize=figsize)
-            if fig_name not in ax_dict_1:
-                ax_dict_1[fig_name] = fig[fig_name].add_subplot(111)
-            ax_1 = ax_dict_1[fig_name]
-            control = 'Joint'
-            ax_1.bar(x, joint, yerr=joint_std, width=width, color=color_dict[control], label=control_dict[control])
-            control = 'Alone'
-            ax_1.bar(x + width, alone, yerr=alone_std, width=width, color=color_dict[control],
-                     label=control_dict[control])
-            i = 2
-            for assist_mode in assist:
-                assist_ = assist[assist_mode]
-                assist_mode_list = assist_mode.split('_')
-                control = '_'.join([*assist_mode_list[2:4]])
-                ax_1.bar(x + i * width, assist_, yerr=joint_std, width=width, color=color_dict[control],
-                         label=control_dict[control])
-                i += 1
-            if data_split_mode == 'genre':
-                xtick_labels = xtick_dict[data_name]
-            else:
-                xtick_labels = list(range(1, len(x) + 1))
-            ax_1.set_xticks(x + (i / 2.0) * width)
-            ax_1.set_xticklabels(xtick_labels)
-            # ax_1.set_xlabel('Assistance Rounds', fontsize=fontsize['label'])
-            ax_1.set_ylabel(metric_name, fontsize=fontsize['label'])
-            ax_1.xaxis.set_tick_params(labelsize=fontsize['ticks'])
-            ax_1.yaxis.set_tick_params(labelsize=fontsize['ticks'])
-            ax_1.legend(loc=label_loc_dict[metric_name], fontsize=fontsize['legend'])
-    for fig_name in fig:
-        fig[fig_name] = plt.figure(fig_name)
-        ax_dict_1[fig_name].grid(linestyle='--', linewidth='0.5')
-        fig[fig_name].tight_layout()
-        control = fig_name.split('_')
-        dir_path = os.path.join(vis_path, 'each', *control[:-1])
         fig_path = os.path.join(dir_path, '{}.{}'.format(fig_name, save_format))
         makedir_exist_ok(dir_path)
         plt.savefig(fig_path, dpi=dpi, bbox_inches='tight', pad_inches=0)
