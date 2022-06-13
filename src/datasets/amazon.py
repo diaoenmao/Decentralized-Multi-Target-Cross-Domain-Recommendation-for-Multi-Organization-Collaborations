@@ -148,12 +148,12 @@ class Amazon(Dataset):
     def process(self):
         if not check_exists(self.raw_folder):
             self.download()
-        # train_set, test_set = self.make_explicit_data()
-        # save(train_set, os.path.join(self.processed_folder, 'explicit', 'train.pt'), mode='pickle')
-        # save(test_set, os.path.join(self.processed_folder, 'explicit', 'test.pt'), mode='pickle')
-        # train_set, test_set = self.make_implicit_data()
-        # save(train_set, os.path.join(self.processed_folder, 'implicit', 'train.pt'), mode='pickle')
-        # save(test_set, os.path.join(self.processed_folder, 'implicit', 'test.pt'), mode='pickle')
+        train_set, test_set = self.make_explicit_data()
+        save(train_set, os.path.join(self.processed_folder, 'explicit', 'train.pt'), mode='pickle')
+        save(test_set, os.path.join(self.processed_folder, 'explicit', 'test.pt'), mode='pickle')
+        train_set, test_set = self.make_implicit_data()
+        save(train_set, os.path.join(self.processed_folder, 'implicit', 'train.pt'), mode='pickle')
+        save(test_set, os.path.join(self.processed_folder, 'implicit', 'test.pt'), mode='pickle')
         item_attr = self.make_info()
         save(item_attr, os.path.join(self.processed_folder, 'item_attr.pt'), mode='pickle')
         return

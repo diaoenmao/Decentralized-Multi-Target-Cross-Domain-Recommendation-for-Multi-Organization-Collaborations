@@ -1,4 +1,5 @@
 import argparse
+import copy
 import os
 import torch
 import torch.backends.cudnn as cudnn
@@ -46,7 +47,10 @@ def runExperiment():
     result = resume(cfg['model_tag'], load_tag='best')
     last_epoch = result['epoch']
     data_split = result['data_split']
-    dataset = make_split_dataset(data_split)
+    if cfg['model_name'] not in ['ae']:
+        dataset = make_split_dataset(data_split)
+    else:
+        dataset = [copy.deepcopy(dataset) for _ in range(len(data_split))]
     local_data_loader = {'train': [], 'test': []}
     local_model = []
     for i in range(len(dataset)):
@@ -66,8 +70,8 @@ def runExperiment():
     test_each_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))
     model.load_state_dict(result['model_state_dict'])
     models.distribute(model, local_model, data_split)
-    test_each(local_data_loader['test'], local_model, metric, test_each_logger, last_epoch)
-    test(local_data_loader['test'], local_model, metric, test_logger, last_epoch)
+    test_each(local_data_loader['test'], data_split, local_model, metric, test_each_logger, last_epoch)
+    test(local_data_loader['test'], data_split, local_model, metric, test_logger, last_epoch)
     result = resume(cfg['model_tag'], load_tag='checkpoint')
     train_logger = result['logger'] if 'logger' in result else None
     result = {'cfg': cfg, 'epoch': last_epoch,
@@ -76,13 +80,23 @@ def runExperiment():
     return
 
 
-def test_each(data_loader, model, metric, each_logger, epoch):
+def test_each(data_loader, data_split, model, metric, each_logger, epoch):
     with torch.no_grad():
         for m in range(len(data_loader)):
             each_logger.safe(True)
             model[m].train(False)
             for i, input in enumerate(data_loader[m]):
                 input = collate(input)
+                if cfg['model_name'] == 'ae':
+                    if cfg['data_mode'] == 'user':
+                        mask = torch.isin(input['target_item'], data_split[m])
+                    else:
+                        mask = torch.isin(input['target_user'], data_split[m])
+                    if ~torch.any(mask):
+                        continue
+                    input['target_user'] = input['target_user'][mask]
+                    input['target_item'] = input['target_item'][mask]
+                    input['target_rating'] = input['target_rating'][mask]
                 input_size = len(input['target_{}'.format(cfg['data_mode'])])
                 if input_size == 0:
                     continue
@@ -100,7 +114,7 @@ def test_each(data_loader, model, metric, each_logger, epoch):
     return
 
 
-def test(data_loader, model, metric, logger, epoch):
+def test(data_loader, data_split, model, metric, logger, epoch):
     logger.safe(True)
     for m in range(len(data_loader)):
         model[m].train(False)
@@ -112,6 +126,16 @@ def test(data_loader, model, metric, logger, epoch):
             output_target_rating = []
             for m in range(len(input)):
                 input_m = collate(input[m])
+                if cfg['model_name'] == 'ae':
+                    if cfg['data_mode'] == 'user':
+                        mask = torch.isin(input_m['target_item'], data_split[m])
+                    else:
+                        mask = torch.isin(input_m['target_user'], data_split[m])
+                    if ~torch.any(mask):
+                        continue
+                    input_m['target_user'] = input_m['target_user'][mask]
+                    input_m['target_item'] = input_m['target_item'][mask]
+                    input_m['target_rating'] = input_m['target_rating'][mask]
                 input_size = len(input_m['target_{}'.format(cfg['data_mode'])])
                 if input_size == 0:
                     continue
@@ -135,9 +159,8 @@ def test(data_loader, model, metric, logger, epoch):
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
         logger.append(info, 'test', mean=False)
         print(logger.write('test', metric.metric_name['test']))
-        logger.safe(False)
+    logger.safe(False)
     return
-
 
 if __name__ == "__main__":
     main()
