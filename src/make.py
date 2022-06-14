@@ -47,15 +47,11 @@ def main():
     if mode in ['joint', 'alone']:
         script_name = [['{}_recsys_{}.py'.format(run, mode)]]
         if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
-            # control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
-            #                  ['0'], ['genre'], [mode]]]
-            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'ae'],
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
                              ['0'], ['genre'], [mode]]]
             user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                           control_name)
-            # control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
-            #                  ['0'], ['random-8'], [mode]]]
-            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'ae'],
+            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
                              ['0'], ['random-8'], [mode]]]
             item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                           control_name)
