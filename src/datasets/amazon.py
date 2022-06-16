@@ -192,6 +192,7 @@ class Amazon(Dataset):
                 item_i = item_i + len(item[i - 1])
             item.append(item_i)
             rating.append(rating_i)
+
         matched_user_id = []
         for i in range(len(self.genre)):
             for j in range(i + 1, len(self.genre)):
@@ -201,6 +202,7 @@ class Amazon(Dataset):
         user = np.concatenate(user, axis=0)
         item = np.concatenate(item, axis=0)
         rating = np.concatenate(rating, axis=0)
+
         user_id, user_inv = np.unique(user, return_inverse=True)
         _, _, unique_matched_user_inv = np.intersect1d(matched_user_id, user_id, return_indices=True)
         mask = np.isin(user_inv, unique_matched_user_inv)
@@ -265,15 +267,18 @@ class Amazon(Dataset):
                 item_i = item_i + len(item[i - 1])
             item.append(item_i)
             rating.append(rating_i)
+
         matched_user_id = []
         for i in range(len(self.genre)):
             for j in range(i + 1, len(self.genre)):
                 matched_userid_i_j = set(user[i].tolist()).intersection(set(user[j].tolist()))
                 matched_user_id.append(matched_userid_i_j)
         matched_user_id = np.array(list(set.intersection(*matched_user_id)))
+
         user = np.concatenate(user, axis=0)
         item = np.concatenate(item, axis=0)
         rating = np.concatenate(rating, axis=0)
+
         user_id, user_inv = np.unique(user, return_inverse=True)
         _, _, unique_matched_user_inv = np.intersect1d(matched_user_id, user_id, return_indices=True)
         mask = np.isin(user_inv, unique_matched_user_inv)
@@ -342,22 +347,33 @@ class Amazon(Dataset):
                 item_i = item_i + len(item[i - 1])
             item.append(item_i)
             rating.append(rating_i)
+
         matched_user_id = []
         for i in range(len(self.genre)):
             for j in range(i + 1, len(self.genre)):
                 matched_userid_i_j = set(user[i].tolist()).intersection(set(user[j].tolist()))
                 matched_user_id.append(matched_userid_i_j)
         matched_user_id = np.array(list(set.intersection(*matched_user_id)))
+
         num_items_genre = [len(x) for x in item]
         user = np.concatenate(user, axis=0)
         item = np.concatenate(item, axis=0)
         rating = np.concatenate(rating, axis=0)
+
         user_id, user_inv = np.unique(user, return_inverse=True)
         _, _, unique_matched_user_inv = np.intersect1d(matched_user_id, user_id, return_indices=True)
         mask = np.in1d(user_inv, unique_matched_user_inv)
         user = user[mask]
         item = item[mask]
         rating = rating[mask]
+
+        num_items_genre_ = []
+        pivot = 0
+        for i in range(len(num_items_genre)):
+            num_items_i = int(mask[pivot:pivot + num_items_genre[i]].astype(np.float32).sum())
+            pivot = pivot + num_items_genre[i]
+            num_items_genre_.append(num_items_i)
+        num_items_genre = num_items_genre_
 
         user_id, user_inv = np.unique(user, return_inverse=True)
         item_id, item_inv = np.unique(item, return_inverse=True)
@@ -378,7 +394,6 @@ class Amazon(Dataset):
         dense_mask = np.logical_and(np.isin(user, dense_user_id), np.isin(item, dense_item_id))
         user = user[dense_mask]
         item = item[dense_mask]
-        rating = rating[dense_mask]
 
         user_id, user_inv = np.unique(user, return_inverse=True)
         item_id, item_inv = np.unique(item, return_inverse=True)

@@ -416,7 +416,7 @@ class ML1M(Dataset):
         item_attr = pd.read_csv(os.path.join(self.raw_folder, 'ml-1m', 'movies.dat'), delimiter='::',
                                 names=['id', 'name', 'genre'], encoding='latin', engine='python')
         item_attr = item_attr[item_attr['id'].isin(list(item_id_map.keys()))]
-        genre_list = ['Action', 'Adventure', 'Animation', "Children's", 'Comedy', 'Crime', 'Documentary', 'Drama',
+        genre_list = ['Action', 'Adventure', 'Animation', "Children", 'Comedy', 'Crime', 'Documentary', 'Drama',
                       'Fantasy', 'Film-Noir', 'Horror', 'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War',
                       'Western']
         genre_map = lambda x: [1 if g in x else 0 for g in genre_list]
@@ -603,7 +603,7 @@ class ML10M(Dataset):
         item_attr = pd.read_csv(os.path.join(self.raw_folder, 'ml-10M100K', 'movies.dat'), delimiter='::',
                                 names=['id', 'name', 'genre'], engine='python')
         item_attr = item_attr[item_attr['id'].isin(list(item_id_map.keys()))]
-        genre_list = ['Action', 'Adventure', 'Animation', "Children's", 'Comedy', 'Crime', 'Documentary', 'Drama',
+        genre_list = ['Action', 'Adventure', 'Animation', "Children", 'Comedy', 'Crime', 'Documentary', 'Drama',
                       'Fantasy', 'Film-Noir', 'Horror', 'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War',
                       'Western']
         genre_map = lambda x: [1 if g in x else 0 for g in genre_list]
@@ -789,7 +789,7 @@ class ML20M(Dataset):
         item_id_map = {item_id[i]: i for i in range(len(item_id))}
         item_attr = pd.read_csv(os.path.join(self.raw_folder, 'ml-20m', 'movies.csv'), delimiter=',')
         item_attr = item_attr[item_attr['movieId'].isin(list(item_id_map.keys()))]
-        genre_list = ['Action', 'Adventure', 'Animation', "Children's", 'Comedy', 'Crime', 'Documentary', 'Drama',
+        genre_list = ['Action', 'Adventure', 'Animation', "Children", 'Comedy', 'Crime', 'Documentary', 'Drama',
                       'Fantasy', 'Film-Noir', 'Horror', 'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War',
                       'Western']
         genre_map = lambda x: [1 if g in x else 0 for g in genre_list]

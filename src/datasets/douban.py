@@ -310,7 +310,7 @@ class Douban(Dataset):
         living_place = living_place[user_id_info_idx]
         user_id_info = np.array([user_id_map[i] for i in user_id_info])
 
-        data = csr_matrix((rating, (user, item)))
+        data = csr_matrix((rating, (user, item)), shape=(M, N))
         nonzero_user, nonzero_item = data.nonzero()
         _, count_nonzero_user = np.unique(nonzero_user, return_counts=True)
         _, count_nonzero_item = np.unique(nonzero_item, return_counts=True)
@@ -329,10 +329,9 @@ class Douban(Dataset):
         item_id_map = {item_id[i]: i for i in range(len(item_id))}
         user = np.array([user_id_map[i] for i in user_id], dtype=np.int64)[user_inv].reshape(user.shape)
         item = np.array([item_id_map[i] for i in item_id], dtype=np.int64)[item_inv].reshape(item.shape)
+
         user_id_info_idx = np.intersect1d(user_id_info, user_id, return_indices=True)[1]
-        user_id_info = user_id_info[user_id_info_idx]
         living_place = living_place[user_id_info_idx]
-        user_id_info = np.array([user_id_map[i] for i in user_id_info])
 
         provinces = ['北京', '天津', '河北', '山西', '内蒙古', '辽宁', '吉林', '黑龙江', '上海', '江苏', '浙江', '安徽',
                      '福建', '江西', '山东', '河南', '湖北', '湖南', '广东', '广西', '海南', '重庆', '四川', '贵州', '云南',
