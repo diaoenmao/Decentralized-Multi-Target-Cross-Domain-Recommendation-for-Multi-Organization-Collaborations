@@ -61,6 +61,23 @@ def main():
             controls = user_controls + item_controls
         else:
             raise ValueError('Not valid data')
+    elif mode in ['mdr']:
+        script_name = [['{}_recsys_{}.py'.format(run, mode)]]
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf'],
+                             ['0'], ['genre'], [mode]]]
+            user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                          control_name)
+            if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf'],
+                                 ['0'], ['random-8'], [mode]]]
+                item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                              control_name)
+            else:
+                item_controls = []
+            controls = user_controls + item_controls
+        else:
+            raise ValueError('Not valid data')
     elif mode == 'assist':
         script_name = [['{}_recsys_assist.py'.format(run)]]
         if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
