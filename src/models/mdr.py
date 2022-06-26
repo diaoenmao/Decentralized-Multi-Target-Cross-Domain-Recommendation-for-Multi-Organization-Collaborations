@@ -33,8 +33,8 @@ class MDR(nn.Module):
             if data_mode == 'user':
                 model_m.user_weight_mlp = model_0.user_weight_mlp
                 model_m.user_bias_mlp = model_0.user_bias_mlp
-                model_m.user_weight_nmf = model_0.user_weight_nmf
-                model_m.user_bias_nmf = model_0.user_bias_nmf
+                model_m.user_weight_mf = model_0.user_weight_mf
+                model_m.user_bias_mf = model_0.user_bias_mf
                 if model_0.info_size is not None:
                     if 'user_profile' in model_0.info_size:
                         model_m.user_profile_mf = model_0.user_profile_mf
@@ -42,8 +42,8 @@ class MDR(nn.Module):
             elif data_mode == 'item':
                 model_m.item_weight_mlp = model_0.item_weight_mlp
                 model_m.item_bias_mlp = model_0.item_bias_mlp
-                model_m.item_weight_nmf = model_0.item_weight_nmf
-                model_m.item_bias_nmf = model_0.item_bias_nmf
+                model_m.item_weight_mf = model_0.item_weight_mf
+                model_m.item_bias_mf = model_0.item_bias_mf
                 if model_0.info_size is not None:
                     if 'item_attr' in model_0.info_size:
                         model_m.item_attr_mf = model_0.item_attr_mf

@@ -24,8 +24,20 @@ class Assist(nn.Module):
 
     def forward(self, input):
         output = {}
-        output['target'] = input['history'] + self.assist_rate * (input['output'] *
-                                                                  self.assist_weight.softmax(-1)).sum(-1)
+        aggregated_output = None
+        weight = self.assist_weight.softmax(-1)
+        for i in range(len(input['output'])):
+            if aggregated_output is None:
+                aggregated_output = input['output'][i] * weight[i]
+            else:
+                min_length = min(len(aggregated_output), len(input['output'][i]))
+                if len(aggregated_output) > len(input['output'][i]):
+                    aggregated_output[:min_length] += input['output'][i] * weight[i]
+                else:
+                    tmp_aggregated_output = aggregated_output.clone()
+                    aggregated_output = (input['output'][i] * weight[i]).clone()
+                    aggregated_output[:min_length] += tmp_aggregated_output
+        output['target'] = input['history'] + self.assist_rate * aggregated_output
         if 'target' in input:
             output['loss'] = loss_fn(output['target'], input['target'])
         return output

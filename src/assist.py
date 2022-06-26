@@ -81,19 +81,8 @@ class Assist:
                     model = models.assist().to(cfg['device'])
                     if cfg['assist']['ar_mode'] == 'optim' or cfg['assist']['aw_mode'] == 'optim':
                         history = torch.tensor(self.organization_output[iter - 1][split][:, self.data_split[i]].data)
-                        if 'match_rate' in cfg['assist'] and cfg['assist']['match_rate'] < 1:
-                            output = []
-                            for j in range(len(organization_outputs)):
-                                output_j = torch.tensor(organization_outputs[i][split][:, self.data_split[i]].data)
-                                output_j_other = torch.tensor(
-                                    organization_outputs[j][split][:, self.data_split[i]].data)
-                                num_matched = int(len(output_j) * cfg['assist']['match_rate'])
-                                output_j[:num_matched] = output_j_other[:num_matched]
-                                output.append(output_j)
-                        else:
-                            output = [torch.tensor(organization_outputs[j][split][:, self.data_split[i]].data) for j in
-                                      range(len(organization_outputs))]
-                        output = torch.stack(output, dim=-1)
+                        output = [torch.tensor(organization_outputs[j][split][:, self.data_split[i]].data) for j in
+                                  range(len(organization_outputs))]
                         target = torch.tensor(self.organization_target[0][split][:, self.data_split[i]].data)
                         model.train(True)
                         input = {'history': history, 'output': output, 'target': target}
@@ -113,19 +102,8 @@ class Assist:
                     model.load_state_dict(self.ar_state_dict[iter][i])
                     model.train(False)
                     history = torch.tensor(self.organization_output[iter - 1][split][:, self.data_split[i]].data)
-                    if 'match_rate' in cfg['assist'] and cfg['assist']['match_rate'] < 1:
-                        output = []
-                        for j in range(len(organization_outputs)):
-                            output_j = torch.tensor(organization_outputs[i][split][:, self.data_split[i]].data)
-                            output_j_other = torch.tensor(
-                                organization_outputs[j][split][:, self.data_split[i]].data)
-                            num_matched = int(len(output_j) * cfg['assist']['match_rate'])
-                            output_j[:num_matched] = output_j_other[:num_matched]
-                            output.append(output_j)
-                    else:
-                        output = [torch.tensor(organization_outputs[j][split][:, self.data_split[i]].data) for j in
-                                  range(len(organization_outputs))]
-                    output = torch.stack(output, dim=-1)
+                    output = [torch.tensor(organization_outputs[j][split][:, self.data_split[i]].data) for j in
+                              range(len(organization_outputs))]
                     target = torch.tensor(self.organization_target[0][split][:, self.data_split[i]].data)
                     input = {'history': history, 'output': output, 'target': target}
                     input = to_device(input, cfg['device'])

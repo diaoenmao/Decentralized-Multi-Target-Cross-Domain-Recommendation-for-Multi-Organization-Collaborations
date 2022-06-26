@@ -144,11 +144,11 @@ def process_control():
     if 'run_mode' in cfg['control']:
         cfg['run_mode'] = cfg['control']['run_mode']
     cfg['assist'] = {}
-    if 'ar' in cfg['control']:
+    if 'ar' in cfg['control'] and cfg['run_mode'] == 'assist':
         ar_list = cfg['control']['ar'].split('-')
         cfg['assist']['ar_mode'] = ar_list[0]
         cfg['assist']['ar'] = float(ar_list[1])
-    if 'aw' in cfg['control']:
+    if 'aw' in cfg['control'] and cfg['run_mode'] == 'assist':
         cfg['assist']['aw_mode'] = cfg['control']['aw']
     if 'match_rate' in cfg['control']:
         cfg['assist']['match_rate'] = float(cfg['control']['match_rate'])

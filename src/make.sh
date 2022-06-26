@@ -9,6 +9,7 @@ do
     python make.py --mode alone --data $data --run $run --num_experiments $num_experiments --round $round
     python make.py --mode mdr --data $data --run $run --num_experiments $num_experiments --round $round
     python make.py --mode assist --data $data --run $run --num_experiments $num_experiments --round $round
+    python make.py --mode match --data $data --run $run --num_experiments $num_experiments --round $round
   done
 done
 
