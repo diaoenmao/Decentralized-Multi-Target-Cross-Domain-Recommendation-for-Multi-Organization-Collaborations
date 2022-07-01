@@ -32,9 +32,26 @@ def make_control_list(data, mode):
             control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
                              ['0'], ['genre'], [mode]]]
             user_controls = make_controls(control_name)
-            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
-                             ['0'], ['random-8'], [mode]]]
-            item_controls = make_controls(control_name)
+            if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
+                                 ['0'], ['random-8'], [mode]]]
+                item_controls = make_controls(control_name)
+            else:
+                item_controls = []
+            controls = user_controls + item_controls
+        else:
+            raise ValueError('Not valid data')
+    elif mode == 'mdr':
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf'],
+                             ['0'], ['genre'], [mode]]]
+            user_controls = make_controls(control_name)
+            if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf'],
+                                 ['0'], ['random-8'], [mode]]]
+                item_controls = make_controls(control_name)
+            else:
+                item_controls = []
             controls = user_controls + item_controls
         else:
             raise ValueError('Not valid data')
@@ -44,10 +61,13 @@ def make_control_list(data, mode):
                              ['0'], ['genre'], ['assist'],
                              ['constant-0.1', 'constant-0.3', 'constant-1', 'optim-0.1'], ['constant'], ['1']]]
             user_controls = make_controls(control_name)
-            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['ae'],
-                             ['0'], ['random-8'], ['assist'],
-                             ['constant-0.1', 'constant-0.3', 'constant-1', 'optim-0.1'], ['constant'], ['1']]]
-            item_controls = make_controls(control_name)
+            if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['ae'],
+                                 ['0'], ['random-8'], ['assist'],
+                                 ['constant-0.1', 'constant-0.3', 'constant-1', 'optim-0.1'], ['constant'], ['1']]]
+                item_controls = make_controls(control_name)
+            else:
+                item_controls = []
             controls = user_controls + item_controls
         else:
             raise ValueError('Not valid data')
@@ -98,9 +118,8 @@ def make_control_list(data, mode):
 def main():
     write = True
     # data = ['ML100K', 'ML1M', 'ML10M', 'Douban', 'Amazon']
-    data = ['ML100K', 'ML1M']
-    # mode = ['joint', 'alone', 'assist']
-    mode = ['joint', 'alone', 'assist']
+    data = ['ML100K', 'ML1M', 'Douban', 'Amazon']
+    mode = ['joint', 'alone', 'mdr', 'assist']
     controls = []
     for data_ in data:
         for mode_ in mode:
@@ -250,16 +269,16 @@ def make_df_result(extracted_processed_result, mode_name, write):
 
 
 def make_vis_lc(df_exp, df_history):
-    control_dict = {'Joint': 'Joint', 'Alone': 'Alone', 'constant-0.1_constant': 'MTAL ($\eta_k=0.1$)',
+    control_dict = {'Joint': 'Joint', 'Alone': 'Alone', 'MDR': 'MDR','constant-0.1_constant': 'MTAL ($\eta_k=0.1$)',
                     'constant-0.3_constant': 'MTAL ($\eta_k=0.3$)', 'constant-1_constant': 'MTAL ($\eta_k=1.0$)',
                     'optim-0.1_constant': 'MTAL (Optimize $\eta_k$)'}
-    color_dict = {'Joint': 'black', 'Alone': 'gray', 'constant-0.1_constant': 'red',
+    color_dict = {'Joint': 'black', 'Alone': 'gray', 'MDR': 'green', 'constant-0.1_constant': 'red',
                   'constant-0.3_constant': 'orange', 'constant-1_constant': 'blue',
                   'optim-0.1_constant': 'lightblue'}
-    linestyle_dict = {'Joint': '-', 'Alone': ':', 'constant-0.1_constant': '--',
+    linestyle_dict = {'Joint': '-', 'Alone': ':', 'MDR': (5, (1, 5)), 'constant-0.1_constant': '--',
                       'constant-0.3_constant': '-.', 'constant-1_constant': (0, (1, 5)),
                       'optim-0.1_constant': (0, (5, 1))}
-    marker_dict = {'Joint': 'X', 'Alone': 'x', 'constant-0.1_constant': 'D',
+    marker_dict = {'Joint': 'X', 'Alone': 'x', 'MDR': 'p', 'constant-0.1_constant': 'D',
                    'constant-0.3_constant': 'd', 'constant-1_constant': 'o',
                    'optim-0.1_constant': 's'}
     label_loc_dict = {'Loss': 'upper right', 'RMSE': 'upper right', 'NDCG': 'lower right'}
@@ -275,6 +294,7 @@ def make_vis_lc(df_exp, df_history):
             df_name_std = '_'.join([*df_name_list[:-1], 'std'])
             joint = {}
             alone = {}
+            mdr = {}
             for (index, row) in df_exp[df_name].iterrows():
                 index_list = index.split('_')
                 if 'joint' in index_list:
@@ -283,6 +303,9 @@ def make_vis_lc(df_exp, df_history):
                 if 'alone' in index_list:
                     alone_ = row.to_numpy()
                     alone[index] = alone_[~np.isnan(alone_)]
+                if 'mdr' in index_list:
+                    mdr_ = row.to_numpy()
+                    mdr[index] = mdr_[~np.isnan(mdr_)]
             assist = {}
             for (index, row) in df_history[df_name].iterrows():
                 index_list = index.split('_')
@@ -291,6 +314,7 @@ def make_vis_lc(df_exp, df_history):
                     assist[index] = assist_[~np.isnan(assist_)]
             joint_std = {}
             alone_std = {}
+            mdr_std = {}
             for (index, row) in df_exp[df_name_std].iterrows():
                 index_list = index.split('_')
                 if 'joint' in index_list:
@@ -299,6 +323,9 @@ def make_vis_lc(df_exp, df_history):
                 if 'alone' in index_list:
                     alone_ = row.to_numpy()
                     alone_std[index] = alone_[~np.isnan(alone_)]
+                if 'mdr' in index_list:
+                    mdr_ = row.to_numpy()
+                    mdr_std[index] = mdr_[~np.isnan(mdr_)]
             assist_std = {}
             for (index, row) in df_history[df_name_std].iterrows():
                 index_list = index.split('_')
@@ -309,12 +336,16 @@ def make_vis_lc(df_exp, df_history):
             joint_std_values = np.array(list(joint_std.values())).reshape(-1)
             alone_values = np.array(list(alone.values())).reshape(-1)
             alone_std_values = np.array(list(alone_std.values())).reshape(-1)
+            mdr_values = np.array(list(mdr.values())).reshape(-1)
+            mdr_std_values = np.array(list(mdr_std.values())).reshape(-1)
             if metric_name in ['NDCG']:
                 joint_best_idx = np.argmax(joint_values)
                 alone_best_idx = np.argmax(alone_values)
+                mdr_best_idx = np.argmax(mdr_values)
             else:
                 joint_best_idx = np.argmin(joint_values)
                 alone_best_idx = np.argmin(alone_values)
+                mdr_best_idx = np.argmin(mdr_values)
             x = np.arange(11)
             joint = joint_values[joint_best_idx]
             joint_std = joint_std_values[joint_best_idx]
@@ -324,6 +355,10 @@ def make_vis_lc(df_exp, df_history):
             alone_std = alone_std_values[alone_best_idx]
             alone = np.full(x.shape, alone)
             alone_std = np.full(x.shape, alone_std)
+            mdr = mdr_values[mdr_best_idx]
+            mdr_std = mdr_std_values[mdr_best_idx]
+            mdr = np.full(x.shape, mdr)
+            mdr_std = np.full(x.shape, mdr_std)
             fig_name = '_'.join([*df_name_list[:-1]])
             fig[fig_name] = plt.figure(fig_name, figsize=figsize)
             if fig_name not in ax_dict_1:
@@ -334,6 +369,9 @@ def make_vis_lc(df_exp, df_history):
                           label=control_dict[control], marker=marker_dict[control])
             control = 'Alone'
             ax_1.errorbar(x, alone, yerr=alone_std, color=color_dict[control], linestyle=linestyle_dict[control],
+                          label=control_dict[control], marker=marker_dict[control])
+            control = 'MDR'
+            ax_1.errorbar(x, mdr, yerr=mdr_std, color=color_dict[control], linestyle=linestyle_dict[control],
                           label=control_dict[control], marker=marker_dict[control])
             for assist_mode in assist:
                 assist_ = assist[assist_mode]
