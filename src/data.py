@@ -97,6 +97,10 @@ class PairInput(torch.nn.Module):
                 if 'target_user_profile' in input:
                     input['target_user_profile'] = input['target_user_profile'].view(1, -1).repeat(
                         input['target_item'].size(0), 1)
+                if 'item_attr' in input:
+                    del input['item_attr']
+                if 'target_item_attr' in input:
+                    del input['target_item_attr']
             else:
                 if 'user_profile' in input:
                     del input['user_profile']
@@ -110,6 +114,10 @@ class PairInput(torch.nn.Module):
             input['item'] = input['item'].repeat(input['user'].size(0))
             input['target_item'] = input['target_item'].repeat(input['target_user'].size(0))
             if self.info == 1:
+                if 'user_profile' in input:
+                    del input['user_profile']
+                if 'target_user_profile' in input:
+                    del input['target_user_profile']
                 if 'item_attr' in input:
                     input['item_attr'] = input['item_attr'].view(1, -1).repeat(input['user'].size(0), 1)
                 if 'target_item_attr' in input:
@@ -148,6 +156,8 @@ class FlatInput(torch.nn.Module):
                         input['user_profile'] = input['user_profile'].repeat(input['item'].size(0), 1)
                 if 'target_user_profile' in input:
                     del input['target_user_profile']
+                if 'item_attr' in input:
+                    del input['item_attr']
                 if 'target_item_attr' in input:
                     del input['target_item_attr']
             else:
@@ -163,12 +173,14 @@ class FlatInput(torch.nn.Module):
             input['item'] = input['item'].repeat(input['user'].size(0))
             input['target_item'] = input['target_item'].repeat(input['target_user'].size(0))
             if self.info == 1:
+                if 'user_profile' in input:
+                    del input['user_profile']
+                if 'target_user_profile' in input:
+                    del input['target_user_profile']
                 if 'item_attr' in input:
                     input['item_attr'] = input['item_attr'].view(1, -1)
                     if input['user'].size(0) == 0 and input['target_user'].size(0) == 0:
                         input['item_attr'] = input['item_attr'].repeat(input['user'].size(0), 1)
-                if 'target_user_profile' in input:
-                    del input['target_user_profile']
                 if 'target_item_attr' in input:
                     del input['target_item_attr']
             else:
@@ -186,7 +198,7 @@ class FlatInput(torch.nn.Module):
 
 
 def split_dataset(dataset):
-    if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban','Amazon']:
+    if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
         if 'genre' in cfg['data_split_mode']:
             if cfg['data_mode'] == 'user':
                 num_organizations = cfg['num_organizations']
