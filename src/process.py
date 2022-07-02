@@ -56,21 +56,25 @@ def make_control_list(data, mode):
         else:
             raise ValueError('Not valid data')
     elif mode == 'assist':
-        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
             control_name = [[[data], ['user'], ['explicit', 'implicit'], ['ae'],
                              ['0'], ['genre'], ['assist'],
-                             ['constant-0.1', 'constant-0.3', 'constant-1', 'optim-0.1'], ['constant'], ['1']]]
+                             ['constant-0.01', 'constant-0.05', 'constant-0.1', 'constant-0.3', 'constant-1',
+                              'optim-0.1'], ['constant'], ['1']]]
             user_controls = make_controls(control_name)
-            if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
-                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['ae'],
-                                 ['0'], ['random-8'], ['assist'],
-                                 ['constant-0.1', 'constant-0.3', 'constant-1', 'optim-0.1'], ['constant'], ['1']]]
-                item_controls = make_controls(control_name)
-            else:
-                item_controls = []
+            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['ae'],
+                             ['0'], ['random-8'], ['assist'],
+                             ['constant-0.01', 'constant-0.05', 'constant-0.1', 'constant-0.3', 'constant-1',
+                              'optim-0.1'], ['constant'], ['1']]]
+            item_controls = make_controls(control_name)
             controls = user_controls + item_controls
-        else:
-            raise ValueError('Not valid data')
+        elif data in ['Douban', 'Amazon']:
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'],
+                             ['constant-0.01', 'constant-0.05', 'constant-0.1', 'constant-0.3', 'constant-1',
+                              'optim-0.1'], ['constant'], ['1']]]
+            user_controls = make_controls(control_name)
+            controls = user_controls
     elif mode == 'match':
         if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
             control_name = [[[data], ['user'], ['explicit', 'implicit'], ['ae'],
@@ -118,7 +122,7 @@ def make_control_list(data, mode):
 def main():
     write = True
     # data = ['ML100K', 'ML1M', 'ML10M', 'Douban', 'Amazon']
-    data = ['ML100K', 'ML1M', 'Douban', 'Amazon']
+    data = ['ML1M', 'Douban', 'Amazon']
     mode = ['joint', 'alone', 'mdr', 'assist']
     controls = []
     for data_ in data:
@@ -137,7 +141,8 @@ def main():
     df_exp = make_df_result(extracted_processed_result_exp, 'exp', write)
     df_history = make_df_result(extracted_processed_result_history, 'history', write)
     df_each = make_df_result(extracted_processed_result_each, 'each', write)
-    make_vis_lc(df_exp, df_history)
+    # make_vis_lc(df_exp, df_history)
+    make_vis_lc_best(df_exp, df_history)
     return
 
 
@@ -269,18 +274,22 @@ def make_df_result(extracted_processed_result, mode_name, write):
 
 
 def make_vis_lc(df_exp, df_history):
-    control_dict = {'Joint': 'Joint', 'Alone': 'Alone', 'MDR': 'MDR','constant-0.1_constant': 'MTAL ($\eta_k=0.1$)',
-                    'constant-0.3_constant': 'MTAL ($\eta_k=0.3$)', 'constant-1_constant': 'MTAL ($\eta_k=1.0$)',
-                    'optim-0.1_constant': 'MTAL (Optimize $\eta_k$)'}
-    color_dict = {'Joint': 'black', 'Alone': 'gray', 'MDR': 'green', 'constant-0.1_constant': 'red',
-                  'constant-0.3_constant': 'orange', 'constant-1_constant': 'blue',
-                  'optim-0.1_constant': 'lightblue'}
-    linestyle_dict = {'Joint': '-', 'Alone': ':', 'MDR': (5, (1, 5)), 'constant-0.1_constant': '--',
-                      'constant-0.3_constant': '-.', 'constant-1_constant': (0, (1, 5)),
-                      'optim-0.1_constant': (0, (5, 1))}
-    marker_dict = {'Joint': 'X', 'Alone': 'x', 'MDR': 'p', 'constant-0.1_constant': 'D',
-                   'constant-0.3_constant': 'd', 'constant-1_constant': 'o',
-                   'optim-0.1_constant': 's'}
+    control_dict = {'Joint': 'Joint', 'Alone': 'Alone', 'MDR': 'MDR',
+                    'constant-0.01_constant': 'MTAL ($\eta_k=0.01$)', 'constant-0.05_constant': 'MTAL ($\eta_k=0.05$)',
+                    'constant-0.1_constant': 'MTAL ($\eta_k=0.1$)', 'constant-0.3_constant': 'MTAL ($\eta_k=0.3$)',
+                    'constant-1_constant': 'MTAL ($\eta_k=1.0$)', 'optim-0.1_constant': 'MTAL (Optimize $\eta_k$)'}
+    color_dict = {'Joint': 'black', 'Alone': 'gray', 'MDR': 'green',
+                  'constant-0.01_constant': 'pink', 'constant-0.05_constant': 'cyan',
+                  'constant-0.1_constant': 'red', 'constant-0.3_constant': 'orange',
+                  'constant-1_constant': 'blue', 'optim-0.1_constant': 'lightblue'}
+    linestyle_dict = {'Joint': '-', 'Alone': ':', 'MDR': (5, (1, 5)),
+                      'constant-0.01_constant': (5, (5, 5)), 'constant-0.05_constant': (5, (10, 5)),
+                      'constant-0.1_constant': '--', 'constant-0.3_constant': '-.',
+                      'constant-1_constant': (0, (1, 5)), 'optim-0.1_constant': (0, (5, 1))}
+    marker_dict = {'Joint': 'X', 'Alone': 'x', 'MDR': 'p',
+                   'constant-0.01_constant': '^', 'constant-0.05_constant': 'v',
+                   'constant-0.1_constant': 'D', 'constant-0.3_constant': 'd',
+                   'constant-1_constant': 'o', 'optim-0.1_constant': 's'}
     label_loc_dict = {'Loss': 'upper right', 'RMSE': 'upper right', 'NDCG': 'lower right'}
     fontsize = {'legend': 12, 'label': 16, 'ticks': 16}
     figsize = (5, 4)
@@ -391,6 +400,149 @@ def make_vis_lc(df_exp, df_history):
         fig[fig_name].tight_layout()
         control = fig_name.split('_')
         dir_path = os.path.join(vis_path, 'lc', *control[:-1])
+        fig_path = os.path.join(dir_path, '{}.{}'.format(fig_name, save_format))
+        makedir_exist_ok(dir_path)
+        plt.savefig(fig_path, dpi=dpi, bbox_inches='tight', pad_inches=0)
+        plt.close(fig_name)
+    return
+
+
+def make_vis_lc_best(df_exp, df_history):
+    control_dict = {'Joint': 'Joint', 'Alone': 'Alone', 'MDR': 'MDR',
+                    'constant-0.01_constant': 'MTAL', 'constant-0.05_constant': 'MTAL',
+                    'constant-0.1_constant': 'MTAL', 'constant-0.3_constant': 'MTAL',
+                    'constant-1_constant': 'MTAL', 'optim-0.1_constant': 'MTAL'}
+    color_dict = {'Joint': 'black', 'Alone': 'gray', 'MDR': 'orange',
+                  'constant-0.01_constant': 'red', 'constant-0.05_constant': 'red',
+                  'constant-0.1_constant': 'red', 'constant-0.3_constant': 'red',
+                  'constant-1_constant': 'red', 'optim-0.1_constant': 'red'}
+    linestyle_dict = {'Joint': '-', 'Alone': ':', 'MDR': '--',
+                      'constant-0.01_constant': '-.', 'constant-0.05_constant': '-.',
+                      'constant-0.1_constant': '-.', 'constant-0.3_constant': '-.',
+                      'constant-1_constant': '-.', 'optim-0.1_constant': '-.'}
+    marker_dict = {'Joint': 'X', 'Alone': 'x', 'MDR': 'p',
+                   'constant-0.01_constant': 'd', 'constant-0.05_constant': 'd',
+                   'constant-0.1_constant': 'd', 'constant-0.3_constant': 'd',
+                   'constant-1_constant': 'd', 'optim-0.1_constant': 'd'}
+    label_loc_dict = {'Loss': 'upper right', 'RMSE': 'upper right', 'NDCG': 'lower right'}
+    fontsize = {'legend': 12, 'label': 16, 'ticks': 16}
+    figsize = (5, 4)
+    fig = {}
+    ax_dict_1 = {}
+    for df_name in df_history:
+        df_name_list = df_name.split('_')
+        data_name, data_mode, target_mode, info, data_split_mode, metric_name, stat = df_name_list
+        valid_mask = stat == 'mean'
+        if valid_mask:
+            df_name_std = '_'.join([*df_name_list[:-1], 'std'])
+            joint = {}
+            alone = {}
+            mdr = {}
+            for (index, row) in df_exp[df_name].iterrows():
+                index_list = index.split('_')
+                if 'joint' in index_list:
+                    joint_ = row.to_numpy()
+                    joint[index] = joint_[~np.isnan(joint_)]
+                if 'alone' in index_list:
+                    alone_ = row.to_numpy()
+                    alone[index] = alone_[~np.isnan(alone_)]
+                if 'mdr' in index_list:
+                    mdr_ = row.to_numpy()
+                    mdr[index] = mdr_[~np.isnan(mdr_)]
+            assist = {}
+            for (index, row) in df_history[df_name].iterrows():
+                index_list = index.split('_')
+                if 'assist' in index_list and len(index_list) == 5:
+                    assist_ = row.to_numpy()
+                    assist[index] = assist_[~np.isnan(assist_)]
+            joint_std = {}
+            alone_std = {}
+            mdr_std = {}
+            for (index, row) in df_exp[df_name_std].iterrows():
+                index_list = index.split('_')
+                if 'joint' in index_list:
+                    joint_ = row.to_numpy()
+                    joint_std[index] = joint_[~np.isnan(joint_)]
+                if 'alone' in index_list:
+                    alone_ = row.to_numpy()
+                    alone_std[index] = alone_[~np.isnan(alone_)]
+                if 'mdr' in index_list:
+                    mdr_ = row.to_numpy()
+                    mdr_std[index] = mdr_[~np.isnan(mdr_)]
+            assist_std = {}
+            for (index, row) in df_history[df_name_std].iterrows():
+                index_list = index.split('_')
+                if 'assist' in index_list and len(index_list) == 5:
+                    assist_ = row.to_numpy()
+                    assist_std[index] = assist_[~np.isnan(assist_)]
+            joint_values = np.array(list(joint.values())).reshape(-1)
+            joint_std_values = np.array(list(joint_std.values())).reshape(-1)
+            alone_values = np.array(list(alone.values())).reshape(-1)
+            alone_std_values = np.array(list(alone_std.values())).reshape(-1)
+            mdr_values = np.array(list(mdr.values()))
+            mdr_std_values = np.array(list(mdr_std.values())).reshape(-1)
+            assist_values = np.array(list(assist.values()))
+            assist_std_values = np.array(list(assist_std.values()))
+            assist_controls = list(assist.keys())
+            if metric_name in ['NDCG']:
+                joint_best_idx = np.argmax(joint_values)
+                alone_best_idx = np.argmax(alone_values)
+                mdr_best_idx = np.argmax(mdr_values)
+                assist_best_idx = np.argmax(assist_values[:, -1].reshape(-1))
+            else:
+                joint_best_idx = np.argmin(joint_values)
+                alone_best_idx = np.argmin(alone_values)
+                mdr_best_idx = np.argmin(mdr_values)
+                assist_best_idx = np.argmin(assist_values[:-1, -1].reshape(-1))
+            x = np.arange(11)
+            joint = joint_values[joint_best_idx]
+            joint_std = joint_std_values[joint_best_idx]
+            joint = np.full(x.shape, joint)
+            joint_std = np.full(x.shape, joint_std)
+            alone = alone_values[alone_best_idx]
+            alone_std = alone_std_values[alone_best_idx]
+            alone = np.full(x.shape, alone)
+            alone_std = np.full(x.shape, alone_std)
+            mdr = mdr_values[mdr_best_idx]
+            mdr_std = mdr_std_values[mdr_best_idx]
+            mdr = np.full(x.shape, mdr)
+            mdr_std = np.full(x.shape, mdr_std)
+            assist_control = '_'.join([*assist_controls[assist_best_idx].split('_')[2:4]])
+            assist = assist_values[assist_best_idx]
+            assist_std = assist_std_values[assist_best_idx]
+            fig_name = '_'.join([*df_name_list[:-1]])
+            fig[fig_name] = plt.figure(fig_name, figsize=figsize)
+            if fig_name not in ax_dict_1:
+                ax_dict_1[fig_name] = fig[fig_name].add_subplot(111)
+            ax_1 = ax_dict_1[fig_name]
+            control = 'Joint'
+            ax_1.plot(x, joint,
+                      color=color_dict[control], linestyle=linestyle_dict[control],
+                      label=control_dict[control], marker=marker_dict[control])
+            control = 'Alone'
+            ax_1.plot(x, alone,
+                      color=color_dict[control], linestyle=linestyle_dict[control],
+                      label=control_dict[control], marker=marker_dict[control])
+            control = 'MDR'
+            ax_1.plot(x, mdr,
+                      color=color_dict[control], linestyle=linestyle_dict[control],
+                      label=control_dict[control], marker=marker_dict[control])
+            control = assist_control
+            ax_1.plot(x, assist,
+                      color=color_dict[control], linestyle=linestyle_dict[control],
+                      label=control, marker=marker_dict[control])
+            ax_1.set_xticks(x)
+            ax_1.set_xlabel('Assistance Rounds', fontsize=fontsize['label'])
+            ax_1.set_ylabel(metric_name, fontsize=fontsize['label'])
+            ax_1.xaxis.set_tick_params(labelsize=fontsize['ticks'])
+            ax_1.yaxis.set_tick_params(labelsize=fontsize['ticks'])
+            ax_1.legend(loc=label_loc_dict[metric_name], fontsize=fontsize['legend'])
+    for fig_name in fig:
+        fig[fig_name] = plt.figure(fig_name)
+        ax_dict_1[fig_name].grid(linestyle='--', linewidth='0.5')
+        fig[fig_name].tight_layout()
+        control = fig_name.split('_')
+        dir_path = os.path.join(vis_path, 'lc_best', *control[:-1])
         fig_path = os.path.join(dir_path, '{}.{}'.format(fig_name, save_format))
         makedir_exist_ok(dir_path)
         plt.savefig(fig_path, dpi=dpi, bbox_inches='tight', pad_inches=0)
