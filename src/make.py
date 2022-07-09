@@ -137,11 +137,6 @@ def main():
                              ['none'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
             alone_user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                                 control_name)
-            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'ae'],
-                             ['0'], ['random-8'], ['alone'], ['none'],
-                             ['none'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
-            alone_item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
-                                                control_name)
             script_name = [['{}_recsys_assist.py'.format(run)]]
             control_name = [[[data], ['user'], ['explicit'], ['ae'],
                              ['0'], ['genre'], ['assist'], ['constant-0.01'],
@@ -153,8 +148,7 @@ def main():
                              ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
             assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
                                                           resume_mode, control_name)
-            controls = alone_user_controls + alone_item_controls + assist_user_explicit_controls + \
-                       assist_user_implicit_controls
+            controls = alone_user_controls + assist_user_explicit_controls + assist_user_implicit_controls
         else:
             raise ValueError('Not valid data')
     elif mode == 'info':

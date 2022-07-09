@@ -75,43 +75,80 @@ def make_control_list(data, mode):
                               'optim-0.1'], ['constant'], ['1']]]
             user_controls = make_controls(control_name)
             controls = user_controls
+        else:
+            raise ValueError('Not valid data')
     elif mode == 'match':
-        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
-            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['ae'],
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'ae'],
+                             ['0'], ['genre'], ['alone'], ['none'],
+                             ['none'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            alone_user_controls = make_controls(control_name)
+            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'ae'],
+                             ['0'], ['random-8'], ['alone'], ['none'],
+                             ['none'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            alone_item_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
                              ['0'], ['genre'], ['assist'], ['constant-0.3'],
                              ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
-            user_controls = make_controls(control_name)
-            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['ae'],
-                             ['0'], ['random-8'], ['assist'], ['constant-0.3'],
+            assist_user_explicit_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['optim-0.1'],
                              ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
-            item_controls = make_controls(control_name)
-            controls = user_controls + item_controls
+            assist_user_implicit_controls = make_controls(control_name)
+            controls = alone_user_controls + alone_item_controls + assist_user_explicit_controls + \
+                       assist_user_implicit_controls
+        elif data in ['Douban', 'Amazon']:
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'ae'],
+                             ['0'], ['genre'], ['alone'], ['none'],
+                             ['none'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            alone_user_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.01'],
+                             ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_explicit_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'],
+                             ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_implicit_controls = make_controls(control_name)
+            controls = alone_user_controls + assist_user_explicit_controls + assist_user_implicit_controls
         else:
             raise ValueError('Not valid data')
     elif mode == 'info':
-        if data in ['ML100K', 'ML1M', 'Douban']:
-            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['ae'], ['1'], ['genre'], ['joint']]]
-            joint_controls = make_controls(control_name)
-            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['ae'], ['1'], ['genre'], ['alone']]]
-            alone_controls = make_controls(control_name)
-            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['ae'],
-                             ['1'], ['genre'], ['assist'], ['constant-0.3'],
-                             ['constant'], ['1']]]
-            assist_controls = make_controls(control_name)
-            controls = joint_controls + alone_controls + assist_controls
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['1'], ['genre'], ['assist'], ['constant-0.3'], ['constant'], ['1']]]
+            assist_user_explicit_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['1'], ['genre'], ['assist'], ['optim-0.1'], ['constant'], ['1']]]
+            assist_user_implicit_controls =make_controls(control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Douban', 'Amazon']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['1'], ['genre'], ['assist'], ['constant-0.01'], ['constant'], ['1']]]
+            assist_user_explicit_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['1'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1']]]
+            assist_user_implicit_controls = make_controls(control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
         else:
             raise ValueError('Not valid data')
     elif mode == 'pl':
-        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
-            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['ae'],
-                             ['0'], ['genre'], ['assist'], ['constant-0.3'],
-                             ['constant'], ['1'], ['dp-10', 'ip-10']]]
-            user_controls = make_controls(control_name)
-            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['ae'],
-                             ['0'], ['random-8'], ['assist'], ['constant-0.3'],
-                             ['constant'], ['1'], ['dp-10', 'ip-10']]]
-            item_controls = make_controls(control_name)
-            controls = user_controls + item_controls
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.3'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+            assist_user_explicit_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['optim-0.1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+            assist_user_implicit_controls = make_controls(control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Douban', 'Amazon']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.01'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+            assist_user_explicit_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+            assist_user_implicit_controls = make_controls(control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
         else:
             raise ValueError('Not valid data')
     else:
@@ -120,10 +157,10 @@ def make_control_list(data, mode):
 
 
 def main():
-    write = True
+    write = False
     # data = ['ML100K', 'ML1M', 'ML10M', 'Douban', 'Amazon']
     data = ['ML1M', 'Douban', 'Amazon']
-    mode = ['joint', 'alone', 'mdr', 'assist']
+    mode = ['joint', 'alone', 'mdr', 'assist', 'match', 'info', 'pl']
     controls = []
     for data_ in data:
         for mode_ in mode:
@@ -141,7 +178,7 @@ def main():
     df_exp = make_df_result(extracted_processed_result_exp, 'exp', write)
     df_history = make_df_result(extracted_processed_result_history, 'history', write)
     df_each = make_df_result(extracted_processed_result_each, 'each', write)
-    # make_vis_lc(df_exp, df_history)
+    make_vis_lc(df_exp, df_history)
     make_vis_lc_best(df_exp, df_history)
     return
 
@@ -261,11 +298,10 @@ def make_df_result(extracted_processed_result, mode_name, write):
         writer = pd.ExcelWriter('{}/result_{}.xlsx'.format(result_path, mode_name), engine='xlsxwriter')
         for df_name in df:
             concat_df = pd.concat(df[df_name])
-            if len(concat_df) > 1:
-                df[df_name] = concat_df
-                df[df_name].to_excel(writer, sheet_name='Sheet1', startrow=startrow + 1)
-                writer.sheets['Sheet1'].write_string(startrow, 0, df_name)
-                startrow = startrow + len(df[df_name].index) + 3
+            df[df_name] = concat_df
+            df[df_name].to_excel(writer, sheet_name='Sheet1', startrow=startrow + 1)
+            writer.sheets['Sheet1'].write_string(startrow, 0, df_name)
+            startrow = startrow + len(df[df_name].index) + 3
         writer.save()
     else:
         for df_name in df:
@@ -297,9 +333,11 @@ def make_vis_lc(df_exp, df_history):
     ax_dict_1 = {}
     for df_name in df_history:
         df_name_list = df_name.split('_')
-        data_name, data_mode, target_mode, info, data_split_mode, metric_name, stat = df_name_list
-        valid_mask = stat == 'mean'
+        info = df_name_list[3]
+        stat = df_name_list[-1]
+        valid_mask = stat == 'mean' and info == '0'
         if valid_mask:
+            data_name, data_mode, target_mode, info, data_split_mode, metric_name, stat = df_name_list
             df_name_std = '_'.join([*df_name_list[:-1], 'std'])
             joint = {}
             alone = {}
@@ -318,7 +356,7 @@ def make_vis_lc(df_exp, df_history):
             assist = {}
             for (index, row) in df_history[df_name].iterrows():
                 index_list = index.split('_')
-                if 'assist' in index_list and len(index_list) == 5:
+                if 'assist' in index_list and len(index_list) == 5 and index_list[-1] == '1':
                     assist_ = row.to_numpy()
                     assist[index] = assist_[~np.isnan(assist_)]
             joint_std = {}
@@ -338,7 +376,7 @@ def make_vis_lc(df_exp, df_history):
             assist_std = {}
             for (index, row) in df_history[df_name_std].iterrows():
                 index_list = index.split('_')
-                if 'assist' in index_list and len(index_list) == 5:
+                if 'assist' in index_list and len(index_list) == 5 and index_list[-1] == '1':
                     assist_ = row.to_numpy()
                     assist_std[index] = assist_[~np.isnan(assist_)]
             joint_values = np.array(list(joint.values())).reshape(-1)
@@ -432,7 +470,7 @@ def make_vis_lc_best(df_exp, df_history):
     for df_name in df_history:
         df_name_list = df_name.split('_')
         data_name, data_mode, target_mode, info, data_split_mode, metric_name, stat = df_name_list
-        valid_mask = stat == 'mean'
+        valid_mask = stat == 'mean' and info == '0'
         if valid_mask:
             df_name_std = '_'.join([*df_name_list[:-1], 'std'])
             joint = {}
@@ -452,7 +490,7 @@ def make_vis_lc_best(df_exp, df_history):
             assist = {}
             for (index, row) in df_history[df_name].iterrows():
                 index_list = index.split('_')
-                if 'assist' in index_list and len(index_list) == 5:
+                if 'assist' in index_list and len(index_list) == 5 and index_list[-1] == '1':
                     assist_ = row.to_numpy()
                     assist[index] = assist_[~np.isnan(assist_)]
             joint_std = {}
@@ -472,7 +510,7 @@ def make_vis_lc_best(df_exp, df_history):
             assist_std = {}
             for (index, row) in df_history[df_name_std].iterrows():
                 index_list = index.split('_')
-                if 'assist' in index_list and len(index_list) == 5:
+                if 'assist' in index_list and len(index_list) == 5 and index_list[-1] == '1':
                     assist_ = row.to_numpy()
                     assist_std[index] = assist_[~np.isnan(assist_)]
             joint_values = np.array(list(joint.values())).reshape(-1)
@@ -530,7 +568,7 @@ def make_vis_lc_best(df_exp, df_history):
             control = assist_control
             ax_1.plot(x, assist,
                       color=color_dict[control], linestyle=linestyle_dict[control],
-                      label=control, marker=marker_dict[control])
+                      label=control_dict[control], marker=marker_dict[control])
             ax_1.set_xticks(x)
             ax_1.set_xlabel('Assistance Rounds', fontsize=fontsize['label'])
             ax_1.set_ylabel(metric_name, fontsize=fontsize['label'])
