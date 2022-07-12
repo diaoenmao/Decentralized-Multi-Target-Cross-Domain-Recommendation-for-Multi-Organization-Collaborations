@@ -120,7 +120,7 @@ def make_control_list(data, mode):
             assist_user_explicit_controls = make_controls(control_name)
             control_name = [[[data], ['user'], ['implicit'], ['ae'],
                              ['1'], ['genre'], ['assist'], ['optim-0.1'], ['constant'], ['1']]]
-            assist_user_implicit_controls =make_controls(control_name)
+            assist_user_implicit_controls = make_controls(control_name)
             controls = assist_user_explicit_controls + assist_user_implicit_controls
         elif data in ['Douban', 'Amazon']:
             control_name = [[[data], ['user'], ['explicit'], ['ae'],
@@ -178,8 +178,9 @@ def main():
     df_exp = make_df_result(extracted_processed_result_exp, 'exp', write)
     df_history = make_df_result(extracted_processed_result_history, 'history', write)
     df_each = make_df_result(extracted_processed_result_each, 'each', write)
-    make_vis_lc(df_exp, df_history)
-    make_vis_lc_best(df_exp, df_history)
+    # make_vis_lc(df_exp, df_history)
+    # make_vis_lc_best(df_exp, df_history)
+    make_vis_match(df_each)
     return
 
 
@@ -581,6 +582,111 @@ def make_vis_lc_best(df_exp, df_history):
         fig[fig_name].tight_layout()
         control = fig_name.split('_')
         dir_path = os.path.join(vis_path, 'lc_best', *control[:-1])
+        fig_path = os.path.join(dir_path, '{}.{}'.format(fig_name, save_format))
+        makedir_exist_ok(dir_path)
+        plt.savefig(fig_path, dpi=dpi, bbox_inches='tight', pad_inches=0)
+        plt.close(fig_name)
+    return
+
+
+def make_vis_match(df_each):
+    control_dict = {'alone': 'Alone', 'ae_assist': 'MTAL'}
+    color_dict = {'alone': 'black', 'ae_assist': 'red'}
+    linestyle_dict = {'alone': '-', 'ae_assist': '-.'}
+    marker_dict = {'alone': 'X', 'ae_assist': 'd'}
+    label_loc_dict = {'Loss': 'upper right', 'RMSE': 'upper right', 'NDCG': 'lower right'}
+    fontsize = {'legend': 12, 'label': 16, 'ticks': 16}
+    figsize = (5, 4)
+    fig = {}
+    ax_dict_1 = {}
+    for df_name in df_each:
+        df_name_list = df_name.split('_')
+        data_name, data_mode, target_mode, info, data_split_mode, metric_name, stat = df_name_list
+        valid_mask = stat == 'mean' and info == '0'
+        if valid_mask:
+            df_name_std = '_'.join([*df_name_list[:-1], 'std'])
+            base_alone = {}
+            ae_alone = {}
+            ae_assist = {}
+            for (index, row) in df_each[df_name].iterrows():
+                if 'base_alone' in index:
+                    base_alone_ = row.to_numpy()
+                    base_alone[index] = base_alone_[~np.isnan(base_alone_)]
+                if 'ae_alone' in index:
+                    ae_alone_ = row.to_numpy()
+                    ae_alone[index] = ae_alone_[~np.isnan(ae_alone_)]
+                if 'ae_assist' in index:
+                    ae_assist_ = row.to_numpy()
+                    ae_assist[index] = ae_assist_[~np.isnan(ae_assist_)]
+            base_alone_std = {}
+            ae_alone_std = {}
+            ae_assist_std = {}
+            for (index, row) in df_each[df_name_std].iterrows():
+                if 'base_alone' in index:
+                    base_alone_ = row.to_numpy()
+                    base_alone_std[index] = base_alone_[~np.isnan(base_alone_)]
+                if 'ae_alone' in index:
+                    ae_alone_ = row.to_numpy()
+                    ae_alone_std[index] = ae_alone_[~np.isnan(ae_alone_)]
+                if 'ae_assist' in index:
+                    ae_assist_ = row.to_numpy()
+                    ae_assist_std[index] = ae_assist_[~np.isnan(ae_assist_)]
+            base_alone_values = np.array(list(base_alone.values()))
+            base_alone_values = np.concatenate([base_alone_values[1:], base_alone_values[[0]]])[:, 0]
+            base_alone_values_std = np.array(list(base_alone_std.values()))
+            base_alone_values_std = np.concatenate([base_alone_values_std[1:], base_alone_values_std[[0]]])[:, 0]
+            ae_alone_values = np.array(list(ae_alone.values()))
+            ae_alone_values = np.concatenate([ae_alone_values[1:], ae_alone_values[[0]]])[:, 0]
+            ae_alone_values_std = np.array(list(ae_alone_std.values()))
+            ae_alone_values_std = np.concatenate([ae_alone_values_std[1:], ae_alone_values_std[[0]]])[:, 0]
+            alone_values = np.stack([base_alone_values, ae_alone_values], axis=-1)
+            alone_values_std = np.stack([base_alone_values_std, ae_alone_values_std], axis=-1)
+            if metric_name in ['NDCG']:
+                alone_best_idx = np.argmax(alone_values, axis=-1)
+            else:
+                alone_best_idx = np.argmin(alone_values, axis=-1)
+            alone_values = alone_values[np.arange(alone_values.shape[0]), alone_best_idx]
+            alone_values_std = alone_values_std[np.arange(alone_values_std.shape[0]), alone_best_idx]
+            pivot_ae_assist_key = list(ae_assist.keys())
+            pivot_ae_assist_key = [x for x in pivot_ae_assist_key if x.split('_')[-1] == '0.1']
+            if len(pivot_ae_assist_key) == 0:
+                continue
+            pivot_ae_assist_key = pivot_ae_assist_key[0]
+            pivot_ae_assist_key = '_'.join(pivot_ae_assist_key.split('_')[:3])
+            ae_assist = {k: v for k, v in ae_assist.items() if
+                             pivot_ae_assist_key in k and len(k.split('_')) == 5}
+            ae_assist_std = {k: v for k, v in ae_assist_std.items() if
+                             pivot_ae_assist_key in k and len(k.split('_')) == 5}
+            ae_assist_values = np.array(list(ae_assist.values()))
+            ae_assist_values = np.concatenate([ae_assist_values[1:], ae_assist_values[[0]]])[:, 0]
+            ae_assist_values_std = np.array(list(ae_assist_std.values()))
+            ae_assist_values_std = np.concatenate([ae_assist_values_std[1:], ae_assist_values_std[[0]]])[:, 0]
+            x = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1])
+            fig_name = '_'.join([*df_name_list[:-1]])
+            fig[fig_name] = plt.figure(fig_name, figsize=figsize)
+            if fig_name not in ax_dict_1:
+                ax_dict_1[fig_name] = fig[fig_name].add_subplot(111)
+            ax_1 = ax_dict_1[fig_name]
+            control = 'alone'
+            ax_1.plot(x, alone_values,
+                      color=color_dict[control], linestyle=linestyle_dict[control],
+                      label=control_dict[control], marker=marker_dict[control])
+            control = 'ae_assist'
+            ax_1.plot(x, ae_assist_values,
+                      color=color_dict[control], linestyle=linestyle_dict[control],
+                      label=control_dict[control], marker=marker_dict[control])
+            # ax_1.set_xticks(x)
+            ax_1.set_xlabel('Aligntment Ratio', fontsize=fontsize['label'])
+            ax_1.set_ylabel(metric_name, fontsize=fontsize['label'])
+            ax_1.xaxis.set_tick_params(labelsize=fontsize['ticks'])
+            ax_1.yaxis.set_tick_params(labelsize=fontsize['ticks'])
+            ax_1.legend(loc=label_loc_dict[metric_name], fontsize=fontsize['legend'])
+    for fig_name in fig:
+        fig[fig_name] = plt.figure(fig_name)
+        ax_dict_1[fig_name].grid(linestyle='--', linewidth='0.5')
+        fig[fig_name].tight_layout()
+        control = fig_name.split('_')
+        dir_path = os.path.join(vis_path, 'match', *control[:-1])
         fig_path = os.path.join(dir_path, '{}.{}'.format(fig_name, save_format))
         makedir_exist_ok(dir_path)
         plt.savefig(fig_path, dpi=dpi, bbox_inches='tight', pad_inches=0)
