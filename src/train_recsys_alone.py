@@ -46,11 +46,6 @@ def runExperiment():
         if 'data_split' in result:
             data_split = result['data_split']
     dataset = make_split_dataset(data_split)
-    if 'match_rate' in cfg['assist'] and cfg['assist']['match_rate'] < 1:
-        data_size = len(dataset[0]['train'])
-        matched_size = int(data_size * cfg['assist']['match_rate'])
-        dataset[0]['train'].data = dataset[0]['train'].data[:matched_size]
-        dataset[0]['train'].target = dataset[0]['train'].target[:matched_size]
     data_loader = {'train': [], 'test': []}
     model = []
     optimizer = []

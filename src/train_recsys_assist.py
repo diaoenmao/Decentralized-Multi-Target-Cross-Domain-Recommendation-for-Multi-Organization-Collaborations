@@ -49,11 +49,6 @@ def runExperiment():
         if 'data_split' in result:
             data_split = result['data_split']
     dataset = make_split_dataset(data_split)
-    if 'match_rate' in cfg['assist'] and cfg['assist']['match_rate'] < 1:
-        data_size = len(dataset[0]['train'])
-        matched_size = int(data_size * cfg['assist']['match_rate'])
-        dataset[0]['train'].data = dataset[0]['train'].data[:matched_size]
-        dataset[0]['train'].target = dataset[0]['train'].target[:matched_size]
     assist = Assist(data_split)
     organization = assist.make_organization()
     if cfg['target_mode'] == 'explicit':
@@ -204,7 +199,8 @@ def test(assist, metric, logger, epoch):
             input = to_device(input, cfg['device'])
             evaluation = metric.evaluate(metric.metric_name['test'], input, output)
             logger.append(evaluation, 'test', n=input_size)
-        lr = assist.ar_state_dict[epoch][0]['assist_rate'].item() if assist.ar_state_dict[epoch][0] is not None else 0
+        lr = assist.ar_state_dict[epoch][0]['assist_rate'].mean().item() \
+            if assist.ar_state_dict[epoch][0] is not None else 0
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.),
                          'Assist rate: {:.6f}'.format(lr)]}
         logger.append(info, 'test', mean=False)

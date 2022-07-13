@@ -79,14 +79,6 @@ def make_control_list(data, mode):
             raise ValueError('Not valid data')
     elif mode == 'match':
         if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
-            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'ae'],
-                             ['0'], ['genre'], ['alone'], ['none'],
-                             ['none'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
-            alone_user_controls = make_controls(control_name)
-            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'ae'],
-                             ['0'], ['random-8'], ['alone'], ['none'],
-                             ['none'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
-            alone_item_controls = make_controls(control_name)
             control_name = [[[data], ['user'], ['explicit'], ['ae'],
                              ['0'], ['genre'], ['assist'], ['constant-0.3'],
                              ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
@@ -95,13 +87,8 @@ def make_control_list(data, mode):
                              ['0'], ['genre'], ['assist'], ['optim-0.1'],
                              ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
             assist_user_implicit_controls = make_controls(control_name)
-            controls = alone_user_controls + alone_item_controls + assist_user_explicit_controls + \
-                       assist_user_implicit_controls
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
         elif data in ['Douban', 'Amazon']:
-            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'ae'],
-                             ['0'], ['genre'], ['alone'], ['none'],
-                             ['none'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
-            alone_user_controls = make_controls(control_name)
             control_name = [[[data], ['user'], ['explicit'], ['ae'],
                              ['0'], ['genre'], ['assist'], ['constant-0.01'],
                              ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
@@ -110,7 +97,7 @@ def make_control_list(data, mode):
                              ['0'], ['genre'], ['assist'], ['constant-1'],
                              ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
             assist_user_implicit_controls = make_controls(control_name)
-            controls = alone_user_controls + assist_user_explicit_controls + assist_user_implicit_controls
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
         else:
             raise ValueError('Not valid data')
     elif mode == 'info':
@@ -157,7 +144,7 @@ def make_control_list(data, mode):
 
 
 def main():
-    write = False
+    write = True
     # data = ['ML100K', 'ML1M', 'ML10M', 'Douban', 'Amazon']
     data = ['ML1M', 'Douban', 'Amazon']
     mode = ['joint', 'alone', 'mdr', 'assist', 'match', 'info', 'pl']
@@ -178,8 +165,8 @@ def main():
     df_exp = make_df_result(extracted_processed_result_exp, 'exp', write)
     df_history = make_df_result(extracted_processed_result_history, 'history', write)
     df_each = make_df_result(extracted_processed_result_each, 'each', write)
-    # make_vis_lc(df_exp, df_history)
-    # make_vis_lc_best(df_exp, df_history)
+    make_vis_lc(df_exp, df_history)
+    make_vis_lc_best(df_exp, df_history)
     make_vis_match(df_each)
     return
 
@@ -609,6 +596,7 @@ def make_vis_match(df_each):
             ae_alone = {}
             ae_assist = {}
             for (index, row) in df_each[df_name].iterrows():
+                print(index)
                 if 'base_alone' in index:
                     base_alone_ = row.to_numpy()
                     base_alone[index] = base_alone_[~np.isnan(base_alone_)]
@@ -618,6 +606,7 @@ def make_vis_match(df_each):
                 if 'ae_assist' in index:
                     ae_assist_ = row.to_numpy()
                     ae_assist[index] = ae_assist_[~np.isnan(ae_assist_)]
+            exit()
             base_alone_std = {}
             ae_alone_std = {}
             ae_assist_std = {}

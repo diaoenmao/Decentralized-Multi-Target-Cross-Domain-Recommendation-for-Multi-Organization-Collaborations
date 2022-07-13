@@ -195,7 +195,9 @@ def process_control():
     cfg['global'] = {}
     cfg['global']['num_epochs'] = 10
     cfg['assist']['optimizer_name'] = 'LBFGS'
-    cfg['assist']['lr'] = 1
+    cfg['assist']['lr'] = 1e-1
+    cfg['assist']['betas'] = (0.9, 0.999)
+    cfg['assist']['weight_decay'] = 5e-4
     cfg['assist']['num_epochs'] = 10
     torch.set_num_threads(2)
     return
