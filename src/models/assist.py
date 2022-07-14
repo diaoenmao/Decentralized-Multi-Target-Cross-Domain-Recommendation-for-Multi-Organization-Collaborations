@@ -11,10 +11,8 @@ class Assist(nn.Module):
         self.aw_mode = aw_mode
         if self.ar_mode == 'optim':
             self.assist_rate = nn.Parameter(torch.full((num_outputs,), ar))
-            # self.assist_rate = nn.Parameter(torch.tensor(ar))
         elif self.ar_mode == 'constant':
-            self.register_buffer('assist_rate', torch.tensor(torch.full((num_outputs,), ar)))
-            # self.register_buffer('assist_rate', torch.tensor(ar))
+            self.register_buffer('assist_rate', torch.full((num_outputs,), ar))
         else:
             raise ValueError('Not valid ar mode')
         if self.aw_mode == 'optim':
@@ -26,10 +24,9 @@ class Assist(nn.Module):
 
     def forward(self, input):
         assist_rate = self.assist_rate[input['output_idx']]
-        # assist_rate = self.assist_rate
         output = {}
         output['target'] = input['history'] + assist_rate * (input['output'] *
-                                                                  self.assist_weight.softmax(-1)).sum(-1)
+                                                             self.assist_weight.softmax(-1)).sum(-1)
         if 'target' in input:
             output['loss'] = loss_fn(output['target'], input['target'])
         return output
