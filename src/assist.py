@@ -48,8 +48,9 @@ class Assist:
             loss = models.loss_fn(output_k, target_k, reduction='sum')
             loss.backward()
             residual_k = output_k.grad
-            residual_limit = 1
-            residual_k = torch.clamp(residual_k, min=-residual_limit, max=residual_limit)
+            if cfg['data_name'] in ['Douban', 'Amazon']:
+                residual_limit = 1
+                residual_k = torch.clamp(residual_k, min=-residual_limit, max=residual_limit)
             residual_k = - copy.deepcopy(residual_k).cpu()
             residual_k = residual_k.numpy()
             if 'pl' in cfg and cfg['pl'] != 'none':
@@ -72,7 +73,6 @@ class Assist:
                     dataset[i][k].transform.transforms[0].num_users['target'] = cfg['num_users']['target']
                 else:
                     raise ValueError('Not valid data mode')
-
         return dataset
 
     def update(self, organization_outputs, iter):

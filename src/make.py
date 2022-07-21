@@ -110,20 +110,33 @@ def main():
             assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
                                                           resume_mode, control_name)
             control_name = [[[data], ['user'], ['implicit'], ['ae'],
-                             ['0'], ['genre'], ['assist'], ['optim-0.1'],
+                             ['0'], ['genre'], ['assist'], ['constant-1.0'],
                              ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
             assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
                                                           resume_mode, control_name)
             controls = assist_user_explicit_controls + assist_user_implicit_controls
-        elif data in ['Douban', 'Amazon']:
+        elif data in ['Douban']:
             script_name = [['{}_recsys_assist.py'.format(run)]]
             control_name = [[[data], ['user'], ['explicit'], ['ae'],
-                             ['0'], ['genre'], ['assist'], ['constant-0.01'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'],
                              ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
             assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
                                                           resume_mode, control_name)
             control_name = [[[data], ['user'], ['implicit'], ['ae'],
                              ['0'], ['genre'], ['assist'], ['constant-1'],
+                             ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Amazon']:
+            script_name = [['{}_recsys_assist.py'.format(run)]]
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'],
+                             ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'],
                              ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
             assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
                                                           resume_mode, control_name)
@@ -138,17 +151,27 @@ def main():
             assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
                                                           resume_mode, control_name)
             control_name = [[[data], ['user'], ['implicit'], ['ae'],
-                             ['1'], ['genre'], ['assist'], ['optim-0.1'], ['constant'], ['1']]]
+                             ['1'], ['genre'], ['assist'], ['constant-1.0'], ['constant'], ['1']]]
             assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
                                                           resume_mode, control_name)
             controls = assist_user_explicit_controls + assist_user_implicit_controls
-        elif data in ['Douban', 'Amazon']:
+        elif data in ['Douban']:
             control_name = [[[data], ['user'], ['explicit'], ['ae'],
-                             ['1'], ['genre'], ['assist'], ['constant-0.01'], ['constant'], ['1']]]
+                             ['1'], ['genre'], ['assist'], ['constant-0.1'], ['constant'], ['1']]]
             assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
                                                           resume_mode, control_name)
             control_name = [[[data], ['user'], ['implicit'], ['ae'],
                              ['1'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Amazon']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['1'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1']]]
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['1'], ['genre'], ['assist'], ['constant-0.1'], ['constant'], ['1']]]
             assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
                                                           resume_mode, control_name)
             controls = assist_user_explicit_controls + assist_user_implicit_controls
@@ -162,17 +185,27 @@ def main():
             assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
                                                           resume_mode, control_name)
             control_name = [[[data], ['user'], ['implicit'], ['ae'],
-                             ['0'], ['genre'], ['assist'], ['optim-0.1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+                             ['0'], ['genre'], ['assist'], ['constant-1.0'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
             assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
                                                           resume_mode, control_name)
             controls = assist_user_explicit_controls + assist_user_implicit_controls
-        elif data in ['Douban', 'Amazon']:
+        elif data in ['Douban']:
             control_name = [[[data], ['user'], ['explicit'], ['ae'],
-                             ['0'], ['genre'], ['assist'], ['constant-0.01'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
             assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
                                                           resume_mode, control_name)
             control_name = [[[data], ['user'], ['implicit'], ['ae'],
                              ['0'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Amazon']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
             assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
                                                           resume_mode, control_name)
             controls = assist_user_explicit_controls + assist_user_implicit_controls

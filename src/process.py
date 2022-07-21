@@ -59,20 +59,17 @@ def make_control_list(data, mode):
         if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
             control_name = [[[data], ['user'], ['explicit', 'implicit'], ['ae'],
                              ['0'], ['genre'], ['assist'],
-                             ['constant-0.01', 'constant-0.05', 'constant-0.1', 'constant-0.3', 'constant-1',
-                              'optim-0.1'], ['constant'], ['1']]]
+                             ['constant-0.1', 'constant-0.3', 'constant-1', 'optim-0.1'], ['constant'], ['1']]]
             user_controls = make_controls(control_name)
             control_name = [[[data], ['item'], ['explicit', 'implicit'], ['ae'],
                              ['0'], ['random-8'], ['assist'],
-                             ['constant-0.01', 'constant-0.05', 'constant-0.1', 'constant-0.3', 'constant-1',
-                              'optim-0.1'], ['constant'], ['1']]]
+                             ['constant-0.1', 'constant-0.3', 'constant-1', 'optim-0.1'], ['constant'], ['1']]]
             item_controls = make_controls(control_name)
             controls = user_controls + item_controls
         elif data in ['Douban', 'Amazon']:
             control_name = [[[data], ['user'], ['explicit', 'implicit'], ['ae'],
                              ['0'], ['genre'], ['assist'],
-                             ['constant-0.01', 'constant-0.05', 'constant-0.1', 'constant-0.3', 'constant-1',
-                              'optim-0.1'], ['constant'], ['1']]]
+                             ['constant-0.1', 'constant-0.3', 'constant-1', 'optim-0.1'], ['constant'], ['1']]]
             user_controls = make_controls(control_name)
             controls = user_controls
         else:
@@ -145,9 +142,9 @@ def make_control_list(data, mode):
 
 def main():
     write = True
-    # data = ['ML100K', 'ML1M', 'ML10M', 'Douban', 'Amazon']
     data = ['ML1M', 'Douban', 'Amazon']
-    mode = ['joint', 'alone', 'mdr', 'assist', 'match', 'info', 'pl']
+    # mode = ['joint', 'alone', 'mdr', 'assist', 'match', 'info', 'pl']
+    mode = ['joint', 'alone', 'mdr', 'assist']
     controls = []
     for data_ in data:
         for mode_ in mode:
@@ -167,7 +164,7 @@ def main():
     df_each = make_df_result(extracted_processed_result_each, 'each', write)
     make_vis_lc(df_exp, df_history)
     make_vis_lc_best(df_exp, df_history)
-    make_vis_match(df_each)
+    # make_vis_match(df_each)
     return
 
 
@@ -199,11 +196,17 @@ def extract_result(control, model_tag, processed_result_exp, processed_result_hi
                         test = max(base_result['logger']['test'].history[k])
                         history = base_result['logger']['test'].history[k]
                         test_each = base_result['logger']['test_each'].history[k]
+                        if len(test_each) % 11 > 0:
+                            print(control, model_tag)
+                            continue
                         test_each = np.amax(np.array(test_each).reshape(11, -1), axis=0).tolist()
                     else:
                         test = min(base_result['logger']['test'].history[k])
                         history = base_result['logger']['test'].history[k]
                         test_each = base_result['logger']['test_each'].history[k]
+                        if len(test_each) % 11 > 0:
+                            print(control, model_tag)
+                            continue
                         test_each = np.amin(np.array(test_each).reshape(11, -1), axis=0).tolist()
                     processed_result_exp[metric_name]['exp'][exp_idx] = test
                     processed_result_history[metric_name]['history'][exp_idx] = history
@@ -234,6 +237,7 @@ def extract_result(control, model_tag, processed_result_exp, processed_result_hi
 def summarize_result(processed_result):
     for pivot in list(processed_result.keys()):
         if pivot == 'exp':
+            processed_result[pivot] = [x for x in processed_result[pivot] if x is not None]
             processed_result[pivot] = np.stack(processed_result[pivot], axis=0)
             processed_result['mean'] = np.mean(processed_result[pivot], axis=0).item()
             processed_result['std'] = np.std(processed_result[pivot], axis=0).item()
@@ -243,6 +247,7 @@ def summarize_result(processed_result):
             processed_result['argmin'] = np.argmin(processed_result[pivot], axis=0).item()
             processed_result[pivot] = processed_result[pivot].tolist()
         elif pivot in ['history', 'each']:
+            processed_result[pivot] = [x for x in processed_result[pivot] if x is not None]
             processed_result[pivot] = np.stack(processed_result[pivot], axis=0)
             processed_result['mean'] = np.mean(processed_result[pivot], axis=0)
             processed_result['std'] = np.std(processed_result[pivot], axis=0)

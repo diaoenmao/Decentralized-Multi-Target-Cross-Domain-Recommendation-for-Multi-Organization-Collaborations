@@ -367,3 +367,26 @@ import models
 #     # do the actual summation
 #     y.index_add_(0, ind, x)
 #     print(y)
+
+
+# if __name__ == "__main__":
+#     x = torch.zeros(5)
+#     count = torch.zeros(5)
+#     t = torch.arange(4).float()
+#     k = torch.ones(4)
+#     index = torch.tensor([0, 4, 2, 0])
+#     x.index_add_(0, index, t)
+#     count.index_add_(0, index, k)
+#     print(x)
+#     print(count)
+#     x[count > 0] = x[count > 0] / count[count > 0]
+#     print(x)
+#     # count = loss.new_ones(loss.size())
+#     # num_targets = cfg['num_users']['data'] if cfg['data_mode'] == 'user' else cfg['num_items']['data']
+#     # index = loss.new_tensor(self.organization_target[0][k].tocoo().row).long()
+#     # sum_loss = loss.new_zeros((num_targets,))
+#     # sum_count = loss.new_zeros((num_targets,))
+#     # sum_loss.index_add_(0, index, loss)
+#     # sum_count.index_add_(0, index, count)
+#     # loss = (sum_loss / sum_count).sum()
+#     # loss = sum_loss.sum()
