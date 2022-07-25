@@ -13,6 +13,7 @@ do
     python make.py --mode match --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
     python make.py --mode info --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
     python make.py --mode pl --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+    python make.py --mode match-mdr --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
   done
 done
 

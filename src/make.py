@@ -143,6 +143,16 @@ def main():
             controls = assist_user_explicit_controls + assist_user_implicit_controls
         else:
             raise ValueError('Not valid data')
+    elif mode == 'match-mdr':
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
+            script_name = [['{}_recsys_mdr.py'.format(run)]]
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf'],
+                             ['0'], ['genre'], ['mdr'], ['none'],
+                             ['none'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                     resume_mode, control_name)
+        else:
+            raise ValueError('Not valid data')
     elif mode == 'info':
         script_name = [['{}_recsys_assist.py'.format(run)]]
         if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:

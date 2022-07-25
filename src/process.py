@@ -81,17 +81,27 @@ def make_control_list(data, mode):
                              ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
             assist_user_explicit_controls = make_controls(control_name)
             control_name = [[[data], ['user'], ['implicit'], ['ae'],
-                             ['0'], ['genre'], ['assist'], ['optim-0.1'],
+                             ['0'], ['genre'], ['assist'], ['constant-1.0'],
                              ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
             assist_user_implicit_controls = make_controls(control_name)
             controls = assist_user_explicit_controls + assist_user_implicit_controls
-        elif data in ['Douban', 'Amazon']:
+        elif data in ['Douban']:
             control_name = [[[data], ['user'], ['explicit'], ['ae'],
-                             ['0'], ['genre'], ['assist'], ['constant-0.01'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'],
                              ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
             assist_user_explicit_controls = make_controls(control_name)
             control_name = [[[data], ['user'], ['implicit'], ['ae'],
                              ['0'], ['genre'], ['assist'], ['constant-1'],
+                             ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_implicit_controls = make_controls(control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Amazon']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'],
+                             ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_explicit_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'],
                              ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
             assist_user_implicit_controls = make_controls(control_name)
             controls = assist_user_explicit_controls + assist_user_implicit_controls
@@ -103,15 +113,23 @@ def make_control_list(data, mode):
                              ['1'], ['genre'], ['assist'], ['constant-0.3'], ['constant'], ['1']]]
             assist_user_explicit_controls = make_controls(control_name)
             control_name = [[[data], ['user'], ['implicit'], ['ae'],
-                             ['1'], ['genre'], ['assist'], ['optim-0.1'], ['constant'], ['1']]]
+                             ['1'], ['genre'], ['assist'], ['constant-1.0'], ['constant'], ['1']]]
             assist_user_implicit_controls = make_controls(control_name)
             controls = assist_user_explicit_controls + assist_user_implicit_controls
-        elif data in ['Douban', 'Amazon']:
+        elif data in ['Douban']:
             control_name = [[[data], ['user'], ['explicit'], ['ae'],
-                             ['1'], ['genre'], ['assist'], ['constant-0.01'], ['constant'], ['1']]]
+                             ['1'], ['genre'], ['assist'], ['constant-0.1'], ['constant'], ['1']]]
             assist_user_explicit_controls = make_controls(control_name)
             control_name = [[[data], ['user'], ['implicit'], ['ae'],
                              ['1'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1']]]
+            assist_user_implicit_controls = make_controls(control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Amazon']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['1'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1']]]
+            assist_user_explicit_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['1'], ['genre'], ['assist'], ['constant-0.1'], ['constant'], ['1']]]
             assist_user_implicit_controls = make_controls(control_name)
             controls = assist_user_explicit_controls + assist_user_implicit_controls
         else:
@@ -122,17 +140,33 @@ def make_control_list(data, mode):
                              ['0'], ['genre'], ['assist'], ['constant-0.3'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
             assist_user_explicit_controls = make_controls(control_name)
             control_name = [[[data], ['user'], ['implicit'], ['ae'],
-                             ['0'], ['genre'], ['assist'], ['optim-0.1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+                             ['0'], ['genre'], ['assist'], ['constant-1.0'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
             assist_user_implicit_controls = make_controls(control_name)
             controls = assist_user_explicit_controls + assist_user_implicit_controls
-        elif data in ['Douban', 'Amazon']:
+        elif data in ['Douban']:
             control_name = [[[data], ['user'], ['explicit'], ['ae'],
-                             ['0'], ['genre'], ['assist'], ['constant-0.01'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
             assist_user_explicit_controls = make_controls(control_name)
             control_name = [[[data], ['user'], ['implicit'], ['ae'],
                              ['0'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
             assist_user_implicit_controls = make_controls(control_name)
             controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Amazon']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+            assist_user_explicit_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+            assist_user_implicit_controls = make_controls(control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        else:
+            raise ValueError('Not valid data')
+    elif mode == 'match-mdr':
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf'],
+                             ['0'], ['genre'], ['mdr'], ['none'],
+                             ['none'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            controls = make_controls(control_name)
         else:
             raise ValueError('Not valid data')
     else:
@@ -143,8 +177,8 @@ def make_control_list(data, mode):
 def main():
     write = True
     data = ['ML1M', 'Douban', 'Amazon']
-    # mode = ['joint', 'alone', 'mdr', 'assist', 'match', 'info', 'pl']
-    mode = ['joint', 'alone', 'mdr', 'assist']
+    mode = ['joint', 'alone', 'mdr', 'assist', 'match', 'info', 'pl', 'match-mdr']
+    # mode = ['joint', 'alone', 'mdr', 'assist']
     controls = []
     for data_ in data:
         for mode_ in mode:
@@ -162,9 +196,9 @@ def main():
     df_exp = make_df_result(extracted_processed_result_exp, 'exp', write)
     df_history = make_df_result(extracted_processed_result_history, 'history', write)
     df_each = make_df_result(extracted_processed_result_each, 'each', write)
-    make_vis_lc(df_exp, df_history)
-    make_vis_lc_best(df_exp, df_history)
-    # make_vis_match(df_each)
+    # make_vis_lc(df_exp, df_history)
+    # make_vis_lc_best(df_exp, df_history)
+    make_vis_match(df_each)
     return
 
 
@@ -648,7 +682,7 @@ def make_vis_match(df_each):
             pivot_ae_assist_key = pivot_ae_assist_key[0]
             pivot_ae_assist_key = '_'.join(pivot_ae_assist_key.split('_')[:3])
             ae_assist = {k: v for k, v in ae_assist.items() if
-                             pivot_ae_assist_key in k and len(k.split('_')) == 5}
+                         pivot_ae_assist_key in k and len(k.split('_')) == 5}
             ae_assist_std = {k: v for k, v in ae_assist_std.items() if
                              pivot_ae_assist_key in k and len(k.split('_')) == 5}
             ae_assist_values = np.array(list(ae_assist.values()))
