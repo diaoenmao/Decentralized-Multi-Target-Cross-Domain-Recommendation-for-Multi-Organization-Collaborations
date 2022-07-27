@@ -157,6 +157,8 @@ def process_control():
         if cfg['pl'] != 'none':
             pl_list = cfg['pl'].split('-')
             cfg['pl_mode'], cfg['pl_param'] = pl_list[0], float(pl_list[1])
+    if 'cs' in cfg['control']:
+        cfg['cs'] = float(cfg['control']['cs'])
     cfg['base'] = {}
     cfg['mf'] = {'hidden_size': 128}
     cfg['mlp'] = {'hidden_size': [128, 64, 32]}
@@ -299,5 +301,6 @@ def resume(model_tag, load_tag='checkpoint', verbose=True):
 
 def collate(input):
     for k in input:
-        input[k] = torch.cat(input[k], 0)
+        if isinstance(input[k], list):
+            input[k] = torch.cat(input[k], 0)
     return input

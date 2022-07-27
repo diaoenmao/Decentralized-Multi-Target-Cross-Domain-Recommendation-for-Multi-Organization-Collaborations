@@ -49,6 +49,11 @@ def runExperiment():
         if 'data_split' in result:
             data_split = result['data_split']
     dataset = make_split_dataset(data_split)
+    if 'cs' in cfg:
+        data_size = len(dataset[0]['train'])
+        start_size = int(data_size * cfg['cs'])
+        dataset[0]['train'].data = dataset[0]['train'].data[:start_size]
+        dataset[0]['train'].target = dataset[0]['train'].target[:start_size]
     assist = Assist(data_split)
     organization = assist.make_organization()
     if cfg['target_mode'] == 'explicit':
@@ -172,6 +177,9 @@ def test(assist, metric, logger, epoch):
     with torch.no_grad():
         organization_output = assist.organization_output[epoch]['test']
         organization_target = assist.organization_target[0]['test']
+        if 'cs' in cfg:
+            organization_output = organization_output[:, assist.data_split[0]]
+            organization_target = organization_target[:, assist.data_split[0]]
         batch_size = cfg[cfg['model_name']]['batch_size']['test']
         for i in range(0, organization_output.shape[0], batch_size):
             output_i = organization_output[i:i + batch_size]

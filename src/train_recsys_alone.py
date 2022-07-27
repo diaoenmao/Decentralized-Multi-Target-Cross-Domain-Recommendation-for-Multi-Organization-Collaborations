@@ -46,6 +46,12 @@ def runExperiment():
         if 'data_split' in result:
             data_split = result['data_split']
     dataset = make_split_dataset(data_split)
+    if 'cs' in cfg:
+        data_size = len(dataset[0]['train'])
+        start_size = int(data_size * cfg['cs'])
+        dataset[0]['train'].data = dataset[0]['train'].data[:start_size]
+        dataset[0]['train'].target = dataset[0]['train'].target[:start_size]
+        dataset = [dataset[0]]
     data_loader = {'train': [], 'test': []}
     model = []
     optimizer = []

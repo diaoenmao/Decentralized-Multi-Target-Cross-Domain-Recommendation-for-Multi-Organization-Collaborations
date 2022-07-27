@@ -1,6 +1,7 @@
 import argparse
 import copy
 import datetime
+import itertools
 import models
 import os
 import shutil
@@ -46,16 +47,34 @@ def runExperiment():
         if 'data_split' in result:
             data_split = result['data_split']
     dataset = make_split_dataset(data_split)
+    if 'cs' in cfg:
+        data_size = len(dataset[0]['train'])
+        start_size = int(data_size * cfg['cs'])
+        dataset[0]['train'].data = dataset[0]['train'].data[:start_size]
+        dataset[0]['train'].target = dataset[0]['train'].target[:start_size]
     data_loader = {'train': [], 'test': []}
     model = []
     for i in range(len(dataset)):
         data_loader_i = make_data_loader(dataset[i], cfg['model_name'])
-        num_users = dataset[i]['train'].num_users['data']
-        num_items = dataset[i]['train'].num_items['data']
+        if 'cs' in cfg and i == 0:
+            if cfg['data_mode'] == 'user':
+                num_users = data_size
+                num_items = dataset[i]['train'].num_items['data']
+            elif cfg['data_mode'] == 'item':
+                num_users = dataset[i]['train'].num_users['data']
+                num_items = data_size
+            else:
+                raise ValueError('Not valid data mode')
+        else:
+            num_users = dataset[i]['train'].num_users['data']
+            num_items = dataset[i]['train'].num_items['data']
         model_i = eval('models.{}(num_users, num_items).to(cfg["device"])'.format(cfg['model_name']))
         data_loader['train'].append(data_loader_i['train'])
         data_loader['test'].append(data_loader_i['test'])
         model.append(model_i)
+    if 'cs' in cfg:
+        data_loader['train'] = [itertools.cycle(data_loader['train'][0]), *data_loader['train'][1:]]
+        data_loader['test'] = [data_loader['test'][0]]
     model = models.mdr(model)
     optimizer = make_optimizer(model, cfg['model_name'])
     scheduler = make_scheduler(optimizer, cfg['model_name'])
@@ -123,14 +142,14 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
         optimizer.step()
-        if i % int((len(data_loader[0]) * cfg['log_interval']) + 1) == 0:
+        if i % int((len(data_loader[-1]) * cfg['log_interval']) + 1) == 0:
             _time = (time.time() - start_time) / (i + 1)
             lr = optimizer.param_groups[0]['lr'] if optimizer is not None else 0
-            epoch_finished_time = datetime.timedelta(seconds=round(_time * (len(data_loader[0]) - i - 1)))
+            epoch_finished_time = datetime.timedelta(seconds=round(_time * (len(data_loader[-1]) - i - 1)))
             exp_finished_time = epoch_finished_time + datetime.timedelta(
-                seconds=round((cfg[cfg['model_name']]['num_epochs'] - epoch) * _time * len(data_loader[0])))
+                seconds=round((cfg[cfg['model_name']]['num_epochs'] - epoch) * _time * len(data_loader[-1])))
             info = {'info': ['Model: {}'.format(cfg['model_tag']),
-                             'Train Epoch: {}({:.0f}%)'.format(epoch, 100. * i / len(data_loader[0])),
+                             'Train Epoch: {}({:.0f}%)'.format(epoch, 100. * i / len(data_loader[-1])),
                              'Learning rate: {:.6f}'.format(lr), 'Epoch Finished Time: {}'.format(epoch_finished_time),
                              'Experiment Finished Time: {}'.format(exp_finished_time)]}
             logger.append(info, 'train', mean=False)

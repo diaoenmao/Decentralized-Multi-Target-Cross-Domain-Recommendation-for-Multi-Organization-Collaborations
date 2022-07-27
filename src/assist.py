@@ -76,6 +76,9 @@ class Assist:
         return dataset
 
     def update(self, organization_outputs, iter):
+        if 'cs' in cfg:
+            data_size = self.organization_target[0]['train'].shape[0]
+            start_size = int(data_size * cfg['cs'])
         updated_data = {k: [None for i in range(len(organization_outputs))] for k in organization_outputs[0]}
         updated_row = {k: [None for i in range(len(organization_outputs))] for k in organization_outputs[0]}
         updated_col = {k: [None for i in range(len(organization_outputs))] for k in organization_outputs[0]}
@@ -96,12 +99,19 @@ class Assist:
                                 output_j[:num_matched] = output_j_other[:num_matched]
                                 output.append(output_j)
                         else:
-                            output = [torch.tensor(organization_outputs[j][split][:, self.data_split[i]].data) for j in
-                                      range(len(organization_outputs))]
+                            output = [torch.tensor(organization_outputs[j][split][:, self.data_split[i]].data)
+                                      for j in range(len(organization_outputs))]
                         output_idx = torch.tensor(organization_outputs[i][split][:,
                                                   self.data_split[i]].nonzero()[1]).long()
+                        if 'cs' in cfg and split == 'train' and i > 0:
+                            fill_nan = torch.full((len(output[1]) - len(output[0]),), torch.nan)
+                            output[0] = torch.cat([output[0], fill_nan], dim=0)
                         output = torch.stack(output, dim=-1)
-                        target = torch.tensor(self.organization_target[0][split][:, self.data_split[i]].data)
+                        if 'cs' in cfg and split == 'train' and i == 0:
+                            target = torch.tensor(
+                                self.organization_target[0][split][:start_size, self.data_split[i]].data)
+                        else:
+                            target = torch.tensor(self.organization_target[0][split][:, self.data_split[i]].data)
                         model.train(True)
                         input = {'history': history, 'output': output, 'target': target, 'output_idx': output_idx}
                         input = to_device(input, cfg['device'])
@@ -130,12 +140,18 @@ class Assist:
                             output_j[:num_matched] = output_j_other[:num_matched]
                             output.append(output_j)
                     else:
-                        output = [torch.tensor(organization_outputs[j][split][:, self.data_split[i]].data) for j in
-                                  range(len(organization_outputs))]
+                        output = [torch.tensor(organization_outputs[j][split][:, self.data_split[i]].data)
+                                  for j in range(len(organization_outputs))]
                     output_idx = torch.tensor(organization_outputs[i][split][:,
                                               self.data_split[i]].nonzero()[1]).long()
+                    if 'cs' in cfg and split == 'train' and i > 0:
+                        fill_nan = torch.full((len(output[1]) - len(output[0]),), torch.nan)
+                        output[0] = torch.cat([output[0], fill_nan], dim=0)
                     output = torch.stack(output, dim=-1)
-                    target = torch.tensor(self.organization_target[0][split][:, self.data_split[i]].data)
+                    if 'cs' in cfg and split == 'train' and i == 0:
+                        target = torch.tensor(self.organization_target[0][split][:start_size, self.data_split[i]].data)
+                    else:
+                        target = torch.tensor(self.organization_target[0][split][:, self.data_split[i]].data)
                     input = {'history': history, 'output': output, 'target': target, 'output_idx': output_idx}
                     input = to_device(input, cfg['device'])
                     output = model(input)

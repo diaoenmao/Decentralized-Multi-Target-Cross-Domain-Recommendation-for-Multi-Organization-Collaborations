@@ -14,6 +14,9 @@ do
     python make.py --mode info --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
     python make.py --mode pl --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
     python make.py --mode match-mdr --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+    python make.py --mode cs --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+    python make.py --mode cs-alone --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+    python make.py --mode cs-mdr --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
   done
 done
 

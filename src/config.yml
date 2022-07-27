@@ -12,6 +12,7 @@ control:
   aw: constant
   match_rate: 1
   pl: none
+  cs: 1
 # experiment
 num_workers: 0
 init_seed: 0
