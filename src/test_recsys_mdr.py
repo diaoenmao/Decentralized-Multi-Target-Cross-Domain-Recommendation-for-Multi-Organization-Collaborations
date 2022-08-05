@@ -46,16 +46,30 @@ def runExperiment():
     last_epoch = result['epoch']
     data_split = result['data_split']
     dataset = make_split_dataset(data_split)
-    data_loader = {'train': [], 'test': []}
+    if 'cs' in cfg:
+        data_size = len(dataset[0]['train'])
+        start_size = int(data_size * cfg['cs'])
+    data_loader = {'test': []}
     model = []
     for i in range(len(dataset)):
         data_loader_i = make_data_loader(dataset[i], cfg['model_name'])
-        num_users = dataset[i]["train"].num_users['data']
-        num_items = dataset[i]["train"].num_items['data']
+        if 'cs' in cfg and i == 0:
+            if cfg['data_mode'] == 'user':
+                num_users = data_size
+                num_items = dataset[i]['train'].num_items['data']
+            elif cfg['data_mode'] == 'item':
+                num_users = dataset[i]['train'].num_users['data']
+                num_items = data_size
+            else:
+                raise ValueError('Not valid data mode')
+        else:
+            num_users = dataset[i]['train'].num_users['data']
+            num_items = dataset[i]['train'].num_items['data']
         model_i = eval('models.{}(num_users, num_items).to(cfg["device"])'.format(cfg['model_name']))
-        data_loader['train'].append(data_loader_i['train'])
         data_loader['test'].append(data_loader_i['test'])
         model.append(model_i)
+    if 'cs' in cfg:
+        data_loader['test'] = [data_loader['test'][0]]
     model = models.mdr(model)
     model.load_state_dict(result['model_state_dict'])
     test_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))

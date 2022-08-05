@@ -134,8 +134,15 @@ def test_each(assist, metric, each_logger, epoch):
         batch_size = cfg[cfg['model_name']]['batch_size']['test']
         for i in range(len(assist.data_split)):
             each_logger.safe(True)
-            output_i = organization_output[:, assist.data_split[i]]
-            target_i = organization_target[:, assist.data_split[i]]
+            if 'cs' in cfg:
+                if i == 0:
+                    output_i = organization_output[:, assist.data_split[0]]
+                    target_i = organization_target[:, assist.data_split[0]]
+                else:
+                    break
+            else:
+                output_i = organization_output[:, assist.data_split[i]]
+                target_i = organization_target[:, assist.data_split[i]]
             for j in range(0, output_i.shape[0], batch_size):
                 output_i_j = output_i[j:j + batch_size]
                 target_i_j = target_i[j:j + batch_size]
@@ -170,6 +177,9 @@ def test(assist, metric, logger, epoch):
     with torch.no_grad():
         organization_output = assist.organization_output[epoch]['test']
         organization_target = assist.organization_target[0]['test']
+        if 'cs' in cfg:
+            organization_output = organization_output[:, assist.data_split[0]]
+            organization_target = organization_target[:, assist.data_split[0]]
         batch_size = cfg[cfg['model_name']]['batch_size']['test']
         for i in range(0, organization_output.shape[0], batch_size):
             output_i = organization_output[i:i + batch_size]

@@ -46,6 +46,8 @@ def runExperiment():
     last_epoch = result['epoch']
     data_split = result['data_split']
     dataset = make_split_dataset(data_split)
+    if 'cs' in cfg:
+        dataset = [dataset[0]]
     data_loader = {'train': [], 'test': []}
     model = []
     for i in range(len(dataset)):

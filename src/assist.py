@@ -76,9 +76,6 @@ class Assist:
         return dataset
 
     def update(self, organization_outputs, iter):
-        if 'cs' in cfg:
-            data_size = self.organization_target[0]['train'].shape[0]
-            start_size = int(data_size * cfg['cs'])
         updated_data = {k: [None for i in range(len(organization_outputs))] for k in organization_outputs[0]}
         updated_row = {k: [None for i in range(len(organization_outputs))] for k in organization_outputs[0]}
         updated_col = {k: [None for i in range(len(organization_outputs))] for k in organization_outputs[0]}
@@ -86,6 +83,9 @@ class Assist:
             num_outputs = len(self.data_split[i])
             for split in organization_outputs[0]:
                 if split == 'train':
+                    if 'cs' in cfg:
+                        data_size = self.organization_target[0]['train'].shape[0]
+                        start_size = int(data_size * cfg['cs'])
                     model = models.assist(num_outputs).to(cfg['device'])
                     if cfg['assist']['ar_mode'] == 'optim' or cfg['assist']['aw_mode'] == 'optim':
                         history = torch.tensor(self.organization_output[iter - 1][split][:, self.data_split[i]].data)
