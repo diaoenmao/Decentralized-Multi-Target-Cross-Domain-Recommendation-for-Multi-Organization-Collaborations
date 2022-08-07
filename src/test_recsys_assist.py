@@ -139,6 +139,7 @@ def test_each(assist, metric, each_logger, epoch):
                     output_i = organization_output[:, assist.data_split[0]]
                     target_i = organization_target[:, assist.data_split[0]]
                 else:
+                    each_logger.safe(False)
                     break
             else:
                 output_i = organization_output[:, assist.data_split[i]]
