@@ -24,7 +24,6 @@ class Assist(nn.Module):
 
     def forward(self, input):
         assist_rate = self.assist_rate[input['output_idx']]
-        # assist_weight = self.assist_weight[input['output_idx']]
         output = {}
         if torch.isnan(input['output']).any():
             nan_mask = torch.isnan(input['output'][:, 0])
@@ -36,8 +35,6 @@ class Assist(nn.Module):
         else:
             output['target'] = input['history'] + assist_rate * (input['output'] *
                                                                  self.assist_weight.softmax(-1)).sum(-1)
-        # output['target'] = input['history'] + assist_rate * (input['output'] *
-        #                                                      self.assist_weight.softmax(-1)).sum(-1)
         if 'target' in input:
             output['loss'] = loss_fn(output['target'], input['target'])
         return output

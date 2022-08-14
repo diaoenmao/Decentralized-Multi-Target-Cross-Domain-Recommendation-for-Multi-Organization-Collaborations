@@ -18,53 +18,29 @@ class MDR(nn.Module):
         if model_name in ['mf', 'mlp']:
             if data_mode == 'user':
                 num_matched = int(len(model_0.user_weight.weight) * self.match_rate)
-                model_m.user_weight.weight.data = torch.cat([model_0.user_weight.weight[:num_matched],
-                                                             model_m.user_weight.weight[num_matched:]])
-                model_m.user_bias.weight.data = torch.cat([model_0.user_bias.weight[:num_matched],
-                                                           model_m.user_bias.weight[num_matched:]])
+                model_m.make_md(num_matched, 'user', model_0.user_weight, model_0.user_bias)
                 if model_0.info_size is not None:
-                    if 'user_profile' in model_0.info_size:
-                        model_m.user_profile = model_0.user_profile
+                    raise ValueError('Not valid info')
             elif data_mode == 'item':
                 num_matched = int(len(model_0.item_weight.weight) * self.match_rate)
-                model_m.item_weight.weight.data = torch.cat([model_0.item_weight.weight[:num_matched],
-                                                             model_m.item_weight.weight[num_matched:]])
-                model_m.item_bias.weight.data = torch.cat([model_0.item_bias.weight[:num_matched],
-                                                           model_m.item_bias.weight[num_matched:]])
+                model_m.make_md(num_matched, 'item', model_0.item_weight, model_0.item_bias)
                 if model_0.info_size is not None:
-                    if 'item_attr' in model_0.info_size:
-                        model_m.item_attr = model_0.item_attr
+                    raise ValueError('Not valid info')
             else:
                 raise ValueError('Not valid data mode')
         elif model_name == 'nmf':
             if data_mode == 'user':
                 num_matched = int(len(model_0.user_weight_mlp.weight) * self.match_rate)
-                model_m.user_weight_mlp.weight.data = torch.cat([model_0.user_weight_mlp.weight[:num_matched],
-                                                                 model_m.user_weight_mlp.weight[num_matched:]])
-                model_m.user_bias_mlp.weight.data = torch.cat([model_0.user_bias_mlp.weight[:num_matched],
-                                                               model_m.user_bias_mlp.weight[num_matched:]])
-                model_m.user_weight_mf.weight.data = torch.cat([model_0.user_weight_mf.weight[:num_matched],
-                                                                model_m.user_weight_mf.weight[num_matched:]])
-                model_m.user_bias_mf.weight.data = torch.cat([model_0.user_bias_mf.weight[:num_matched],
-                                                              model_m.user_bias_mf.weight[num_matched:]])
+                model_m.make_md(num_matched, 'user', model_0.user_weight_mlp, model_0.user_bias_mlp,
+                                model_0.user_weight_mf, model_0.user_bias_mf)
                 if model_0.info_size is not None:
-                    if 'user_profile' in model_0.info_size:
-                        model_m.user_profile_mf = model_0.user_profile_mf
-                        model_m.user_profile_mlp = model_0.user_profile_mlp
+                    raise ValueError('Not valid info')
             elif data_mode == 'item':
                 num_matched = int(len(model_0.item_weight_mlp.weight) * self.match_rate)
-                model_m.item_weight_mlp.weight.data = torch.cat([model_0.item_weight_mlp.weight[:num_matched],
-                                                                 model_m.item_weight_mlp.weight[num_matched:]])
-                model_m.item_bias_mlp.weight.data = torch.cat([model_0.item_bias_mlp.weight[:num_matched],
-                                                               model_m.item_bias_mlp.weight[num_matched:]])
-                model_m.item_weight_mf.weight.data = torch.cat([model_0.item_weight_mf.weight[:num_matched],
-                                                                model_m.item_weight_mf.weight[num_matched:]])
-                model_m.item_bias_mf.weight.data = torch.cat([model_0.item_bias_mf.weight[:num_matched],
-                                                              model_m.item_bias_mf.weight[num_matched:]])
+                model_m.make_md(num_matched, 'item', model_0.item_weight_mlp, model_0.item_bias_mlp,
+                                model_0.item_weight_mf, model_0.item_bias_mf)
                 if model_0.info_size is not None:
-                    if 'item_attr' in model_0.info_size:
-                        model_m.item_attr_mf = model_0.item_attr_mf
-                        model_m.item_attr_mlp = model_0.item_attr_mlp
+                    raise ValueError('Not valid info')
             else:
                 raise ValueError('Not valid data mode')
         return model_m

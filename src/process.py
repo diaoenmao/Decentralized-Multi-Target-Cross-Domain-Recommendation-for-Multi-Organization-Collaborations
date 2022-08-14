@@ -107,6 +107,14 @@ def make_control_list(data, mode):
             controls = assist_user_explicit_controls + assist_user_implicit_controls
         else:
             raise ValueError('Not valid data')
+    elif mode == 'match-mdr':
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf'],
+                             ['0'], ['genre'], ['mdr'], ['none'],
+                             ['none'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            controls = make_controls(control_name)
+        else:
+            raise ValueError('Not valid data')
     elif mode == 'info':
         if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
             control_name = [[[data], ['user'], ['explicit'], ['ae'],
@@ -122,14 +130,6 @@ def make_control_list(data, mode):
             assist_user_explicit_controls = make_controls(control_name)
             control_name = [[[data], ['user'], ['implicit'], ['ae'],
                              ['1'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1']]]
-            assist_user_implicit_controls = make_controls(control_name)
-            controls = assist_user_explicit_controls + assist_user_implicit_controls
-        elif data in ['Amazon']:
-            control_name = [[[data], ['user'], ['explicit'], ['ae'],
-                             ['1'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1']]]
-            assist_user_explicit_controls = make_controls(control_name)
-            control_name = [[[data], ['user'], ['implicit'], ['ae'],
-                             ['1'], ['genre'], ['assist'], ['constant-0.1'], ['constant'], ['1']]]
             assist_user_implicit_controls = make_controls(control_name)
             controls = assist_user_explicit_controls + assist_user_implicit_controls
         else:
@@ -161,11 +161,53 @@ def make_control_list(data, mode):
             controls = assist_user_explicit_controls + assist_user_implicit_controls
         else:
             raise ValueError('Not valid data')
-    elif mode == 'match-mdr':
+    elif mode == 'cs':
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.3'], ['constant'], ['1'], ['none'],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_explicit_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1.0'], ['constant'], ['1'], ['none'],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_implicit_controls = make_controls(control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Douban']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'], ['constant'], ['1'], ['none'],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_explicit_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'],
+                             ['constant', 'optim'], ['1'], ['none'],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_implicit_controls = make_controls(control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Amazon']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1'], ['none'],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_explicit_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'], ['constant'], ['1'], ['none'],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_implicit_controls = make_controls(control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        else:
+            raise ValueError('Not valid data')
+    elif mode == 'cs-alone':
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'ae'],
+                             ['0'], ['genre'], ['alone'], ['none'], ['none'], ['1'], ['none'],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            controls = make_controls(control_name)
+        else:
+            raise ValueError('Not valid data')
+    elif mode == 'cs-mdr':
         if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
             control_name = [[[data], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf'],
-                             ['0'], ['genre'], ['mdr'], ['none'],
-                             ['none'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+                             ['0'], ['genre'], ['mdr'], ['none'], ['none'], ['1'], ['none'],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
             controls = make_controls(control_name)
         else:
             raise ValueError('Not valid data')
@@ -177,11 +219,13 @@ def make_control_list(data, mode):
 def main():
     write = True
     data = ['ML1M', 'Douban', 'Amazon']
-    mode = ['joint', 'alone', 'mdr', 'assist', 'match', 'info', 'pl', 'match-mdr']
+    mode = ['joint', 'alone', 'mdr', 'assist', 'match', 'match-mdr', 'info', 'pl', 'cs', 'cs-alone', 'cs-mdr']
     # mode = ['joint', 'alone', 'mdr', 'assist']
     controls = []
     for data_ in data:
         for mode_ in mode:
+            if data_ == 'Amazon' and mode_ == 'info':
+                continue
             controls += make_control_list(data_, mode_)
     processed_result_exp, processed_result_history, processed_result_each = process_result(controls)
     save(processed_result_exp, os.path.join(result_path, 'processed_result_exp.pt'))
@@ -196,8 +240,8 @@ def main():
     df_exp = make_df_result(extracted_processed_result_exp, 'exp', write)
     df_history = make_df_result(extracted_processed_result_history, 'history', write)
     df_each = make_df_result(extracted_processed_result_each, 'each', write)
-    # make_vis_lc(df_exp, df_history)
-    # make_vis_lc_best(df_exp, df_history)
+    make_vis_lc(df_exp, df_history)
+    make_vis_lc_best(df_exp, df_history)
     make_vis_match(df_each)
     return
 
@@ -615,7 +659,7 @@ def make_vis_lc_best(df_exp, df_history):
     return
 
 
-def make_vis_match(df_each):
+def make_vis_match(df):
     control_dict = {'alone': 'Alone', 'ae_assist': 'MTAL'}
     color_dict = {'alone': 'black', 'ae_assist': 'red'}
     linestyle_dict = {'alone': '-', 'ae_assist': '-.'}
@@ -635,7 +679,6 @@ def make_vis_match(df_each):
             ae_alone = {}
             ae_assist = {}
             for (index, row) in df_each[df_name].iterrows():
-                print(index)
                 if 'base_alone' in index:
                     base_alone_ = row.to_numpy()
                     base_alone[index] = base_alone_[~np.isnan(base_alone_)]
