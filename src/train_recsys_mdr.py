@@ -88,8 +88,7 @@ def runExperiment():
         result = resume(cfg['model_tag'])
         last_epoch = result['epoch']
         if last_epoch > 1:
-            for i in range(len(dataset)):
-                model[i].load_state_dict(result['model_state_dict'][i])
+            model.load_state_dict(result['model_state_dict'])
             logger = result['logger']
             optimizer.load_state_dict(result['optimizer_state_dict'])
             scheduler.load_state_dict(result['scheduler_state_dict'])
@@ -99,8 +98,7 @@ def runExperiment():
         last_epoch = 1
         logger = make_logger('output/runs/train_{}'.format(cfg['model_tag']))
     if cfg['world_size'] > 1:
-        for i in range(len(dataset)):
-            model[i] = torch.nn.DataParallel(model[i], device_ids=list(range(cfg['world_size'])))
+        model = torch.nn.DataParallel(model, device_ids=list(range(cfg['world_size'])))
     for epoch in range(last_epoch, cfg[cfg['model_name']]['num_epochs'] + 1):
         train(data_loader['train'], model, optimizer, metric, logger, epoch)
         test(data_loader['test'], model, metric, logger, epoch)
