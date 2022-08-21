@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 
 result_path = './output/result'
-save_format = 'pdf'
+save_format = 'png'
 vis_path = './output/vis/{}'.format(save_format)
 num_experiments = 4
 exp = [str(x) for x in list(range(num_experiments))]
@@ -32,12 +32,9 @@ def make_control_list(data, mode):
             control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
                              ['0'], ['genre'], [mode]]]
             user_controls = make_controls(control_name)
-            if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
-                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
-                                 ['0'], ['random-8'], [mode]]]
-                item_controls = make_controls(control_name)
-            else:
-                item_controls = []
+            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
+                             ['0'], ['random-8'], [mode]]]
+            item_controls = make_controls(control_name)
             controls = user_controls + item_controls
         else:
             raise ValueError('Not valid data')
@@ -46,12 +43,9 @@ def make_control_list(data, mode):
             control_name = [[[data], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf'],
                              ['0'], ['genre'], [mode]]]
             user_controls = make_controls(control_name)
-            if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
-                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf'],
-                                 ['0'], ['random-8'], [mode]]]
-                item_controls = make_controls(control_name)
-            else:
-                item_controls = []
+            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf'],
+                             ['0'], ['random-8'], [mode]]]
+            item_controls = make_controls(control_name)
             controls = user_controls + item_controls
         else:
             raise ValueError('Not valid data')
@@ -71,7 +65,11 @@ def make_control_list(data, mode):
                              ['0'], ['genre'], ['assist'],
                              ['constant-0.1', 'constant-0.3', 'constant-1', 'optim-0.1'], ['constant'], ['1']]]
             user_controls = make_controls(control_name)
-            controls = user_controls
+            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['ae'],
+                             ['0'], ['random-8'], ['assist'],
+                             ['constant-0.1', 'constant-0.3', 'constant-1', 'optim-0.1'], ['constant'], ['1']]]
+            item_controls = make_controls(control_name)
+            controls = user_controls + item_controls
         else:
             raise ValueError('Not valid data')
     elif mode == 'match':
@@ -211,6 +209,33 @@ def make_control_list(data, mode):
             controls = make_controls(control_name)
         else:
             raise ValueError('Not valid data')
+    elif mode == 'aw':
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.3'], ['optim'], ['1']]]
+            assist_user_explicit_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1.0'], ['optim'], ['1']]]
+            assist_user_implicit_controls = make_controls(control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Douban']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'], ['optim'], ['1']]]
+            assist_user_explicit_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'], ['optim'], ['1']]]
+            assist_user_implicit_controls = make_controls(control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Amazon']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'], ['optim'], ['1']]]
+            assist_user_explicit_controls = make_controls(control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'], ['optim'], ['1']]]
+            assist_user_implicit_controls = make_controls(control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        else:
+            raise ValueError('Not valid data')
     else:
         raise ValueError('Not valid mode')
     return controls
@@ -219,7 +244,7 @@ def make_control_list(data, mode):
 def main():
     write = True
     data = ['ML1M', 'Douban', 'Amazon']
-    mode = ['joint', 'alone', 'mdr', 'assist', 'match', 'match-mdr', 'info', 'pl', 'cs', 'cs-alone', 'cs-mdr']
+    mode = ['joint', 'alone', 'mdr', 'assist', 'match', 'match-mdr', 'info', 'pl', 'cs', 'cs-alone', 'cs-mdr', 'aw']
     controls = []
     for data_ in data:
         for mode_ in mode:
@@ -408,8 +433,9 @@ def make_vis_lc(df_exp, df_history):
     for df_name in df_history:
         df_name_list = df_name.split('_')
         info = df_name_list[3]
+        metric_name = df_name_list[-2]
         stat = df_name_list[-1]
-        valid_mask = stat == 'mean' and info == '0'
+        valid_mask = info == '0' and metric_name in ['RMSE', 'NDCG'] and stat == 'mean'
         if valid_mask:
             data_name, data_mode, target_mode, info, data_split_mode, metric_name, stat = df_name_list
             df_name_std = '_'.join([*df_name_list[:-1], 'std'])
@@ -430,7 +456,8 @@ def make_vis_lc(df_exp, df_history):
             assist = {}
             for (index, row) in df_history[df_name].iterrows():
                 index_list = index.split('_')
-                if 'assist' in index_list and len(index_list) == 5 and index_list[-1] == '1':
+                if 'assist' in index_list and len(index_list) == 5 and index_list[-1] == '1' and \
+                        index_list[-2] != 'optim':
                     assist_ = row.to_numpy()
                     assist[index] = assist_[~np.isnan(assist_)]
             joint_std = {}
@@ -450,7 +477,8 @@ def make_vis_lc(df_exp, df_history):
             assist_std = {}
             for (index, row) in df_history[df_name_std].iterrows():
                 index_list = index.split('_')
-                if 'assist' in index_list and len(index_list) == 5 and index_list[-1] == '1':
+                if 'assist' in index_list and len(index_list) == 5 and index_list[-1] == '1' and \
+                        index_list[-2] != 'optim':
                     assist_ = row.to_numpy()
                     assist_std[index] = assist_[~np.isnan(assist_)]
             joint_values = np.array(list(joint.values())).reshape(-1)
@@ -543,8 +571,10 @@ def make_vis_lc_best(df_exp, df_history):
     ax_dict_1 = {}
     for df_name in df_history:
         df_name_list = df_name.split('_')
-        data_name, data_mode, target_mode, info, data_split_mode, metric_name, stat = df_name_list
-        valid_mask = stat == 'mean' and info == '0'
+        info = df_name_list[3]
+        metric_name = df_name_list[-2]
+        stat = df_name_list[-1]
+        valid_mask = info == '0' and metric_name in ['RMSE', 'NDCG'] and stat == 'mean'
         if valid_mask:
             df_name_std = '_'.join([*df_name_list[:-1], 'std'])
             joint = {}
@@ -564,7 +594,8 @@ def make_vis_lc_best(df_exp, df_history):
             assist = {}
             for (index, row) in df_history[df_name].iterrows():
                 index_list = index.split('_')
-                if 'assist' in index_list and len(index_list) == 5 and index_list[-1] == '1':
+                if 'assist' in index_list and len(index_list) == 5 and index_list[-1] == '1' and \
+                        index_list[-2] != 'optim':
                     assist_ = row.to_numpy()
                     assist[index] = assist_[~np.isnan(assist_)]
             joint_std = {}
@@ -584,7 +615,8 @@ def make_vis_lc_best(df_exp, df_history):
             assist_std = {}
             for (index, row) in df_history[df_name_std].iterrows():
                 index_list = index.split('_')
-                if 'assist' in index_list and len(index_list) == 5 and index_list[-1] == '1':
+                if 'assist' in index_list and len(index_list) == 5 and index_list[-1] == '1' and \
+                        index_list[-2] != 'optim':
                     assist_ = row.to_numpy()
                     assist_std[index] = assist_[~np.isnan(assist_)]
             joint_values = np.array(list(joint.values())).reshape(-1)
@@ -674,8 +706,11 @@ def make_vis_match(df_exp):
     ax_dict_1 = {}
     for df_name in df_exp:
         df_name_list = df_name.split('_')
-        data_name, data_mode, target_mode, info, data_split_mode, metric_name, stat = df_name_list
-        valid_mask = data_mode == 'user' and stat == 'mean' and info == '0'
+        data_mode = df_name_list[1]
+        info = df_name_list[3]
+        metric_name = df_name_list[-2]
+        stat = df_name_list[-1]
+        valid_mask = data_mode == 'user' and info == '0' and metric_name in ['RMSE', 'NDCG'] and stat == 'mean'
         if valid_mask:
             df_name_std = '_'.join([*df_name_list[:-1], 'std'])
             alone = {}
@@ -689,7 +724,8 @@ def make_vis_match(df_exp):
                 if 'mdr' in index_list and len(index_list) in [2, 5]:
                     mdr_ = row.to_numpy()
                     mdr[index] = mdr_[~np.isnan(mdr_)]
-                if 'assist' in index_list and len(index_list) == 5:
+                if 'assist' in index_list and len(index_list) == 5 and \
+                        index_list[-2] != 'optim':
                     assist_ = row.to_numpy()
                     assist[index] = assist_[~np.isnan(assist_)]
             alone_std = {}
@@ -703,7 +739,8 @@ def make_vis_match(df_exp):
                 if 'mdr' in index_list and len(index_list) in [2, 5]:
                     mdr_ = row.to_numpy()
                     mdr_std[index] = mdr_[~np.isnan(mdr_)]
-                if 'assist' in index_list and len(index_list) == 5:
+                if 'assist' in index_list and len(index_list) == 5 and \
+                        index_list[-2] != 'optim':
                     assist_ = row.to_numpy()
                     assist_std[index] = assist_[~np.isnan(assist_)]
             alone_values = np.array(list(alone.values())).reshape(-1)
@@ -790,8 +827,11 @@ def make_vis_cs(df_exp, df_each):
     ax_dict_1 = {}
     for df_name in df_exp:
         df_name_list = df_name.split('_')
-        data_name, data_mode, target_mode, info, data_split_mode, metric_name, stat = df_name_list
-        valid_mask = data_mode == 'user' and stat == 'mean' and info == '0'
+        data_mode = df_name_list[1]
+        info = df_name_list[3]
+        metric_name = df_name_list[-2]
+        stat = df_name_list[-1]
+        valid_mask = data_mode == 'user' and info == '0' and metric_name in ['RMSE', 'NDCG'] and stat == 'mean'
         if valid_mask:
             df_name_std = '_'.join([*df_name_list[:-1], 'std'])
             alone = {}
@@ -805,7 +845,8 @@ def make_vis_cs(df_exp, df_each):
                 if 'mdr' in index_list and len(index_list) == 7:
                     mdr_ = row.to_numpy()
                     mdr[index] = mdr_[~np.isnan(mdr_)]
-                if 'assist' in index_list and len(index_list) == 7:
+                if 'assist' in index_list and len(index_list) == 7 and \
+                        index_list[-2] != 'optim':
                     assist_ = row.to_numpy()
                     assist[index] = assist_[~np.isnan(assist_)]
             for (index, row) in df_each[df_name].iterrows():
@@ -816,7 +857,8 @@ def make_vis_cs(df_exp, df_each):
                 if 'mdr' in index_list and len(index_list) == 2:
                     mdr_ = row.to_numpy()
                     mdr[index] = np.array([mdr_[~np.isnan(mdr_)][0]])
-                if 'assist' in index_list and len(index_list) == 5 and index_list[-1] == '1':
+                if 'assist' in index_list and len(index_list) == 5 and index_list[-1] == '1' and \
+                        index_list[-2] != 'optim':
                     assist_ = row.to_numpy()
                     assist[index] = np.array([assist_[~np.isnan(assist_)][0]])
             alone_std = {}

@@ -4,7 +4,7 @@ resume_mode=0
 
 for run in train test
 do
-  for data in ML100K ML1M Amazon Douban
+  for data in ML1M Amazon Douban
   do
     python make.py --mode joint --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
     python make.py --mode alone --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
@@ -17,6 +17,7 @@ do
     python make.py --mode cs --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
     python make.py --mode cs-alone --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
     python make.py --mode cs-mdr --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+    python make.py --mode aw --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
   done
 done
 
