@@ -49,8 +49,11 @@ class Assist:
             loss.backward()
             residual_k = output_k.grad
             if cfg['data_name'] in ['Douban', 'Amazon']:
-                residual_limit = 1
-                residual_k = torch.clamp(residual_k, min=-residual_limit, max=residual_limit)
+                if cfg['data_name'] == 'Douban' and cfg['data_mode'] == 'item' and cfg['target_mode'] == 'explicit':
+                    pass
+                else:
+                    residual_limit = 1
+                    residual_k = torch.clamp(residual_k, min=-residual_limit, max=residual_limit)
             residual_k = - copy.deepcopy(residual_k).cpu()
             residual_k = residual_k.numpy()
             if 'pl' in cfg and cfg['pl'] != 'none':

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 
 result_path = './output/result'
-save_format = 'png'
+save_format = 'pdf'
 vis_path = './output/vis/{}'.format(save_format)
 num_experiments = 4
 exp = [str(x) for x in list(range(num_experiments))]
@@ -409,19 +409,19 @@ def make_df_result(extracted_processed_result, mode_name, write):
 
 
 def make_vis_lc(df_exp, df_history):
-    control_dict = {'Joint': 'Joint', 'Alone': 'Alone', 'MDR': 'MDR',
+    control_dict = {'Joint': 'Joint', 'Alone': 'Alone', 'MTCDR': 'MTCDR',
                     'constant-0.01_constant': 'DMTMDR ($\eta_k=0.01$)', 'constant-0.05_constant': 'DMTMDR ($\eta_k=0.05$)',
                     'constant-0.1_constant': 'DMTMDR ($\eta_k=0.1$)', 'constant-0.3_constant': 'DMTMDR ($\eta_k=0.3$)',
                     'constant-1_constant': 'DMTMDR ($\eta_k=1.0$)', 'optim-0.1_constant': 'DMTMDR (Optimize $\eta_k$)'}
-    color_dict = {'Joint': 'black', 'Alone': 'gray', 'MDR': 'green',
+    color_dict = {'Joint': 'black', 'Alone': 'gray', 'MTCDR': 'green',
                   'constant-0.01_constant': 'pink', 'constant-0.05_constant': 'cyan',
                   'constant-0.1_constant': 'red', 'constant-0.3_constant': 'orange',
                   'constant-1_constant': 'blue', 'optim-0.1_constant': 'lightblue'}
-    linestyle_dict = {'Joint': '-', 'Alone': ':', 'MDR': (5, (1, 5)),
+    linestyle_dict = {'Joint': '-', 'Alone': ':', 'MTCDR': (5, (1, 5)),
                       'constant-0.01_constant': (5, (5, 5)), 'constant-0.05_constant': (5, (10, 5)),
                       'constant-0.1_constant': '--', 'constant-0.3_constant': '-.',
                       'constant-1_constant': (0, (1, 5)), 'optim-0.1_constant': (0, (5, 1))}
-    marker_dict = {'Joint': 'X', 'Alone': 'x', 'MDR': 'p',
+    marker_dict = {'Joint': 'X', 'Alone': 'x', 'MTCDR': 'p',
                    'constant-0.01_constant': '^', 'constant-0.05_constant': 'v',
                    'constant-0.1_constant': 'D', 'constant-0.3_constant': 'd',
                    'constant-1_constant': 'o', 'optim-0.1_constant': 's'}
@@ -519,7 +519,7 @@ def make_vis_lc(df_exp, df_history):
             control = 'Alone'
             ax_1.errorbar(x, alone, yerr=alone_std, color=color_dict[control], linestyle=linestyle_dict[control],
                           label=control_dict[control], marker=marker_dict[control])
-            control = 'MDR'
+            control = 'MTCDR'
             ax_1.errorbar(x, mdr, yerr=mdr_std, color=color_dict[control], linestyle=linestyle_dict[control],
                           label=control_dict[control], marker=marker_dict[control])
             for assist_mode in assist:
@@ -548,19 +548,19 @@ def make_vis_lc(df_exp, df_history):
 
 
 def make_vis_lc_best(df_exp, df_history):
-    control_dict = {'Joint': 'Joint', 'Alone': 'Alone', 'MDR': 'MDR',
-                    'constant-0.01_constant': 'DMTMDR', 'constant-0.05_constant': 'DMTMDR',
-                    'constant-0.1_constant': 'DMTMDR', 'constant-0.3_constant': 'DMTMDR',
-                    'constant-1_constant': 'DMTMDR', 'optim-0.1_constant': 'DMTMDR'}
-    color_dict = {'Joint': 'blue', 'Alone': 'black', 'MDR': 'orange',
+    control_dict = {'Joint': 'Joint', 'Alone': 'Alone', 'MTCDR': 'MTCDR',
+                    'constant-0.01_constant': 'DMTCDR', 'constant-0.05_constant': 'DMTCDR',
+                    'constant-0.1_constant': 'DMTCDR', 'constant-0.3_constant': 'DMTCDR',
+                    'constant-1_constant': 'DMTCDR', 'optim-0.1_constant': 'DMTCDR'}
+    color_dict = {'Joint': 'blue', 'Alone': 'black', 'MTCDR': 'orange',
                   'constant-0.01_constant': 'red', 'constant-0.05_constant': 'red',
                   'constant-0.1_constant': 'red', 'constant-0.3_constant': 'red',
                   'constant-1_constant': 'red', 'optim-0.1_constant': 'red'}
-    linestyle_dict = {'Joint': '-.', 'Alone': '--', 'MDR': ':',
+    linestyle_dict = {'Joint': '-.', 'Alone': '--', 'MTCDR': ':',
                       'constant-0.01_constant': '-', 'constant-0.05_constant': '-',
                       'constant-0.1_constant': '-', 'constant-0.3_constant': '-',
                       'constant-1_constant': '-', 'optim-0.1_constant': '-'}
-    marker_dict = {'Joint': 'X', 'Alone': 'x', 'MDR': 'p',
+    marker_dict = {'Joint': 'X', 'Alone': 'x', 'MTCDR': 'p',
                    'constant-0.01_constant': 'd', 'constant-0.05_constant': 'd',
                    'constant-0.1_constant': 'd', 'constant-0.3_constant': 'd',
                    'constant-1_constant': 'd', 'optim-0.1_constant': 'd'}
@@ -637,7 +637,7 @@ def make_vis_lc_best(df_exp, df_history):
                 joint_best_idx = np.argmin(joint_values)
                 alone_best_idx = np.argmin(alone_values)
                 mdr_best_idx = np.argmin(mdr_values)
-                assist_best_idx = np.argmin(assist_values[:-1, -1].reshape(-1))
+                assist_best_idx = np.argmin(assist_values[:, -1].reshape(-1))
             x = np.arange(11)
             joint = joint_values[joint_best_idx]
             joint_std = joint_std_values[joint_best_idx]
@@ -659,20 +659,21 @@ def make_vis_lc_best(df_exp, df_history):
             if fig_name not in ax_dict_1:
                 ax_dict_1[fig_name] = fig[fig_name].add_subplot(111)
             ax_1 = ax_dict_1[fig_name]
+            scale = 1
             control = 'Joint'
-            ax_1.errorbar(x, joint, joint_std,
+            ax_1.errorbar(x, joint, joint_std / scale,
                           color=color_dict[control], linestyle=linestyle_dict[control],
                           label=control_dict[control], marker=marker_dict[control])
-            control = 'MDR'
-            ax_1.errorbar(x, mdr, mdr_std,
+            control = 'MTCDR'
+            ax_1.errorbar(x, mdr, mdr_std / scale,
                           color=color_dict[control], linestyle=linestyle_dict[control],
                           label=control_dict[control], marker=marker_dict[control])
             control = 'Alone'
-            ax_1.errorbar(x, alone, alone_std,
+            ax_1.errorbar(x, alone, alone_std / scale,
                           color=color_dict[control], linestyle=linestyle_dict[control],
                           label=control_dict[control], marker=marker_dict[control])
             control = assist_control
-            ax_1.errorbar(x, assist, assist_std,
+            ax_1.errorbar(x, assist, assist_std / scale,
                           color=color_dict[control], linestyle=linestyle_dict[control],
                           label=control_dict[control], marker=marker_dict[control])
             ax_1.set_xticks(x)
@@ -695,7 +696,7 @@ def make_vis_lc_best(df_exp, df_history):
 
 
 def make_vis_match(df_exp):
-    control_dict = {'mdr': 'MDR', 'assist': 'DMTMDR'}
+    control_dict = {'mdr': 'MTCDR', 'assist': 'DMTCDR'}
     color_dict = {'mdr': 'orange', 'assist': 'red'}
     linestyle_dict = {'mdr': ':', 'assist': '-'}
     marker_dict = {'mdr': 'p', 'assist': 'd'}
@@ -816,7 +817,7 @@ def make_vis_match(df_exp):
 
 
 def make_vis_cs(df_exp, df_each):
-    control_dict = {'alone': 'Alone', 'mdr': 'MDR', 'assist': 'DMTMDR'}
+    control_dict = {'alone': 'Alone', 'mdr': 'MTCDR', 'assist': 'DMTCDR'}
     color_dict = {'alone': 'black', 'mdr': 'orange', 'assist': 'red'}
     linestyle_dict = {'alone': '--', 'mdr': ':', 'assist': '-'}
     marker_dict = {'alone': 'x', 'mdr': 'p', 'assist': 'd'}
@@ -934,16 +935,17 @@ def make_vis_cs(df_exp, df_each):
             if fig_name not in ax_dict_1:
                 ax_dict_1[fig_name] = fig[fig_name].add_subplot(111)
             ax_1 = ax_dict_1[fig_name]
+            scale = 1
             control = 'alone'
-            ax_1.errorbar(x, alone, alone_std,
+            ax_1.errorbar(x, alone, np.array(alone_std) / scale,
                           color=color_dict[control], linestyle=linestyle_dict[control],
                           label=control_dict[control], marker=marker_dict[control])
             control = 'mdr'
-            ax_1.errorbar(x, mdr, mdr_std,
+            ax_1.errorbar(x, mdr, np.array(mdr_std) / scale,
                           color=color_dict[control], linestyle=linestyle_dict[control],
                           label=control_dict[control], marker=marker_dict[control])
             control = 'assist'
-            ax_1.errorbar(x, assist, assist_std,
+            ax_1.errorbar(x, assist, np.array(assist_std) / scale,
                           color=color_dict[control], linestyle=linestyle_dict[control],
                           label=control_dict[control], marker=marker_dict[control])
             ax_1.set_xlabel('Cold Start Ratio', fontsize=fontsize['label'])
