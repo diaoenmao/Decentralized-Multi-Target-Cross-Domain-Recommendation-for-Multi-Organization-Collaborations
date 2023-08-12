@@ -153,14 +153,8 @@ def process_control():
     cfg['base'] = {}
     cfg['mf'] = {'hidden_size': 256}
     cfg['nmf'] = {'hidden_size': [256, 128]}
-    if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
-        cfg['ae'] = {'encoder_hidden_size': [256, 128], 'decoder_hidden_size': [128, 256]}
-    elif cfg['data_name'] in ['Douban']:
-        cfg['ae'] = {'encoder_hidden_size': [256, 128], 'decoder_hidden_size': [128, 256]}
-    elif cfg['data_name'] in ['Amazon']:
-        cfg['ae'] = {'encoder_hidden_size': [256, 128], 'decoder_hidden_size': [128, 256]}
-    else:
-        raise ValueError('Not valid data name')
+    cfg['ae'] = {'encoder_hidden_size': [256, 128], 'decoder_hidden_size': [128, 256]}
+    cfg['simplex'] = {'hidden_size': 256}
     batch_size = {
         'user': {'ML100K': 100, 'ML1M': 500, 'ML10M': 1000, 'ML20M': 1000, 'Douban': 100, 'Amazon': 500},
         'item': {'ML100K': 100, 'ML1M': 500, 'ML10M': 1000, 'ML20M': 1000, 'Douban': 1000, 'Amazon': 500}}
