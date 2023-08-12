@@ -19,6 +19,7 @@ class Base(nn.Module):
             self.register_buffer('count', torch.zeros(self.num_users))
         else:
             raise ValueError('Not valid data mode')
+
     def forward(self, input):
         output = {}
         if cfg['data_mode'] == 'user':
