@@ -107,6 +107,7 @@ def recur(fn, input, *args):
 
 
 def process_dataset(dataset):
+    cfg['stats'] = make_stats()[cfg['data_name']]
     cfg['data_size'] = {'train': len(dataset['train']), 'test': len(dataset['test'])}
     cfg['num_users'], cfg['num_items'] = dataset['train'].num_users, dataset['train'].num_items
     return
@@ -117,39 +118,25 @@ def process_control():
     cfg['data_mode'] = cfg['control']['data_mode']
     cfg['target_mode'] = cfg['control']['target_mode']
     cfg['model_name'] = cfg['control']['model_name']
+
     if 'data_split_mode' in cfg['control']:
         cfg['data_split_mode'] = cfg['control']['data_split_mode']
-        if 'genre' in cfg['data_split_mode']:
+        if cfg['data_split_mode'] == 'genre':
             if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
-                cfg['num_organizations'] = 18
+                cfg['num_split'] = 18
             elif cfg['data_name'] in ['Douban']:
-                cfg['num_organizations'] = 3
+                cfg['num_split'] = 3
             elif cfg['data_name'] in ['Amazon']:
-                cfg['num_organizations'] = 4
+                cfg['num_split'] = 4
             else:
                 raise ValueError('Not valid data name')
-        elif 'random' in cfg['data_split_mode']:
-            cfg['num_organizations'] = int(cfg['data_split_mode'].split('-')[1])
+        elif cfg['data_split_mode'] == 'random':
+            cfg['num_split'] = 8
         else:
             raise ValueError('Not valid data split mode')
-    if 'run_mode' in cfg['control']:
-        cfg['run_mode'] = cfg['control']['run_mode']
-    cfg['assist'] = {}
-    if 'ar' in cfg['control'] and cfg['run_mode'] == 'assist':
-        ar_list = cfg['control']['ar'].split('-')
-        cfg['assist']['ar_mode'] = ar_list[0]
-        cfg['assist']['ar'] = float(ar_list[1])
-    if 'aw' in cfg['control'] and cfg['run_mode'] == 'assist':
-        cfg['assist']['aw_mode'] = cfg['control']['aw']
-    if 'match_rate' in cfg['control']:
-        cfg['assist']['match_rate'] = float(cfg['control']['match_rate'])
-    if 'pl' in cfg['control']:
-        cfg['pl'] = cfg['control']['pl']
-        if cfg['pl'] != 'none':
-            pl_list = cfg['pl'].split('-')
-            cfg['pl_mode'], cfg['pl_param'] = pl_list[0], float(pl_list[1])
-    if 'cs' in cfg['control']:
-        cfg['cs'] = float(cfg['control']['cs'])
+    cfg['match_ratio'] = float(cfg['control']['match_ratio']) if 'match_ratio' in cfg['control'] else float('1.0')
+    cfg['cold_start_ratio'] = float(cfg['control']['cold_start_ratio']) \
+        if 'cold_start_ratio' in cfg['control'] else float('0.0')
     cfg['base'] = {}
     cfg['mf'] = {'hidden_size': 256}
     cfg['nmf'] = {'hidden_size': [256, 128]}
@@ -171,8 +158,6 @@ def process_control():
     cfg[model_name]['batch_size'] = {'train': batch_size[cfg['data_mode']][cfg['data_name']],
                                      'test': batch_size[cfg['data_mode']][cfg['data_name']]}
     cfg[model_name]['num_epochs'] = 200 if model_name != 'base' else 1
-    cfg['stats'] = make_stats()[cfg['data_name']]
-    torch.set_num_threads(2)
     return
 
 

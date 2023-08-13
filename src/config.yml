@@ -5,6 +5,10 @@ control:
   data_mode: user
   target_mode: explicit
   model_name: ae
+  data_split_mode: random
+  train_mode: joint
+  match_ratio: 1
+  cold_start_ratio: 1
 # experiment
 num_workers: 0
 init_seed: 0

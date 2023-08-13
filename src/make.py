@@ -12,6 +12,7 @@ parser.add_argument('--num_experiments', default=1, type=int)
 parser.add_argument('--resume_mode', default=0, type=int)
 parser.add_argument('--mode', default=None, type=str)
 parser.add_argument('--data', default=None, type=str)
+parser.add_argument('--train_mode', default=None, type=str)
 parser.add_argument('--split_round', default=65535, type=int)
 args = vars(parser.parse_args())
 
@@ -38,6 +39,7 @@ def main():
     mode = args['mode']
     split_round = args['split_round']
     data = args['data']
+    train_mode = args['train_mode']
     gpu_ids = [','.join(str(i) for i in list(range(x, x + world_size))) for x in list(range(0, num_gpus, world_size))]
     init_seeds = [list(range(init_seed, init_seed + num_experiments, experiment_step))]
     world_size = [[world_size]]
@@ -45,14 +47,57 @@ def main():
     resume_mode = [[resume_mode]]
     filename = '{}_{}_{}'.format(run, mode, args['data'])
     if mode == 'base':
-        script_name = [['{}_recsys.py'.format(run)]]
+        script_name = [['{}_recsys_{}.py'.format(run, train_mode)]]
         if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
-            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae']]]
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
+                             ['genre'], [train_mode], ['0.0', '1.0'], ['0.0']]]
             user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                           control_name)
-            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae']]]
-            item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+            if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
+                                 ['random'], [train_mode], ['0.0', '1.0'], ['0.0']]]
+                item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                              control_name)
+            else:
+                item_controls = []
+            controls = user_controls + item_controls
+        else:
+            raise ValueError('Not valid data')
+    elif mode == 'match':
+        script_name = [['{}_recsys_{}.py'.format(run, train_mode)]]
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
+                             ['genre'], [train_mode],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9'], ['0.0']]]
+            user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                           control_name)
+            if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
+                                 ['random'], [train_mode],
+                                 ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9'], ['0.0']]]
+                item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                              control_name)
+            else:
+                item_controls = []
+            controls = user_controls + item_controls
+        else:
+            raise ValueError('Not valid data')
+    elif mode == 'cold_start':
+        script_name = [['{}_recsys_{}.py'.format(run, train_mode)]]
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
+                             ['genre'], [train_mode],
+                             ['1.0'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                          control_name)
+            if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
+                                 ['random'], [train_mode],
+                                 ['1.0'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+                item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                              control_name)
+            else:
+                item_controls = []
             controls = user_controls + item_controls
         else:
             raise ValueError('Not valid data')
