@@ -83,3 +83,80 @@ class InputTransform(torch.nn.Module):
         else:
             raise ValueError('Not valid data mode')
         return input
+
+
+def split_dataset(dataset):
+    if cfg['data_name'] in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
+        if 'genre' in cfg['data_split_mode']:
+            if cfg['data_mode'] == 'user':
+                num_split = cfg['num_split']
+                item_attr = torch.tensor(dataset['train'].item_attr['data'])
+                zero_mask = torch.tensor(dataset['train'].item_attr['data']).sum(dim=-1) == 0
+                item_attr[zero_mask] = 1
+                all_filled = False
+                while not all_filled:
+                    all_filled = True
+                    data_split = []
+                    data_split_idx = torch.multinomial(item_attr, 1).view(-1).numpy()
+                    for i in range(num_split):
+                        data_split_i = np.where(data_split_idx == i)[0]
+                        data_split.append(torch.tensor(data_split_i))
+                        if len(data_split_i) == 0 or len(dataset['train'].data[:, data_split_i].data) == 0 or len(
+                                dataset['test'].data[:, data_split_i].data) == 0 or len(
+                            dataset['train'].target[:, data_split_i].data) == 0 or len(
+                            dataset['test'].target[:, data_split_i].data) == 0:
+                            all_filled = False
+            elif cfg['data_mode'] == 'item':
+                raise NotImplementedError
+            else:
+                raise ValueError('Not valid data mode')
+        elif 'random' in cfg['data_split_mode']:
+            if cfg['data_mode'] == 'user':
+                num_items = dataset['train'].num_items['data']
+                num_split = cfg['num_split']
+                data_split = list(torch.randperm(num_items).split(num_items // num_split))
+                data_split = data_split[:num_split - 1] + [torch.cat(data_split[num_split - 1:])]
+            elif cfg['data_mode'] == 'item':
+                num_users = dataset['train'].num_users['data']
+                num_split = cfg['num_split']
+                data_split = list(torch.randperm(num_users).split(num_users // num_split))
+                data_split = data_split[:num_split - 1] + [torch.cat(data_split[num_split - 1:])]
+            else:
+                raise ValueError('Not valid data mode')
+        else:
+            raise ValueError('Not valid data split mode')
+    else:
+        raise ValueError('Not valid data name')
+    return data_split
+
+
+def make_split_dataset(data_split):
+    num_split = len(data_split)
+    dataset = []
+    for i in range(num_split):
+        data_split_i = data_split[i]
+        dataset_i = fetch_dataset(cfg['data_name'], model_name=cfg['model_name'], verbose=False)
+        for k in dataset_i:
+            dataset_i[k].data = dataset_i[k].data[:, data_split_i]
+            dataset_i[k].target = dataset_i[k].target[:, data_split_i]
+            if cfg['data_mode'] == 'user':
+                if hasattr(dataset_i[k], 'item_attr'):
+                    shape = (-1, dataset_i[k].item_attr['data'][data_split_i].shape[-1])
+                    dataset_i[k].item_attr['data'] = dataset_i[k].item_attr['data'][data_split_i].reshape(shape)
+                    shape = (-1, dataset_i[k].item_attr['target'][data_split_i].shape[-1])
+                    dataset_i[k].item_attr['target'] = dataset_i[k].item_attr['target'][data_split_i].reshape(shape)
+            elif cfg['data_mode'] == 'item':
+                if hasattr(dataset_i[k], 'user_profile'):
+                    shape = (-1, dataset_i[k].user_profile['data'][data_split_i].shape[-1])
+                    dataset_i[k].user_profile['data'] = dataset_i[k].user_profile['data'][data_split_i].reshape(shape)
+                    shape = (-1, dataset_i[k].user_profile['target'][data_split_i].shape[-1])
+                    dataset_i[k].user_profile['target'] = dataset_i[k].user_profile['target'][data_split_i].reshape(
+                        shape)
+            else:
+                raise ValueError('Not valid data mode')
+        if cfg['model_name'] in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
+            dataset_i = make_pair_transform(dataset_i)
+        elif cfg['model_name'] in ['ae']:
+            dataset_i = make_flat_transform(dataset_i)
+        dataset.append(dataset_i)
+    return dataset

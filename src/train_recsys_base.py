@@ -13,7 +13,6 @@ from metrics import Metric
 from utils import save, to_device, process_control, process_dataset, make_optimizer, make_scheduler, resume, collate
 from logger import make_logger
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 cudnn.benchmark = True
 parser = argparse.ArgumentParser(description='cfg')
 for k in cfg:
@@ -70,12 +69,12 @@ def runExperiment():
     else:
         last_epoch = 1
         logger = make_logger('output/runs/train_{}'.format(cfg['model_tag']))
-    if cfg['model_name'] not in ['ae']:
-        local_dataset = make_split_dataset(data_split)
-    else:
-        local_dataset = [copy.deepcopy(dataset) for _ in range(len(data_split))]
-    local_data_loader = {'test': []}
-    local_model = []
+    local_dataset = make_split_dataset(data_split)
+    exit()
+    local_data_loader = {
+        'train': [make_data_loader(local_dataset['train'][i], cfg['model_name']) for i in range(len(data_split))],
+        'test': [make_data_loader(local_dataset['test'][i], cfg['model_name']) for i in range(len(data_split))]}
+    local_model = [copy.deepcopy(model) for i in range(len(data_split))]
     for i in range(len(local_dataset)):
         local_data_loader_i = make_data_loader(local_dataset[i], cfg['model_name'])
         local_data_loader['test'].append(local_data_loader_i['test'])
