@@ -134,9 +134,9 @@ def process_control():
             cfg['num_split'] = 8
         else:
             raise ValueError('Not valid data split mode')
-    cfg['match_ratio'] = float(cfg['control']['match_ratio']) if 'match_ratio' in cfg['control'] else float('1.0')
-    cfg['cold_start_ratio'] = float(cfg['control']['cold_start_ratio']) \
-        if 'cold_start_ratio' in cfg['control'] else float('0.0')
+    match_ratio = cfg['control']['match_ratio'].split('-')
+    cfg['match_ratio'] = {'user': float(match_ratio[0]), 'item': float(match_ratio[1])}
+    cfg['cold_start_ratio'] = float(cfg['control']['cold_start_ratio'])
     cfg['base'] = {}
     cfg['mf'] = {'hidden_size': 256}
     cfg['nmf'] = {'hidden_size': [256, 128]}

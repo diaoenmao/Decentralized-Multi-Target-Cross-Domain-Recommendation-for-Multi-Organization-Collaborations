@@ -6,56 +6,43 @@ from config import cfg
 
 
 class MDR(nn.Module):
-    def __init__(self, model, data_mode, model_name, match_rate):
+    def __init__(self, model, model_name, match_ratio):
         super().__init__()
-        self.match_rate = match_rate
+        self.match_ratio = match_ratio
+        self.num_matched = {'user': int(len(model[0].user_weight.weight) * self.match_ratio['user']),
+                            'item': int(len(model[0].item_weight.weight) * self.match_ratio['item'])}
         model_list = []
         for m in range(len(model)):
-            model_list.append(self.make_share(model[0], model[m], data_mode, model_name))
+            model_list.append(self.make_share(model[0], model[m], model_name))
         self.model_list = nn.ModuleList(model_list)
 
-    def make_share(self, model_0, model_m, data_mode, model_name):
-        if model_name in ['mf', 'mlp']:
-            if data_mode == 'user':
-                num_matched = int(len(model_0.user_weight.weight) * self.match_rate)
-                model_m.make_md(num_matched, 'user', model_0.user_weight, model_0.user_bias)
-                if model_0.info_size is not None:
-                    raise ValueError('Not valid info')
-            elif data_mode == 'item':
-                num_matched = int(len(model_0.item_weight.weight) * self.match_rate)
-                model_m.make_md(num_matched, 'item', model_0.item_weight, model_0.item_bias)
-                if model_0.info_size is not None:
-                    raise ValueError('Not valid info')
-            else:
-                raise ValueError('Not valid data mode')
+    def make_share(self, model_0, model_m, model_name):
+        if model_name == 'mf':
+            model_m.share_user_weight = model_0.user_weight
+            model_m.share_item_weight = model_0.item_weight
         elif model_name == 'nmf':
-            if data_mode == 'user':
-                num_matched = int(len(model_0.user_weight_mlp.weight) * self.match_rate)
-                model_m.make_md(num_matched, 'user', model_0.user_weight_mlp, model_0.user_bias_mlp,
-                                model_0.user_weight_mf, model_0.user_bias_mf)
-                if model_0.info_size is not None:
-                    raise ValueError('Not valid info')
-            elif data_mode == 'item':
-                num_matched = int(len(model_0.item_weight_mlp.weight) * self.match_rate)
-                model_m.make_md(num_matched, 'item', model_0.item_weight_mlp, model_0.item_bias_mlp,
-                                model_0.item_weight_mf, model_0.item_bias_mf)
-                if model_0.info_size is not None:
-                    raise ValueError('Not valid info')
-            else:
-                raise ValueError('Not valid data mode')
+            model_m.share_user_weight_mlp = model_0.user_weight_mlp
+            model_m.share_user_weight_mf = model_0.user_weight_mf
+            model_m.share_item_weight_mlp = model_0.item_weight_mlp
+            model_m.share_item_weight_mf = model_0.item_weight_mf
+        elif model_name == 'ae':
+            model_m.share_user_weight_encoder = model_0.user_weight_encoder
+            model_m.share_user_weight_decoder = model_0.user_weight_decoder
+            model_m.share_item_weight_encoder = model_0.item_weight_encoder
+            model_m.share_item_weight_decoder = model_0.item_weight_decoder
+        elif model_name == 'simplex':
+            model_m.share_user_weight = model_0.user_weight
+            model_m.share_item_weight = model_0.item_weight
         return model_m
 
     def forward(self, input, m):
-        output = self.model_list[m](input)
+        output = self.model_list[m](input, self.num_matched)
         return output
 
 
 def mdr(model):
     data_mode = cfg['data_mode']
     model_name = cfg['model_name']
-    if 'match_rate' in cfg['assist']:
-        match_rate = cfg['assist']['match_rate']
-    else:
-        match_rate = 1.0
-    model = MDR(model, data_mode, model_name, match_rate)
+    match_ratio = cfg['match_ratio']
+    model = MDR(model, model_name, match_ratio)
     return model

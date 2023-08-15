@@ -42,28 +42,28 @@ class NMF(nn.Module):
                     m.bias.data.zero_()
         return
 
-    def user_embedding_mlp(self, user):
+    def user_embedding_mlp(self, user, num_matched):
         embedding = self.user_weight_mlp(user)
-        if hasattr(self, 'num_matched') and self.md_mode == 'user':
-            embedding[user < self.num_matched] = self.md_weight_mlp(user[user < self.num_matched])
+        if num_matched is not None:
+            embedding[user < num_matched['user']] = self.share_user_weight_mlp(user[user < num_matched['user']])
         return embedding
 
-    def user_embedding_mf(self, user):
+    def user_embedding_mf(self, user, num_matched):
         embedding = self.user_weight_mf(user)
-        if hasattr(self, 'num_matched') and self.md_mode == 'user':
-            embedding[user < self.num_matched] = self.md_weight_mf(user[user < self.num_matched])
+        if num_matched is not None:
+            embedding[user < num_matched['user']] = self.share_user_weight_mf(user[user < num_matched['user']])
         return embedding
 
-    def item_embedding_mlp(self, item):
+    def item_embedding_mlp(self, item, num_matched):
         embedding = self.item_weight_mlp(item)
-        if hasattr(self, 'num_matched') and self.md_mode == 'item':
-            embedding[item < self.num_matched] = self.md_weight_mlp(item[item < self.num_matched])
+        if num_matched is not None:
+            embedding[item < num_matched['item']] = self.share_item_weight_mlp(item[item < num_matched['item']])
         return embedding
 
-    def item_embedding_mf(self, item):
+    def item_embedding_mf(self, item, num_matched):
         embedding = self.item_weight_mf(item)
-        if hasattr(self, 'num_matched') and self.md_mode == 'item':
-            embedding[item < self.num_matched] = self.md_weight_mf(item[item < self.num_matched])
+        if num_matched is not None:
+            embedding[item < num_matched['item']] = self.share_item_weight_mf(item[item < num_matched['item']])
         return embedding
 
     def make_md(self, num_matched, md_mode, weight_mlp, weight_mf):
@@ -73,7 +73,7 @@ class NMF(nn.Module):
         self.md_weight_mf = weight_mf
         return
 
-    def forward(self, input):
+    def forward(self, input, num_matched=None):
         output = {}
         if self.training:
             user = input['user']
@@ -86,13 +86,13 @@ class NMF(nn.Module):
             rating = input['target_rating'].clone().detach()
             rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
 
-        user_embedding_mlp = self.user_embedding_mlp(user)
-        item_embedding_mlp = self.item_embedding_mlp(item)
+        user_embedding_mlp = self.user_embedding_mlp(user, num_matched)
+        item_embedding_mlp = self.item_embedding_mlp(item, num_matched)
         mlp = torch.cat([user_embedding_mlp, item_embedding_mlp], dim=-1)
         mlp = self.fc(mlp).squeeze()
 
-        user_embedding_mf = self.user_embedding_mf(user)
-        item_embedding_mf = self.item_embedding_mf(item)
+        user_embedding_mf = self.user_embedding_mf(user, num_matched)
+        item_embedding_mf = self.item_embedding_mf(item, num_matched)
         user_embedding_mf = F.normalize(user_embedding_mf - user_embedding_mf.mean(dim=-1, keepdims=True), dim=-1)
         item_embedding_mf = F.normalize(item_embedding_mf - item_embedding_mf.mean(dim=-1, keepdims=True), dim=-1)
         mf = torch.bmm(user_embedding_mf.unsqueeze(1), item_embedding_mf.unsqueeze(-1)).squeeze()

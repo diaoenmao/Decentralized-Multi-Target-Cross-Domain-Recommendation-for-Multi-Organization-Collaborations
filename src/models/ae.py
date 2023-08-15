@@ -89,28 +89,28 @@ class AE(nn.Module):
         nn.init.normal_(self.item_weight_decoder.weight, 0.0, 1e-4)
         return
 
-    def user_embedding_encoder(self, user):
+    def user_embedding_encoder(self, user, num_matched):
         embedding = self.user_weight_encoder(user)
-        if hasattr(self, 'num_matched') and self.md_mode == 'user':
-            embedding[user < self.num_matched] = self.md_weight_encoder(user[user < self.num_matched])
+        if num_matched is not None:
+            embedding[user < num_matched['user']] = self.share_user_weight_encoder(user[user < num_matched['user']])
         return embedding
 
-    def user_embedding_decoder(self, user):
+    def user_embedding_decoder(self, user, num_matched):
         embedding = self.user_weight_decoder(user)
-        if hasattr(self, 'num_matched') and self.md_mode == 'user':
-            embedding[user < self.num_matched] = self.md_weight_decoder(user[user < self.num_matched])
+        if num_matched is not None:
+            embedding[user < num_matched['user']] = self.share_user_weight_decoder(user[user < num_matched['user']])
         return embedding
 
-    def item_embedding_encoder(self, item):
+    def item_embedding_encoder(self, item, num_matched):
         embedding = self.item_weight_encoder(item)
-        if hasattr(self, 'num_matched') and self.md_mode == 'item':
-            embedding[item < self.num_matched] = self.md_weight_encoder(item[item < self.num_matched])
+        if num_matched is not None:
+            embedding[item < num_matched['item']] = self.share_item_weight_encoder(item[item < num_matched['item']])
         return embedding
 
-    def item_embedding_decoder(self, item):
+    def item_embedding_decoder(self, item, num_matched):
         embedding = self.item_weight_decoder(item)
-        if hasattr(self, 'num_matched') and self.md_mode == 'item':
-            embedding[item < self.num_matched] = self.md_weight_decoder(item[item < self.num_matched])
+        if num_matched is not None:
+            embedding[item < num_matched['item']] = self.share_item_weight_decoder(item[item < num_matched['item']])
         return embedding
 
     def make_md(self, num_matched, md_mode, weight_encoder, weight_decoder):
@@ -120,7 +120,7 @@ class AE(nn.Module):
         self.md_weight_decoder = weight_decoder
         return
 
-    def forward(self, input):
+    def forward(self, input, num_matched=None):
         output = {}
         if self.training:
             user = input['user']
@@ -142,8 +142,8 @@ class AE(nn.Module):
             target_size = input['target_size']
 
         if cfg['data_mode'] == 'user':
-            user_embedding_encoder = self.user_embedding_encoder(user)[torch.cumsum(size, dim=0) - 1]
-            item_embedding_encoder = self.item_embedding_encoder(item)
+            user_embedding_encoder = self.user_embedding_encoder(user, num_matched)[torch.cumsum(size, dim=0) - 1]
+            item_embedding_encoder = self.item_embedding_encoder(item, num_matched)
             item_embedding_encoder_cusum_size = cusum_size(item_embedding_encoder, size)
             item_embedding_encoder_cusum_size = item_embedding_encoder_cusum_size / size.unsqueeze(-1)
             embedding = 0.5 * user_embedding_encoder + 0.5 * item_embedding_encoder_cusum_size
@@ -151,22 +151,22 @@ class AE(nn.Module):
             code = self.dropout(encoded)
             decoded = self.decoder(code)
             decoded_embedding = torch.repeat_interleave(decoded, target_size, dim=0)
-            target_item_embedding_decoder = self.item_embedding_decoder(target_item)
+            target_item_embedding_decoder = self.item_embedding_decoder(target_item, num_matched)
             decoded_embedding = F.normalize(decoded_embedding - decoded_embedding.mean(dim=-1, keepdims=True), dim=-1)
             target_item_embedding_decoder = F.normalize(target_item_embedding_decoder -
                                                         target_item_embedding_decoder.mean(dim=-1,
                                                                                            keepdims=True), dim=-1)
             ae = torch.bmm(decoded_embedding.unsqueeze(1), target_item_embedding_decoder.unsqueeze(-1)).squeeze()
         elif cfg['data_mode'] == 'item':
-            item_embedding_encoder = self.item_embedding_encoder(item)[torch.cumsum(size, dim=0) - 1]
-            user_embedding_encoder = self.user_embedding_encoder(user)
+            item_embedding_encoder = self.item_embedding_encoder(item, num_matched)[torch.cumsum(size, dim=0) - 1]
+            user_embedding_encoder = self.user_embedding_encoder(user, num_matched)
             user_embedding_encoder_cusum_size = cusum_size(user_embedding_encoder, size) / size.unsqueeze(-1)
             embedding = 0.5 * item_embedding_encoder + 0.5 * user_embedding_encoder_cusum_size
             encoded = self.encoder(embedding)
             code = self.dropout(encoded)
             decoded = self.decoder(code)
             decoded_embedding = torch.repeat_interleave(decoded, target_size, dim=0)
-            target_user_embedding_decoder = self.user_embedding_decoder(target_user)
+            target_user_embedding_decoder = self.user_embedding_decoder(target_user, num_matched)
             decoded_embedding = F.normalize(decoded_embedding - decoded_embedding.mean(dim=-1, keepdims=True), dim=-1)
             target_user_embedding_decoder = F.normalize(target_user_embedding_decoder -
                                                         target_user_embedding_decoder.mean(dim=-1,

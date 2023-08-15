@@ -21,25 +21,19 @@ class MF(nn.Module):
         nn.init.normal_(self.item_weight.weight, 0.0, 1e-4)
         return
 
-    def user_embedding(self, user):
+    def user_embedding(self, user, num_matched):
         embedding = self.user_weight(user)
-        if hasattr(self, 'num_matched') and self.md_mode == 'user':
-            embedding[user < self.num_matched] = self.md_weight(user[user < self.num_matched])
+        if num_matched is not None:
+            embedding[user < num_matched['user']] = self.share_user_weight(user[user < num_matched['user']])
         return embedding
 
-    def item_embedding(self, item):
+    def item_embedding(self, item, num_matched):
         embedding = self.item_weight(item)
-        if hasattr(self, 'num_matched') and self.md_mode == 'item':
-            embedding[item < self.num_matched] = self.md_weight(item[item < self.num_matched])
+        if num_matched is not None:
+            embedding[item < num_matched['item']] = self.share_item_weight(item[item < num_matched['item']])
         return embedding
 
-    def make_md(self, num_matched, md_mode, weight):
-        self.num_matched = num_matched
-        self.md_mode = md_mode
-        self.md_weight = weight
-        return
-
-    def forward(self, input):
+    def forward(self, input, num_matched=None):
         output = {}
         if self.training:
             user = input['user']
@@ -51,8 +45,8 @@ class MF(nn.Module):
             item = input['target_item']
             rating = input['target_rating'].clone().detach()
             rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
-        user_embedding = self.user_embedding(user)
-        item_embedding = self.item_embedding(item)
+        user_embedding = self.user_embedding(user, num_matched)
+        item_embedding = self.item_embedding(item, num_matched)
         user_embedding = F.normalize(user_embedding - user_embedding.mean(dim=-1, keepdims=True), dim=-1)
         item_embedding = F.normalize(item_embedding - item_embedding.mean(dim=-1, keepdims=True), dim=-1)
         mf = torch.bmm(user_embedding.unsqueeze(1), item_embedding.unsqueeze(-1)).squeeze()

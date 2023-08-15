@@ -49,16 +49,17 @@ def main():
     if mode == 'base':
         script_name = [['{}_recsys_{}.py'.format(run, train_mode)]]
         if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
-            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'mf', 'nmf', 'ae'],
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'mf', 'nmf', 'ae', 'simplex'],
                              ['genre'], [train_mode],
-                             ['0.0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '1.0'], ['0.0']]]
+                             ['0.0-1.0', '0.1-1.0', '0.2-1.0', '0.3-1.0', '0.4-1.0', '0.5-1.0',
+                              '0.6-1.0', '0.7-1.0', '0.8-1.0', '0.9-1.0', '1.0-1.0'], ['0.0']]]
             user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                           control_name)
             if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
-                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'nmf', 'ae'],
+                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'nmf', 'ae', 'simplex'],
                                  ['random'], [train_mode],
-                                 ['0.0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '1.0'],
-                                 ['0.0']]]
+                                 ['1.0-0.0', '1.0-0.1', '1.0-0.2', '1.0-0.3', '1.0-0.4', '1.0-0.5',
+                                  '1.0-0.6', '1.0-0.7', '1.0-0.8', '1.0-0.9', '1.0-1.0'], ['0.0']]]
                 item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                               control_name)
             else:
@@ -69,15 +70,13 @@ def main():
     elif mode == 'match':
         script_name = [['{}_recsys_{}.py'.format(run, train_mode)]]
         if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
-            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'mf', 'nmf', 'ae'],
-                             ['genre'], [train_mode],
-                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '1.0'], ['0.0']]]
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'mf', 'nmf', 'ae', 'simplex'],
+                             ['genre'], [train_mode], ['0.5-0.5'], ['0.0']]]
             user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                           control_name)
             if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
-                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'nmf', 'ae'],
-                                 ['random'], [train_mode],
-                                 ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '1.0'], ['0.0']]]
+                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'nmf', 'ae', 'simplex'],
+                                 ['random'], [train_mode], ['0.5-0.5'], ['0.0']]]
                 item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                               control_name)
             else:
@@ -88,15 +87,17 @@ def main():
     elif mode == 'cold_start':
         script_name = [['{}_recsys_{}.py'.format(run, train_mode)]]
         if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
-            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'mf', 'nmf', 'ae'],
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'mf', 'nmf', 'ae', 'simplex'],
                              ['genre'], [train_mode],
-                             ['1.0'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+                             ['0.5-0.5', '1.0-1.0'],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
             user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                           control_name)
             if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
-                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'nmf', 'ae'],
+                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'nmf', 'ae', 'simplex'],
                                  ['random'], [train_mode],
-                                 ['1.0'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+                                 ['0.5-0.5', '1.0-1.0'],
+                                 ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
                 item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                               control_name)
             else:
