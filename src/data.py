@@ -154,9 +154,5 @@ def make_split_dataset(data_split):
                         shape)
             else:
                 raise ValueError('Not valid data mode')
-        if cfg['model_name'] in ['base', 'mf', 'gmf', 'mlp', 'nmf']:
-            dataset_i = make_pair_transform(dataset_i)
-        elif cfg['model_name'] in ['ae']:
-            dataset_i = make_flat_transform(dataset_i)
         dataset.append(dataset_i)
     return dataset

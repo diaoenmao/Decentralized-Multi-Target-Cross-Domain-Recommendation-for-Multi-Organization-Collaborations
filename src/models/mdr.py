@@ -9,8 +9,6 @@ class MDR(nn.Module):
     def __init__(self, model, model_name, match_ratio):
         super().__init__()
         self.match_ratio = match_ratio
-        self.num_matched = {'user': int(len(model[0].user_weight.weight) * self.match_ratio['user']),
-                            'item': int(len(model[0].item_weight.weight) * self.match_ratio['item'])}
         model_list = []
         for m in range(len(model)):
             model_list.append(self.make_share(model[0], model[m], model_name))
@@ -18,19 +16,27 @@ class MDR(nn.Module):
 
     def make_share(self, model_0, model_m, model_name):
         if model_name == 'mf':
+            self.num_matched = {'user': int(len(model_0.user_weight.weight) * self.match_ratio['user']),
+                                'item': int(len(model_0.item_weight.weight) * self.match_ratio['item'])}
             model_m.share_user_weight = model_0.user_weight
             model_m.share_item_weight = model_0.item_weight
         elif model_name == 'nmf':
+            self.num_matched = {'user': int(len(model_0.share_user_weight_mlp.weight) * self.match_ratio['user']),
+                                'item': int(len(model_0.share_item_weight_mlp.weight) * self.match_ratio['item'])}
             model_m.share_user_weight_mlp = model_0.user_weight_mlp
             model_m.share_user_weight_mf = model_0.user_weight_mf
             model_m.share_item_weight_mlp = model_0.item_weight_mlp
             model_m.share_item_weight_mf = model_0.item_weight_mf
         elif model_name == 'ae':
+            self.num_matched = {'user': int(len(model_0.share_user_weight_encoder.weight) * self.match_ratio['user']),
+                                'item': int(len(model_0.share_item_weight_encoder.weight) * self.match_ratio['item'])}
             model_m.share_user_weight_encoder = model_0.user_weight_encoder
             model_m.share_user_weight_decoder = model_0.user_weight_decoder
             model_m.share_item_weight_encoder = model_0.item_weight_encoder
             model_m.share_item_weight_decoder = model_0.item_weight_decoder
         elif model_name == 'simplex':
+            self.num_matched = {'user': int(len(model_0.share_user_weight.weight) * self.match_ratio['user']),
+                                'item': int(len(model_0.share_item_weight.weight) * self.match_ratio['item'])}
             model_m.share_user_weight = model_0.user_weight
             model_m.share_item_weight = model_0.item_weight
         return model_m
@@ -41,7 +47,6 @@ class MDR(nn.Module):
 
 
 def mdr(model):
-    data_mode = cfg['data_mode']
     model_name = cfg['model_name']
     match_ratio = cfg['match_ratio']
     model = MDR(model, model_name, match_ratio)

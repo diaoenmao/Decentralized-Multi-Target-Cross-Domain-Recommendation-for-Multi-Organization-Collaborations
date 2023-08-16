@@ -14,7 +14,6 @@ from metrics import Metric
 from utils import save, to_device, process_control, process_dataset, make_optimizer, make_scheduler, resume, collate
 from logger import make_logger
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 cudnn.benchmark = True
 parser = argparse.ArgumentParser(description='cfg')
 for k in cfg:
@@ -47,9 +46,9 @@ def runExperiment():
         if 'data_split' in result:
             data_split = result['data_split']
     dataset = make_split_dataset(data_split)
-    if 'cs' in cfg:
+    if 'cold_start_ratio' in cfg:
         data_size = len(dataset[0]['train'])
-        start_size = int(data_size * cfg['cs'])
+        start_size = int(data_size * (1 - cfg['cold_start_ratio']))
         dataset[0]['train'].data = dataset[0]['train'].data[:start_size]
         dataset[0]['train'].target = dataset[0]['train'].target[:start_size]
     data_loader = {'train': [], 'test': []}
@@ -60,9 +59,8 @@ def runExperiment():
         data_loader['train'].append(data_loader_i['train'])
         data_loader['test'].append(data_loader_i['test'])
         model.append(model_i)
-    if 'cs' in cfg:
+    if 'cold_start_ratio' in cfg:
         data_loader['train'] = [itertools.cycle(data_loader['train'][0]), *data_loader['train'][1:]]
-        data_loader['test'] = [data_loader['test'][0]]
     model = models.mdr(model)
     optimizer = make_optimizer(model, cfg['model_name'])
     scheduler = make_scheduler(optimizer, cfg['model_name'])
@@ -85,7 +83,6 @@ def runExperiment():
     else:
         last_epoch = 1
         logger = make_logger('output/runs/train_{}'.format(cfg['model_tag']))
-
     for epoch in range(last_epoch, cfg[cfg['model_name']]['num_epochs'] + 1):
         train(data_loader['train'], model, optimizer, metric, logger, epoch)
         test(data_loader['test'], model, metric, logger, epoch)
@@ -106,7 +103,7 @@ def runExperiment():
 
 
 def train(data_loader, model, optimizer, metric, logger, epoch):
-    logger.safe(True)
+    logger.save(True)
     model.train(True)
     start_time = time.time()
     for i, input in enumerate(zip(*data_loader)):
@@ -138,12 +135,12 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
                              'Experiment Finished Time: {}'.format(exp_finished_time)]}
             logger.append(info, 'train', mean=False)
             print(logger.write('train', metric.metric_name['train']))
-    logger.safe(False)
+    logger.save(False)
     return
 
 
 def test(data_loader, model, metric, logger, epoch):
-    logger.safe(True)
+    logger.save(True)
     model.train(False)
     with torch.no_grad():
         for i, input in enumerate(zip(*data_loader)):
@@ -160,8 +157,8 @@ def test(data_loader, model, metric, logger, epoch):
                 output_m = model(input_m, m)
                 input_target_user.append(input_m['target_user'])
                 input_target_item.append(input_m['target_item'])
-                input_target_rating.append(input_m['target_rating'])
-                output_target_rating.append(output_m['target_rating'])
+                input_target_rating.append(input_m['target_rating'].view(-1))
+                output_target_rating.append(output_m['target_rating'].view(-1))
                 evaluation = metric.evaluate([metric.metric_name['test'][0]], input_m, output_m)
                 logger.append(evaluation, 'test', input_size)
             output = {'target_rating': torch.cat(output_target_rating)}
@@ -175,7 +172,7 @@ def test(data_loader, model, metric, logger, epoch):
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
         logger.append(info, 'test', mean=False)
         print(logger.write('test', metric.metric_name['test']))
-    logger.safe(False)
+    logger.save(False)
     return
 
 
