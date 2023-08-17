@@ -39,25 +39,30 @@ class MF(nn.Module):
             user = input['user']
             item = input['item']
             rating = input['rating'].clone().detach()
-            rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
+            if cfg['target_mode'] == 'explicit':
+                rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
         else:
             user = input['target_user']
             item = input['target_item']
             rating = input['target_rating'].clone().detach()
-            rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
+            if cfg['target_mode'] == 'explicit':
+                rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
+
         user_embedding = self.user_embedding(user, num_matched)
         item_embedding = self.item_embedding(item, num_matched)
         user_embedding = F.normalize(user_embedding - user_embedding.mean(dim=-1, keepdims=True), dim=-1)
         item_embedding = F.normalize(item_embedding - item_embedding.mean(dim=-1, keepdims=True), dim=-1)
         mf = torch.bmm(user_embedding.unsqueeze(1), item_embedding.unsqueeze(-1)).squeeze()
         output['loss'] = loss_fn(mf, rating)
-        output['target_rating'] = denormalize(mf, cfg['stats']['min'], cfg['stats']['max'])
+        output['target_rating'] = mf
+        if cfg['target_mode'] == 'explicit':
+            output['target_rating'] = denormalize(output['target_rating'], cfg['stats']['min'], cfg['stats']['max'])
         return output
 
 
-def mf(num_users=None, num_items=None):
-    num_users = cfg['num_users']['data'] if num_users is None else num_users
-    num_items = cfg['num_items']['data'] if num_items is None else num_items
+def mf():
+    num_users = cfg['num_users']['data']
+    num_items = cfg['num_items']['data']
     hidden_size = cfg['mf']['hidden_size']
     model = MF(num_users, num_items, hidden_size)
     return model

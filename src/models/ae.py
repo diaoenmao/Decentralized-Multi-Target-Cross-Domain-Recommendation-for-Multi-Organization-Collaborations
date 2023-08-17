@@ -128,7 +128,8 @@ class AE(nn.Module):
             item = input['item']
             target_item = input['target_item']
             rating = input['rating'].clone().detach()
-            rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
+            if cfg['target_mode'] == 'explicit':
+                rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
             size = input['size']
             target_size = input['target_size']
         else:
@@ -137,7 +138,8 @@ class AE(nn.Module):
             item = input['item']
             target_item = input['target_item']
             rating = input['target_rating'].clone().detach()
-            rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
+            if cfg['target_mode'] == 'explicit':
+                rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
             size = input['size']
             target_size = input['target_size']
 
@@ -175,7 +177,9 @@ class AE(nn.Module):
         else:
             raise ValueError('Not valid data mode')
         output['loss'] = loss_fn(ae, rating)
-        output['target_rating'] = denormalize(ae, cfg['stats']['min'], cfg['stats']['max'])
+        output['target_rating'] = ae
+        if cfg['target_mode'] == 'explicit':
+            output['target_rating'] = denormalize(output['target_rating'], cfg['stats']['min'], cfg['stats']['max'])
         return output
 
 

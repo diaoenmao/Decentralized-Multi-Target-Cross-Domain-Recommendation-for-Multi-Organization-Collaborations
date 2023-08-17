@@ -37,7 +37,8 @@ class SimpleX(nn.Module):
             item = input['item']
             target_item = input['target_item']
             rating = input['rating'].clone().detach()
-            rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
+            if cfg['target_mode'] == 'explicit':
+                rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
             size = input['size']
             target_size = input['target_size']
         else:
@@ -46,7 +47,8 @@ class SimpleX(nn.Module):
             item = input['item']
             target_item = input['target_item']
             rating = input['target_rating'].clone().detach()
-            rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
+            if cfg['target_mode'] == 'explicit':
+                rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
             size = input['size']
             target_size = input['target_size']
 
@@ -79,7 +81,9 @@ class SimpleX(nn.Module):
         else:
             raise ValueError('Not valid data mode')
         output['loss'] = loss_fn(simplex, rating)
-        output['target_rating'] = denormalize(simplex, cfg['stats']['min'], cfg['stats']['max'])
+        output['target_rating'] = simplex
+        if cfg['target_mode'] == 'explicit':
+            output['target_rating'] = denormalize(output['target_rating'], cfg['stats']['min'], cfg['stats']['max'])
         return output
 
 

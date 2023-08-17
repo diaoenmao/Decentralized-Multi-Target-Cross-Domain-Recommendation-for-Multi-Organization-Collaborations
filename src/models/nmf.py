@@ -79,12 +79,14 @@ class NMF(nn.Module):
             user = input['user']
             item = input['item']
             rating = input['rating'].clone().detach()
-            rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
+            if cfg['target_mode'] == 'explicit':
+                rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
         else:
             user = input['target_user']
             item = input['target_item']
             rating = input['target_rating'].clone().detach()
-            rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
+            if cfg['target_mode'] == 'explicit':
+                rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
 
         user_embedding_mlp = self.user_embedding_mlp(user, num_matched)
         item_embedding_mlp = self.item_embedding_mlp(item, num_matched)
@@ -99,13 +101,15 @@ class NMF(nn.Module):
 
         nmf = 0.5 * mlp + 0.5 * mf
         output['loss'] = loss_fn(nmf, rating)
-        output['target_rating'] = denormalize(nmf, cfg['stats']['min'], cfg['stats']['max'])
+        output['target_rating'] = nmf
+        if cfg['target_mode'] == 'explicit':
+            output['target_rating'] = denormalize(output['target_rating'], cfg['stats']['min'], cfg['stats']['max'])
         return output
 
 
-def nmf(num_users=None, num_items=None):
-    num_users = cfg['num_users']['data'] if num_users is None else num_users
-    num_items = cfg['num_items']['data'] if num_items is None else num_items
+def nmf():
+    num_users = cfg['num_users']['data']
+    num_items = cfg['num_items']['data']
     hidden_size = cfg['nmf']['hidden_size']
     model = NMF(num_users, num_items, hidden_size)
     return model
