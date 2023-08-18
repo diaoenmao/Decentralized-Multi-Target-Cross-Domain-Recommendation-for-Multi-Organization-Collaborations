@@ -15,10 +15,10 @@ def denormalize(x, xmin, xmax):
 
 
 def loss_fn(output, target, reduction='mean'):
-    if cfg['target_mode'] == 'implicit':
-        loss = F.binary_cross_entropy_with_logits(output, target, reduction=reduction)
-    elif cfg['target_mode'] == 'explicit':
+    if cfg['target_mode'] == 'explicit':
         loss = F.mse_loss(output, target, reduction=reduction)
+    elif cfg['target_mode'] == 'implicit':
+        loss = F.binary_cross_entropy_with_logits(output, target, reduction=reduction)
     else:
         raise ValueError('Not valid target mode')
     return loss
@@ -55,6 +55,7 @@ def cusum_size(input, size, dim=0):
     cumsums = torch.cumsum(input, dim=dim)
     # Get the indices for slicing based on size tensor along the specified dimension
     indices = torch.cumsum(size, dim=0) - 1
+    indices[indices < 0] = 0
     # Use advanced indexing to extract the required sums from cumsums
     summed_values = torch.index_select(cumsums, dim, indices)
     # Adjust the sums to get the desired results

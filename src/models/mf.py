@@ -53,6 +53,7 @@ class MF(nn.Module):
         user_embedding = F.normalize(user_embedding - user_embedding.mean(dim=-1, keepdims=True), dim=-1)
         item_embedding = F.normalize(item_embedding - item_embedding.mean(dim=-1, keepdims=True), dim=-1)
         mf = torch.bmm(user_embedding.unsqueeze(1), item_embedding.unsqueeze(-1)).squeeze()
+        mf = mf.view(-1)
         output['loss'] = loss_fn(mf, rating)
         output['target_rating'] = mf
         if cfg['target_mode'] == 'explicit':

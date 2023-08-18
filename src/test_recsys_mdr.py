@@ -82,7 +82,7 @@ def test_each(data_loader, model, metric, each_logger, epoch):
             each_logger.save(True)
             for i, input in enumerate(data_loader[m]):
                 input = collate(input)
-                input_size = len(input['target_{}'.format(cfg['data_mode'])])
+                input_size = len(input['target_rating'])
                 if input_size == 0:
                     continue
                 input = to_device(input, cfg['device'])
@@ -109,7 +109,7 @@ def test(data_loader, model, metric, logger, epoch):
             output_target_rating = []
             for m in range(len(input)):
                 input_m = collate(input[m])
-                input_size = len(input_m['target_{}'.format(cfg['data_mode'])])
+                input_size = len(input_m['target_rating'])
                 if input_size == 0:
                     continue
                 input_m = to_device(input_m, cfg['device'])

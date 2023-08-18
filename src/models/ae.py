@@ -147,7 +147,7 @@ class AE(nn.Module):
             user_embedding_encoder = self.user_embedding_encoder(user, num_matched)[torch.cumsum(size, dim=0) - 1]
             item_embedding_encoder = self.item_embedding_encoder(item, num_matched)
             item_embedding_encoder_cusum_size = cusum_size(item_embedding_encoder, size)
-            item_embedding_encoder_cusum_size = item_embedding_encoder_cusum_size / size.unsqueeze(-1)
+            item_embedding_encoder_cusum_size = item_embedding_encoder_cusum_size / (size.unsqueeze(-1) + 1e-6)
             embedding = 0.5 * user_embedding_encoder + 0.5 * item_embedding_encoder_cusum_size
             encoded = self.encoder(embedding)
             code = self.dropout(encoded)
@@ -162,7 +162,7 @@ class AE(nn.Module):
         elif cfg['data_mode'] == 'item':
             item_embedding_encoder = self.item_embedding_encoder(item, num_matched)[torch.cumsum(size, dim=0) - 1]
             user_embedding_encoder = self.user_embedding_encoder(user, num_matched)
-            user_embedding_encoder_cusum_size = cusum_size(user_embedding_encoder, size) / size.unsqueeze(-1)
+            user_embedding_encoder_cusum_size = cusum_size(user_embedding_encoder, size) / (size.unsqueeze(-1) + 1e-6)
             embedding = 0.5 * item_embedding_encoder + 0.5 * user_embedding_encoder_cusum_size
             encoded = self.encoder(embedding)
             code = self.dropout(encoded)
@@ -176,6 +176,7 @@ class AE(nn.Module):
             ae = torch.bmm(decoded_embedding.unsqueeze(1), target_user_embedding_decoder.unsqueeze(-1)).squeeze()
         else:
             raise ValueError('Not valid data mode')
+        ae = ae.view(-1)
         output['loss'] = loss_fn(ae, rating)
         output['target_rating'] = ae
         if cfg['target_mode'] == 'explicit':

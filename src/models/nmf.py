@@ -100,6 +100,7 @@ class NMF(nn.Module):
         mf = torch.bmm(user_embedding_mf.unsqueeze(1), item_embedding_mf.unsqueeze(-1)).squeeze()
 
         nmf = 0.5 * mlp + 0.5 * mf
+        nmf = nmf.view(-1)
         output['loss'] = loss_fn(nmf, rating)
         output['target_rating'] = nmf
         if cfg['target_mode'] == 'explicit':

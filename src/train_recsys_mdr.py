@@ -110,7 +110,7 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
         loss = 0
         for m in range(len(input)):
             input_m = collate(input[m])
-            input_size = len(input_m[cfg['data_mode']])
+            input_size = len(input_m['target_rating'])
             if input_size == 0:
                 continue
             input_m = to_device(input_m, cfg['device'])
@@ -150,7 +150,7 @@ def test(data_loader, model, metric, logger, epoch):
             output_target_rating = []
             for m in range(len(input)):
                 input_m = collate(input[m])
-                input_size = len(input_m['target_{}'.format(cfg['data_mode'])])
+                input_size = len(input_m['target_rating'])
                 if input_size == 0:
                     continue
                 input_m = to_device(input_m, cfg['device'])

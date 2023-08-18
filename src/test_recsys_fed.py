@@ -1,5 +1,6 @@
 import argparse
 import os
+import itertools
 import torch
 import torch.backends.cudnn as cudnn
 import models
@@ -9,7 +10,6 @@ from metrics import Metric
 from utils import save, to_device, process_control, process_dataset, resume, collate
 from logger import make_logger
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 cudnn.benchmark = True
 parser = argparse.ArgumentParser(description='cfg')
 for k in cfg:
@@ -46,31 +46,22 @@ def runExperiment():
     last_epoch = result['epoch']
     data_split = result['data_split']
     dataset = make_split_dataset(data_split)
-    if 'cs' in cfg:
+    if 'cold_start_ratio' in cfg:
         data_size = len(dataset[0]['train'])
-        start_size = int(data_size * cfg['cs'])
-    data_loader = {'test': []}
+        start_size = int(data_size * (1 - cfg['cold_start_ratio']))
+        dataset[0]['train'].data = dataset[0]['train'].data[:start_size]
+        dataset[0]['train'].target = dataset[0]['train'].target[:start_size]
+    data_loader = {'train': [], 'test': []}
     model = []
     for i in range(len(dataset)):
         data_loader_i = make_data_loader(dataset[i], cfg['model_name'])
-        if 'cs' in cfg and i == 0:
-            if cfg['data_mode'] == 'user':
-                num_users = data_size
-                num_items = dataset[i]['train'].num_items['data']
-            elif cfg['data_mode'] == 'item':
-                num_users = dataset[i]['train'].num_users['data']
-                num_items = data_size
-            else:
-                raise ValueError('Not valid data mode')
-        else:
-            num_users = dataset[i]['train'].num_users['data']
-            num_items = dataset[i]['train'].num_items['data']
-        model_i = eval('models.{}(num_users, num_items).to(cfg["device"])'.format(cfg['model_name']))
+        model_i = eval('models.{}().to(cfg["device"])'.format(cfg['model_name']))
+        data_loader['train'].append(data_loader_i['train'])
         data_loader['test'].append(data_loader_i['test'])
         model.append(model_i)
-    if 'cs' in cfg:
-        data_loader['test'] = [data_loader['test'][0]]
-    model = models.mdr(model)
+    if 'cold_start_ratio' in cfg:
+        data_loader['train'] = [itertools.cycle(data_loader['train'][0]), *data_loader['train'][1:]]
+    model = models.fed(model)
     model.load_state_dict(result['model_state_dict'])
     test_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))
     test_each_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))
@@ -88,28 +79,27 @@ def test_each(data_loader, model, metric, each_logger, epoch):
     with torch.no_grad():
         model.train(False)
         for m in range(len(data_loader)):
-            each_logger.safe(True)
+            each_logger.save(True)
             for i, input in enumerate(data_loader[m]):
                 input = collate(input)
-                input_size = len(input['target_{}'.format(cfg['data_mode'])])
+                input_size = len(input['target_rating'])
                 if input_size == 0:
                     continue
                 input = to_device(input, cfg['device'])
                 output = model(input, m)
-                output['loss'] = output['loss'].mean() if cfg['world_size'] > 1 else output['loss']
                 evaluation = metric.evaluate(metric.metric_name['test'], input, output)
                 each_logger.append(evaluation, 'test', input_size)
             info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.),
                              'ID: {}/{}'.format(m + 1, len(data_loader))]}
             each_logger.append(info, 'test', mean=False)
             print(each_logger.write('test', metric.metric_name['test']))
-            each_logger.safe(False)
+            each_logger.save(False)
             each_logger.reset()
     return
 
 
 def test(data_loader, model, metric, logger, epoch):
-    logger.safe(True)
+    logger.save(True)
     model.train(False)
     with torch.no_grad():
         for i, input in enumerate(zip(*data_loader)):
@@ -119,7 +109,7 @@ def test(data_loader, model, metric, logger, epoch):
             output_target_rating = []
             for m in range(len(input)):
                 input_m = collate(input[m])
-                input_size = len(input_m['target_{}'.format(cfg['data_mode'])])
+                input_size = len(input_m['target_rating'])
                 if input_size == 0:
                     continue
                 input_m = to_device(input_m, cfg['device'])
@@ -128,7 +118,6 @@ def test(data_loader, model, metric, logger, epoch):
                 input_target_item.append(input_m['target_item'])
                 input_target_rating.append(input_m['target_rating'])
                 output_target_rating.append(output_m['target_rating'])
-                output_m['loss'] = output_m['loss'].mean() if cfg['world_size'] > 1 else output_m['loss']
                 evaluation = metric.evaluate([metric.metric_name['test'][0]], input_m, output_m)
                 logger.append(evaluation, 'test', input_size)
             output = {'target_rating': torch.cat(output_target_rating)}
@@ -142,7 +131,7 @@ def test(data_loader, model, metric, logger, epoch):
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
         logger.append(info, 'test', mean=False)
         print(logger.write('test', metric.metric_name['test']))
-        logger.safe(False)
+        logger.save(False)
     return
 
 

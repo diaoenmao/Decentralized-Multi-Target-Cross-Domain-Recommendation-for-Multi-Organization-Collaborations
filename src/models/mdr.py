@@ -21,22 +21,22 @@ class MDR(nn.Module):
             model_m.share_user_weight = model_0.user_weight
             model_m.share_item_weight = model_0.item_weight
         elif model_name == 'nmf':
-            self.num_matched = {'user': int(len(model_0.share_user_weight_mlp.weight) * self.match_ratio['user']),
-                                'item': int(len(model_0.share_item_weight_mlp.weight) * self.match_ratio['item'])}
+            self.num_matched = {'user': int(len(model_0.user_weight_mlp.weight) * self.match_ratio['user']),
+                                'item': int(len(model_0.item_weight_mlp.weight) * self.match_ratio['item'])}
             model_m.share_user_weight_mlp = model_0.user_weight_mlp
-            model_m.share_user_weight_mf = model_0.user_weight_mf
             model_m.share_item_weight_mlp = model_0.item_weight_mlp
+            model_m.share_user_weight_mf = model_0.user_weight_mf
             model_m.share_item_weight_mf = model_0.item_weight_mf
         elif model_name == 'ae':
-            self.num_matched = {'user': int(len(model_0.share_user_weight_encoder.weight) * self.match_ratio['user']),
-                                'item': int(len(model_0.share_item_weight_encoder.weight) * self.match_ratio['item'])}
+            self.num_matched = {'user': int(len(model_0.user_weight_encoder.weight) * self.match_ratio['user']),
+                                'item': int(len(model_0.item_weight_encoder.weight) * self.match_ratio['item'])}
             model_m.share_user_weight_encoder = model_0.user_weight_encoder
-            model_m.share_user_weight_decoder = model_0.user_weight_decoder
             model_m.share_item_weight_encoder = model_0.item_weight_encoder
+            model_m.share_user_weight_decoder = model_0.user_weight_decoder
             model_m.share_item_weight_decoder = model_0.item_weight_decoder
         elif model_name == 'simplex':
-            self.num_matched = {'user': int(len(model_0.share_user_weight.weight) * self.match_ratio['user']),
-                                'item': int(len(model_0.share_item_weight.weight) * self.match_ratio['item'])}
+            self.num_matched = {'user': int(len(model_0.user_weight.weight) * self.match_ratio['user']),
+                                'item': int(len(model_0.item_weight.weight) * self.match_ratio['item'])}
             model_m.share_user_weight = model_0.user_weight
             model_m.share_item_weight = model_0.item_weight
         return model_m
