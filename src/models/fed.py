@@ -5,7 +5,7 @@ from .utils import loss_fn
 from config import cfg
 
 
-class FED(nn.Module):
+class Fed(nn.Module):
     def __init__(self, model, model_name, match_ratio):
         super().__init__()
         self.match_ratio = match_ratio
@@ -102,5 +102,5 @@ class FED(nn.Module):
 def fed(model):
     model_name = cfg['model_name']
     match_ratio = cfg['match_ratio']
-    model = FED(model, model_name, match_ratio)
+    model = Fed(model, model_name, match_ratio)
     return model
