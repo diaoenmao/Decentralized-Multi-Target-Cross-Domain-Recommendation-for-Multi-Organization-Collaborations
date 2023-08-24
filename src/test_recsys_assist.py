@@ -62,6 +62,7 @@ def runExperiment():
     if 'cold_start_ratio' in cfg:
         data_loader['train'] = [itertools.cycle(data_loader['train'][0]), *data_loader['train'][1:]]
     model = models.assist(model)
+    model = model.to(cfg['device'])
     model.load_state_dict(result['model_state_dict'])
     test_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))
     test_each_logger = make_logger('output/runs/test_{}'.format(cfg['model_tag']))

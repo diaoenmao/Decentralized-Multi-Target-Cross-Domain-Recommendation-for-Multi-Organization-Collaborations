@@ -8,6 +8,7 @@ from config import cfg
 class MDR(nn.Module):
     def __init__(self, model, model_name, match_ratio):
         super().__init__()
+        self.model_name = model_name
         self.match_ratio = match_ratio
         model_list = []
         for m in range(len(model)):

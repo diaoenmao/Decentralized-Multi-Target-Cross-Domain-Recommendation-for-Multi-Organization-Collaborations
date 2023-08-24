@@ -63,6 +63,7 @@ def runExperiment():
     if 'cold_start_ratio' in cfg:
         data_loader['train'] = [itertools.cycle(data_loader['train'][0]), *data_loader['train'][1:]]
     model = models.assist(model)
+    model = model.to(cfg['device'])
     optimizer = make_optimizer(model, cfg['model_name'])
     scheduler = make_scheduler(optimizer, cfg['model_name'])
     if cfg['target_mode'] == 'explicit':
@@ -85,8 +86,11 @@ def runExperiment():
         last_epoch = 1
         logger = make_logger('output/runs/train_{}'.format(cfg['model_tag']))
     for epoch in range(last_epoch, cfg[cfg['model_name']]['num_epochs'] + 1):
+        model.sync()
         train(data_loader['train'], model, optimizer, metric, logger, epoch)
-        model.sync(all_data_loader['train'])
+        print(model.parameter_list[0].softmax(dim=-1))
+        print(model.parameter_list[1].softmax(dim=-1))
+        print(model.parameter_list[2].softmax(dim=-1))
         test(data_loader['test'], model, metric, logger, epoch)
         scheduler.step()
         model_state_dict = model.state_dict()
