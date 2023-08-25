@@ -14,7 +14,7 @@ class Assist(nn.Module):
         parameter_list = []
         for m in range(len(model)):
             model_list.append(model[m])
-            parameter_list.append(nn.Parameter(torch.ones(len(model))))
+            parameter_list.append(nn.Parameter(torch.randn(len(model))))
         self.model_list = nn.ModuleList(model_list)
         self.parameter_list = nn.ParameterList(parameter_list)
 
@@ -68,12 +68,16 @@ class Assist(nn.Module):
             rating = input['target_rating'].clone().detach()
             if cfg['target_mode'] == 'explicit':
                 rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
+        if cfg['data_mode'] == 'user':
+            mask = user < self.num_matched['user']
+        else:
+            mask = item < self.num_matched['item']
         self.make_share(self.model_list[m], self.model_list[m], self.model_name)
-        mask = user < self.num_matched['user']
         model_0 = self.model_list[m]
         output_0 = model_0(input, self.num_matched)
+        output_0['target_rating'] = normalize(output_0['target_rating'], cfg['stats']['min'], cfg['stats']['max'])
         output_target_rating = [None for _ in range(len(self.model_list))]
-        output_target_rating[m] = normalize(output_0['target_rating'], cfg['stats']['min'], cfg['stats']['max'])
+        output_target_rating[m] = output_0['target_rating']
         for i in range(len(self.sync_model_list[m])):
             if i != m:
                 model_m = self.sync_model_list[m][i]
@@ -81,9 +85,8 @@ class Assist(nn.Module):
                 output_m_target_rating_ = normalize(output_m['target_rating'], cfg['stats']['min'], cfg['stats']['max'])
                 output_m_target_rating_.detach_()
                 output_target_rating[i] = output_m_target_rating_
-        output_target_rating = torch.stack(output_target_rating, dim=-1) * self.parameter_list[m].softmax(dim=-1)
-        output_target_rating = output_target_rating.sum(dim=-1)
-        # output_0['target_rating'][mask] = output_target_rating[mask]
+        output_target_rating = torch.stack(output_target_rating, dim=-1).mean(dim=-1)
+        output_0['target_rating'][mask] = output_target_rating[mask]
         output_0['loss'] = loss_fn(output_0['target_rating'], rating)
         if cfg['target_mode'] == 'explicit':
             output_0['target_rating'] = denormalize(output_0['target_rating'],
