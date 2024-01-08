@@ -15,7 +15,7 @@ class Logger:
         self.history = defaultdict(list)
         self.iterator = defaultdict(int)
 
-    def save(self, write):
+    def safe(self, write):
         if write:
             self.writer = SummaryWriter(self.log_path)
         else:

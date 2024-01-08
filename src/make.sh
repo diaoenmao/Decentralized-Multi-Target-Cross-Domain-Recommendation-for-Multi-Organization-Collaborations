@@ -1,122 +1,23 @@
-#!/bin/bash
+num_experiments=4
+round=16
+resume_mode=0
 
-# base
-python make.py --mode base --data ML100K --train_mode mdr --run train --num_experiments 4 --round 16
-python make.py --mode base --data ML100K --train_mode mdr --run test --num_experiments 4 --round 16
+for run in train test
+do
+  for data in ML1M Amazon Douban
+  do
+    python make.py --mode joint --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+    python make.py --mode alone --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+    python make.py --mode mdr --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+    python make.py --mode assist --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+    python make.py --mode match --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+    python make.py --mode info --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+    python make.py --mode pl --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+    python make.py --mode match-mdr --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+    python make.py --mode cs --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+    python make.py --mode cs-alone --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+    python make.py --mode cs-mdr --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+    python make.py --mode aw --data $data --run $run --num_experiments $num_experiments --round $round --resume_mode $resume_mode
+  done
+done
 
-python make.py --mode base --data ML1M --train_mode mdr --run train --num_experiments 4 --round 16
-python make.py --mode base --data ML1M --train_mode mdr --run test --num_experiments 4 --round 16
-
-python make.py --mode base --data Amazon --train_mode mdr --run train --num_experiments 4 --round 16
-python make.py --mode base --data Amazon --train_mode mdr --run test --num_experiments 4 --round 16
-
-python make.py --mode base --data Douban --train_mode mdr --run train --num_experiments 4 --round 16
-python make.py --mode base --data Douban --train_mode mdr --run test --num_experiments 4 --round 16
-
-
-#python make.py --mode base --data ML100K --train_mode fed --run train --num_experiments 4 --round 16
-#python make.py --mode base --data ML100K --train_mode fed --run test --num_experiments 4 --round 16
-#
-#python make.py --mode base --data ML1M --train_mode fed --run train --num_experiments 4 --round 16
-#python make.py --mode base --data ML1M --train_mode fed --run test --num_experiments 4 --round 16
-#
-#python make.py --mode base --data Amazon --train_mode fed --run train --num_experiments 4 --round 16
-#python make.py --mode base --data Amazon --train_mode fed --run test --num_experiments 4 --round 16
-#
-#python make.py --mode base --data Douban --train_mode fed --run train --num_experiments 4 --round 16
-#python make.py --mode base --data Douban --train_mode fed --run test --num_experiments 4 --round 16
-#
-#
-#python make.py --mode base --data ML100K --train_mode assist --run train --num_experiments 4 --round 16
-#python make.py --mode base --data ML100K --train_mode assist --run test --num_experiments 4 --round 16
-#
-#python make.py --mode base --data ML1M --train_mode assist --run train --num_experiments 4 --round 16
-#python make.py --mode base --data ML1M --train_mode assist --run test --num_experiments 4 --round 16
-#
-#python make.py --mode base --data Amazon --train_mode assist --run train --num_experiments 4 --round 16
-#python make.py --mode base --data Amazon --train_mode assist --run test --num_experiments 4 --round 16
-#
-#python make.py --mode base --data Douban --train_mode assist --run train --num_experiments 4 --round 16
-#python make.py --mode base --data Douban --train_mode assist --run test --num_experiments 4 --round 16
-
-
-
-# match
-python make.py --mode match --data ML100K --train_mode mdr --run train --num_experiments 4 --round 16
-python make.py --mode match --data ML100K --train_mode mdr --run test --num_experiments 4 --round 16
-
-python make.py --mode match --data ML1M --train_mode mdr --run train --num_experiments 4 --round 16
-python make.py --mode match --data ML1M --train_mode mdr --run test --num_experiments 4 --round 16
-
-python make.py --mode match --data Amazon --train_mode mdr --run train --num_experiments 4 --round 16
-python make.py --mode match --data Amazon --train_mode mdr --run test --num_experiments 4 --round 16
-
-python make.py --mode match --data Douban --train_mode mdr --run train --num_experiments 4 --round 16
-python make.py --mode match --data Douban --train_mode mdr --run test --num_experiments 4 --round 16
-
-
-#python make.py --mode match --data ML100K --train_mode fed --run train --num_experiments 4 --round 16
-#python make.py --mode match --data ML100K --train_mode fed --run test --num_experiments 4 --round 16
-#
-#python make.py --mode match --data ML1M --train_mode fed --run train --num_experiments 4 --round 16
-#python make.py --mode match --data ML1M --train_mode fed --run test --num_experiments 4 --round 16
-#
-#python make.py --mode match --data Amazon --train_mode fed --run train --num_experiments 4 --round 16
-#python make.py --mode match --data Amazon --train_mode fed --run test --num_experiments 4 --round 16
-#
-#python make.py --mode match --data Douban --train_mode fed --run train --num_experiments 4 --round 16
-#python make.py --mode match --data Douban --train_mode fed --run test --num_experiments 4 --round 16
-#
-#
-#python make.py --mode match --data ML100K --train_mode assist --run train --num_experiments 4 --round 16
-#python make.py --mode match --data ML100K --train_mode assist --run test --num_experiments 4 --round 16
-#
-#python make.py --mode match --data ML1M --train_mode assist --run train --num_experiments 4 --round 16
-#python make.py --mode match --data ML1M --train_mode assist --run test --num_experiments 4 --round 16
-#
-#python make.py --mode match --data Amazon --train_mode assist --run train --num_experiments 4 --round 16
-#python make.py --mode match --data Amazon --train_mode assist --run test --num_experiments 4 --round 16
-#
-#python make.py --mode match --data Douban --train_mode assist --run train --num_experiments 4 --round 16
-#python make.py --mode match --data Douban --train_mode assist --run test --num_experiments 4 --round 16
-
-
-
-# cold_start
-python make.py --mode cold_start --data ML100K --train_mode mdr --run train --num_experiments 4 --round 16
-python make.py --mode cold_start --data ML100K --train_mode mdr --run test --num_experiments 4 --round 16
-
-python make.py --mode cold_start --data ML1M --train_mode mdr --run train --num_experiments 4 --round 16
-python make.py --mode cold_start --data ML1M --train_mode mdr --run test --num_experiments 4 --round 16
-
-python make.py --mode cold_start --data Amazon --train_mode mdr --run train --num_experiments 4 --round 16
-python make.py --mode cold_start --data Amazon --train_mode mdr --run test --num_experiments 4 --round 16
-
-python make.py --mode cold_start --data Douban --train_mode mdr --run train --num_experiments 4 --round 16
-python make.py --mode cold_start --data Douban --train_mode mdr --run test --num_experiments 4 --round 16
-
-
-python make.py --mode cold_start --data ML100K --train_mode fed --run train --num_experiments 4 --round 16
-python make.py --mode cold_start --data ML100K --train_mode fed --run test --num_experiments 4 --round 16
-
-python make.py --mode cold_start --data ML1M --train_mode fed --run train --num_experiments 4 --round 16
-python make.py --mode cold_start --data ML1M --train_mode fed --run test --num_experiments 4 --round 16
-
-#python make.py --mode cold_start --data Amazon --train_mode fed --run train --num_experiments 4 --round 16
-#python make.py --mode cold_start --data Amazon --train_mode fed --run test --num_experiments 4 --round 16
-#
-#python make.py --mode cold_start --data Douban --train_mode fed --run train --num_experiments 4 --round 16
-#python make.py --mode cold_start --data Douban --train_mode fed --run test --num_experiments 4 --round 16
-#
-#
-#python make.py --mode cold_start --data ML100K --train_mode assist --run train --num_experiments 4 --round 16
-#python make.py --mode cold_start --data ML100K --train_mode assist --run test --num_experiments 4 --round 16
-#
-#python make.py --mode cold_start --data ML1M --train_mode assist --run train --num_experiments 4 --round 16
-#python make.py --mode cold_start --data ML1M --train_mode assist --run test --num_experiments 4 --round 16
-#
-#python make.py --mode cold_start --data Amazon --train_mode assist --run train --num_experiments 4 --round 16
-#python make.py --mode cold_start --data Amazon --train_mode assist --run test --num_experiments 4 --round 16
-#
-#python make.py --mode cold_start --data Douban --train_mode assist --run train --num_experiments 4 --round 16
-#python make.py --mode cold_start --data Douban --train_mode assist --run test --num_experiments 4 --round 16

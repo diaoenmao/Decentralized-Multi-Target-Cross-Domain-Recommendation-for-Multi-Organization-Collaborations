@@ -3,12 +3,16 @@
 control:
   data_name: ML100K
   data_mode: user
-  target_mode: explicit
+  target_mode: implicit
   model_name: ae
-  data_split_mode: random
-  train_mode: joint
-  match_ratio: 1.0-1.0
-  cold_start_ratio: 1.0
+  info: 0
+  data_split_mode: random-8
+  run_mode: assist
+  ar: constant-0.1
+  aw: constant
+  match_rate: 1
+  pl: none
+  cs: 1
 # experiment
 num_workers: 0
 init_seed: 0

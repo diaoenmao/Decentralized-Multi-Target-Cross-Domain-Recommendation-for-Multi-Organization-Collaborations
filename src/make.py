@@ -12,7 +12,6 @@ parser.add_argument('--num_experiments', default=1, type=int)
 parser.add_argument('--resume_mode', default=0, type=int)
 parser.add_argument('--mode', default=None, type=str)
 parser.add_argument('--data', default=None, type=str)
-parser.add_argument('--train_mode', default=None, type=str)
 parser.add_argument('--split_round', default=65535, type=int)
 args = vars(parser.parse_args())
 
@@ -39,70 +38,268 @@ def main():
     mode = args['mode']
     split_round = args['split_round']
     data = args['data']
-    train_mode = args['train_mode']
     gpu_ids = [','.join(str(i) for i in list(range(x, x + world_size))) for x in list(range(0, num_gpus, world_size))]
     init_seeds = [list(range(init_seed, init_seed + num_experiments, experiment_step))]
     world_size = [[world_size]]
     num_experiments = [[experiment_step]]
     resume_mode = [[resume_mode]]
     filename = '{}_{}_{}'.format(run, mode, args['data'])
-    if mode == 'base':
-        script_name = [['{}_recsys_{}.py'.format(run, train_mode)]]
+    if mode in ['joint', 'alone']:
+        script_name = [['{}_recsys_{}.py'.format(run, mode)]]
         if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
-            control_name = [[[data], ['user'], ['explicit'], ['base', 'mf', 'nmf', 'ae', 'simplex'],
-                             ['genre'], [train_mode],
-                             ['0.0-1.0', '0.1-1.0', '0.2-1.0', '0.3-1.0', '0.4-1.0', '0.5-1.0',
-                              '0.6-1.0', '0.7-1.0', '0.8-1.0', '0.9-1.0', '1.0-1.0'], ['0.0']]]
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
+                             ['0'], ['genre'], [mode]]]
             user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
                                           control_name)
-            if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
-                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'nmf', 'ae', 'simplex'],
-                                 ['random'], [train_mode],
-                                 ['1.0-0.0', '1.0-0.1', '1.0-0.2', '1.0-0.3', '1.0-0.4', '1.0-0.5',
-                                  '1.0-0.6', '1.0-0.7', '1.0-0.8', '1.0-0.9', '1.0-1.0'], ['0.0']]]
-                item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
-                                              control_name)
-            else:
-                item_controls = []
+            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'mlp', 'nmf', 'ae'],
+                             ['0'], ['random-8'], [mode]]]
+            item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                          control_name)
+            controls = user_controls + item_controls
+        else:
+            raise ValueError('Not valid data')
+    elif mode == 'mdr':
+        script_name = [['{}_recsys_{}.py'.format(run, mode)]]
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf'],
+                             ['0'], ['genre'], [mode]]]
+            user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                          control_name)
+            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf'],
+                             ['0'], ['random-8'], [mode]]]
+            item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                          control_name)
+            controls = user_controls + item_controls
+        else:
+            raise ValueError('Not valid data')
+    elif mode == 'assist':
+        script_name = [['{}_recsys_assist.py'.format(run)]]
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'],
+                             ['constant-0.1', 'constant-0.3', 'constant-1', 'optim-0.1'], ['constant'], ['1']]]
+            user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                          control_name)
+            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['ae'],
+                             ['0'], ['random-8'], ['assist'],
+                             ['constant-0.1', 'constant-0.3', 'constant-1', 'optim-0.1'], ['constant'], ['1']]]
+            item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                          control_name)
+            controls = user_controls + item_controls
+        elif data in ['Douban', 'Amazon']:
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'],
+                             ['constant-0.1', 'constant-0.3', 'constant-1', 'optim-0.1'], ['constant'], ['1']]]
+            user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                          control_name)
+            control_name = [[[data], ['item'], ['explicit', 'implicit'], ['ae'],
+                             ['0'], ['random-8'], ['assist'],
+                             ['constant-0.1', 'constant-0.3', 'constant-1', 'optim-0.1'], ['constant'], ['1']]]
+            item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                          control_name)
             controls = user_controls + item_controls
         else:
             raise ValueError('Not valid data')
     elif mode == 'match':
-        script_name = [['{}_recsys_{}.py'.format(run, train_mode)]]
-        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
-            control_name = [[[data], ['user'], ['explicit'], ['base', 'mf', 'nmf', 'ae', 'simplex'],
-                             ['genre'], [train_mode], ['0.5-0.5'], ['0.0']]]
-            user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
-                                          control_name)
-            if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
-                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'nmf', 'ae', 'simplex'],
-                                 ['random'], [train_mode], ['0.5-0.5'], ['0.0']]]
-                item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
-                                              control_name)
-            else:
-                item_controls = []
-            controls = user_controls + item_controls
+        script_name = [['{}_recsys_assist.py'.format(run)]]
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.3'],
+                             ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1.0'],
+                             ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Douban']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'],
+                             ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'],
+                             ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Amazon']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'],
+                             ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'],
+                             ['constant'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
         else:
             raise ValueError('Not valid data')
-    elif mode == 'cold_start':
-        script_name = [['{}_recsys_{}.py'.format(run, train_mode)]]
+    elif mode == 'match-mdr':
+        script_name = [['{}_recsys_mdr.py'.format(run)]]
         if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
-            control_name = [[[data], ['user'], ['explicit'], ['base', 'mf', 'nmf', 'ae', 'simplex'],
-                             ['genre'], [train_mode],
-                             ['0.5-0.5', '1.0-1.0'],
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf'],
+                             ['0'], ['genre'], ['mdr'], ['none'],
+                             ['none'], ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                     resume_mode, control_name)
+        else:
+            raise ValueError('Not valid data')
+    elif mode == 'info':
+        script_name = [['{}_recsys_assist.py'.format(run)]]
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['1'], ['genre'], ['assist'], ['constant-0.3'], ['constant'], ['1']]]
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['1'], ['genre'], ['assist'], ['constant-1.0'], ['constant'], ['1']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Douban']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['1'], ['genre'], ['assist'], ['constant-0.1'], ['constant'], ['1']]]
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['1'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        else:
+            raise ValueError('Not valid data')
+    elif mode == 'pl':
+        script_name = [['{}_recsys_assist.py'.format(run)]]
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.3'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1.0'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Douban']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Amazon']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'], ['constant'], ['1'], ['dp-10', 'ip-10']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        else:
+            raise ValueError('Not valid data')
+    elif mode == 'cs':
+        script_name = [['{}_recsys_assist.py'.format(run)]]
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.3'], ['constant'], ['1'], ['none'],
                              ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
-            user_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
-                                          control_name)
-            if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
-                control_name = [[[data], ['item'], ['explicit', 'implicit'], ['base', 'mf', 'nmf', 'ae', 'simplex'],
-                                 ['random'], [train_mode],
-                                 ['0.5-0.5', '1.0-1.0'],
-                                 ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
-                item_controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
-                                              control_name)
-            else:
-                item_controls = []
-            controls = user_controls + item_controls
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1.0'], ['constant'], ['1'], ['none'],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Douban']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'], ['constant'], ['1'], ['none'],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1'], ['none'],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Amazon']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'], ['constant'], ['1'], ['none'],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'], ['constant'], ['1'], ['none'],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        else:
+            raise ValueError('Not valid data')
+    elif mode == 'cs-alone':
+        script_name = [['{}_recsys_alone.py'.format(run)]]
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['base', 'ae'],
+                             ['0'], ['genre'], ['alone'], ['none'], ['none'], ['1'], ['none'],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            controls = make_controls(script_name, init_seeds, world_size, num_experiments, resume_mode,
+                                     control_name)
+        else:
+            raise ValueError('Not valid data')
+    elif mode == 'cs-mdr':
+        script_name = [['{}_recsys_mdr.py'.format(run)]]
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M', 'Douban', 'Amazon']:
+            control_name = [[[data], ['user'], ['explicit', 'implicit'], ['mf', 'mlp', 'nmf'],
+                             ['0'], ['genre'], ['mdr'], ['none'], ['none'], ['1'], ['none'],
+                             ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']]]
+            controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                     resume_mode, control_name)
+        else:
+            raise ValueError('Not valid data')
+    elif mode == 'aw':
+        script_name = [['{}_recsys_assist.py'.format(run)]]
+        if data in ['ML100K', 'ML1M', 'ML10M', 'ML20M']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.3'], ['optim'], ['1']]]
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1.0'], ['optim'], ['1']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Douban']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'], ['optim'], ['1']]]
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'], ['optim'], ['1']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
+        elif data in ['Amazon']:
+            control_name = [[[data], ['user'], ['explicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-1'], ['optim'], ['1']]]
+            assist_user_explicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            control_name = [[[data], ['user'], ['implicit'], ['ae'],
+                             ['0'], ['genre'], ['assist'], ['constant-0.1'], ['optim'], ['1']]]
+            assist_user_implicit_controls = make_controls(script_name, init_seeds, world_size, num_experiments,
+                                                          resume_mode, control_name)
+            controls = assist_user_explicit_controls + assist_user_implicit_controls
         else:
             raise ValueError('Not valid data')
     else:

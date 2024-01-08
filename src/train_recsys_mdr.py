@@ -14,6 +14,7 @@ from metrics import Metric
 from utils import save, to_device, process_control, process_dataset, make_optimizer, make_scheduler, resume, collate
 from logger import make_logger
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 cudnn.benchmark = True
 parser = argparse.ArgumentParser(description='cfg')
 for k in cfg:
@@ -46,21 +47,34 @@ def runExperiment():
         if 'data_split' in result:
             data_split = result['data_split']
     dataset = make_split_dataset(data_split)
-    if 'cold_start_ratio' in cfg:
+    if 'cs' in cfg:
         data_size = len(dataset[0]['train'])
-        start_size = int(data_size * (1 - cfg['cold_start_ratio']))
+        start_size = int(data_size * cfg['cs'])
         dataset[0]['train'].data = dataset[0]['train'].data[:start_size]
         dataset[0]['train'].target = dataset[0]['train'].target[:start_size]
     data_loader = {'train': [], 'test': []}
     model = []
     for i in range(len(dataset)):
         data_loader_i = make_data_loader(dataset[i], cfg['model_name'])
-        model_i = eval('models.{}().to(cfg["device"])'.format(cfg['model_name']))
+        if 'cs' in cfg and i == 0:
+            if cfg['data_mode'] == 'user':
+                num_users = data_size
+                num_items = dataset[i]['train'].num_items['data']
+            elif cfg['data_mode'] == 'item':
+                num_users = dataset[i]['train'].num_users['data']
+                num_items = data_size
+            else:
+                raise ValueError('Not valid data mode')
+        else:
+            num_users = dataset[i]['train'].num_users['data']
+            num_items = dataset[i]['train'].num_items['data']
+        model_i = eval('models.{}(num_users, num_items).to(cfg["device"])'.format(cfg['model_name']))
         data_loader['train'].append(data_loader_i['train'])
         data_loader['test'].append(data_loader_i['test'])
         model.append(model_i)
-    if 'cold_start_ratio' in cfg:
+    if 'cs' in cfg:
         data_loader['train'] = [itertools.cycle(data_loader['train'][0]), *data_loader['train'][1:]]
+        data_loader['test'] = [data_loader['test'][0]]
     model = models.mdr(model)
     optimizer = make_optimizer(model, cfg['model_name'])
     scheduler = make_scheduler(optimizer, cfg['model_name'])
@@ -83,11 +97,13 @@ def runExperiment():
     else:
         last_epoch = 1
         logger = make_logger('output/runs/train_{}'.format(cfg['model_tag']))
+    if cfg['world_size'] > 1:
+        model = torch.nn.DataParallel(model, device_ids=list(range(cfg['world_size'])))
     for epoch in range(last_epoch, cfg[cfg['model_name']]['num_epochs'] + 1):
         train(data_loader['train'], model, optimizer, metric, logger, epoch)
         test(data_loader['test'], model, metric, logger, epoch)
         scheduler.step()
-        model_state_dict = model.state_dict()
+        model_state_dict = model.module.state_dict() if cfg['world_size'] > 1 else model.state_dict()
         optimizer_state_dict = optimizer.state_dict()
         scheduler_state_dict = scheduler.state_dict()
         result = {'cfg': cfg, 'epoch': epoch + 1, 'data_split': data_split, 'model_state_dict': model_state_dict,
@@ -103,18 +119,19 @@ def runExperiment():
 
 
 def train(data_loader, model, optimizer, metric, logger, epoch):
-    logger.save(True)
+    logger.safe(True)
     model.train(True)
     start_time = time.time()
     for i, input in enumerate(zip(*data_loader)):
         loss = 0
         for m in range(len(input)):
             input_m = collate(input[m])
-            input_size = len(input_m['target_rating'])
+            input_size = len(input_m[cfg['data_mode']])
             if input_size == 0:
                 continue
             input_m = to_device(input_m, cfg['device'])
             output_m = model(input_m, m)
+            output_m['loss'] = output_m['loss'].mean() if cfg['world_size'] > 1 else output_m['loss']
             loss += output_m['loss']
             evaluation = metric.evaluate(metric.metric_name['train'], input_m, output_m)
             logger.append(evaluation, 'train', n=input_size)
@@ -135,12 +152,12 @@ def train(data_loader, model, optimizer, metric, logger, epoch):
                              'Experiment Finished Time: {}'.format(exp_finished_time)]}
             logger.append(info, 'train', mean=False)
             print(logger.write('train', metric.metric_name['train']))
-    logger.save(False)
+    logger.safe(False)
     return
 
 
 def test(data_loader, model, metric, logger, epoch):
-    logger.save(True)
+    logger.safe(True)
     model.train(False)
     with torch.no_grad():
         for i, input in enumerate(zip(*data_loader)):
@@ -150,15 +167,16 @@ def test(data_loader, model, metric, logger, epoch):
             output_target_rating = []
             for m in range(len(input)):
                 input_m = collate(input[m])
-                input_size = len(input_m['target_rating'])
+                input_size = len(input_m['target_{}'.format(cfg['data_mode'])])
                 if input_size == 0:
                     continue
                 input_m = to_device(input_m, cfg['device'])
                 output_m = model(input_m, m)
                 input_target_user.append(input_m['target_user'])
                 input_target_item.append(input_m['target_item'])
-                input_target_rating.append(input_m['target_rating'].view(-1))
-                output_target_rating.append(output_m['target_rating'].view(-1))
+                input_target_rating.append(input_m['target_rating'])
+                output_target_rating.append(output_m['target_rating'])
+                output_m['loss'] = output_m['loss'].mean() if cfg['world_size'] > 1 else output_m['loss']
                 evaluation = metric.evaluate([metric.metric_name['test'][0]], input_m, output_m)
                 logger.append(evaluation, 'test', input_size)
             output = {'target_rating': torch.cat(output_target_rating)}
@@ -172,7 +190,7 @@ def test(data_loader, model, metric, logger, epoch):
         info = {'info': ['Model: {}'.format(cfg['model_tag']), 'Test Epoch: {}({:.0f}%)'.format(epoch, 100.)]}
         logger.append(info, 'test', mean=False)
         print(logger.write('test', metric.metric_name['test']))
-    logger.save(False)
+    logger.safe(False)
     return
 
 

@@ -1,102 +1,49 @@
-import copy
 import torch
 import torch.nn as nn
-from .utils import loss_fn, normalize, denormalize
+from .utils import loss_fn
 from config import cfg
 
 
 class Assist(nn.Module):
-    def __init__(self, model, model_name, match_ratio):
+    def __init__(self, ar, ar_mode, num_outputs, num_organizations, aw_mode):
         super().__init__()
-        self.model_name = model_name
-        self.match_ratio = match_ratio
-        model_list = []
-        parameter_list = []
-        for m in range(len(model)):
-            model_list.append(model[m])
-            parameter_list.append(nn.Parameter(torch.randn(len(model))))
-        self.model_list = nn.ModuleList(model_list)
-        self.parameter_list = nn.ParameterList(parameter_list)
-
-    def sync(self):
-        sync_model_list = []
-        for m in range(len(self.model_list)):
-            model_list_m = copy.deepcopy(self.model_list)
-            for i in range(len(model_list_m)):
-                model_list_m[i] = self.make_share(self.model_list[m], model_list_m[i], self.model_name)
-            sync_model_list.append(model_list_m)
-        self.sync_model_list = nn.ModuleList(sync_model_list)
-        return
-
-    def make_share(self, model_0, model_m, model_name):
-        if model_name == 'mf':
-            self.num_matched = {'user': int(len(model_0.user_weight.weight) * self.match_ratio['user']),
-                                'item': int(len(model_0.item_weight.weight) * self.match_ratio['item'])}
-            model_m.share_user_weight = model_0.user_weight
-            model_m.share_item_weight = model_0.item_weight
-        elif model_name == 'nmf':
-            self.num_matched = {'user': int(len(model_0.user_weight_mlp.weight) * self.match_ratio['user']),
-                                'item': int(len(model_0.item_weight_mlp.weight) * self.match_ratio['item'])}
-            model_m.share_user_weight_mlp = model_0.user_weight_mlp
-            model_m.share_item_weight_mlp = model_0.item_weight_mlp
-            model_m.share_user_weight_mf = model_0.user_weight_mf
-            model_m.share_item_weight_mf = model_0.item_weight_mf
-        elif model_name == 'ae':
-            self.num_matched = {'user': int(len(model_0.user_weight_encoder.weight) * self.match_ratio['user']),
-                                'item': int(len(model_0.item_weight_encoder.weight) * self.match_ratio['item'])}
-            model_m.share_user_weight_encoder = model_0.user_weight_encoder
-            model_m.share_item_weight_encoder = model_0.item_weight_encoder
-            model_m.share_user_weight_decoder = model_0.user_weight_decoder
-            model_m.share_item_weight_decoder = model_0.item_weight_decoder
-        elif model_name == 'simplex':
-            self.num_matched = {'user': int(len(model_0.user_weight.weight) * self.match_ratio['user']),
-                                'item': int(len(model_0.item_weight.weight) * self.match_ratio['item'])}
-            model_m.share_user_weight = model_0.user_weight
-            model_m.share_item_weight = model_0.item_weight
-        return model_m
-
-    def forward(self, input, m):
-        if self.training:
-            user = input['user']
-            item = input['item']
-            rating = input['rating'].clone().detach()
-            if cfg['target_mode'] == 'explicit':
-                rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
+        self.ar_mode = ar_mode
+        self.aw_mode = aw_mode
+        if self.ar_mode == 'optim':
+            self.assist_rate = nn.Parameter(torch.full((num_outputs,), ar))
+        elif self.ar_mode == 'constant':
+            self.register_buffer('assist_rate', torch.full((num_outputs,), ar))
         else:
-            user = input['target_user']
-            item = input['target_item']
-            rating = input['target_rating'].clone().detach()
-            if cfg['target_mode'] == 'explicit':
-                rating = normalize(rating, cfg['stats']['min'], cfg['stats']['max'])
-        if cfg['data_mode'] == 'user':
-            mask = user < self.num_matched['user']
+            raise ValueError('Not valid ar mode')
+        if self.aw_mode == 'optim':
+            self.assist_weight = nn.Parameter(torch.ones(num_organizations) / num_organizations)
+        elif self.aw_mode == 'constant':
+            self.register_buffer('assist_weight', torch.ones(num_organizations) / num_organizations)
         else:
-            mask = item < self.num_matched['item']
-        self.make_share(self.model_list[m], self.model_list[m], self.model_name)
-        model_0 = self.model_list[m]
-        output_0 = model_0(input, self.num_matched)
-        output_0['target_rating'] = normalize(output_0['target_rating'], cfg['stats']['min'], cfg['stats']['max'])
-        output_target_rating = [None for _ in range(len(self.model_list))]
-        output_target_rating[m] = output_0['target_rating']
-        for i in range(len(self.sync_model_list[m])):
-            if i != m:
-                model_m = self.sync_model_list[m][i]
-                output_m = model_m(input, self.num_matched)
-                output_m_target_rating_ = normalize(output_m['target_rating'], cfg['stats']['min'], cfg['stats']['max'])
-                output_m_target_rating_.detach_()
-                output_target_rating[i] = output_m_target_rating_
-        output_target_rating = torch.stack(output_target_rating, dim=-1).mean(dim=-1)
-        output_0['target_rating'][mask] = output_target_rating[mask]
-        output_0['loss'] = loss_fn(output_0['target_rating'], rating)
-        if cfg['target_mode'] == 'explicit':
-            output_0['target_rating'] = denormalize(output_0['target_rating'],
-                                                    cfg['stats']['min'], cfg['stats']['max'])
-        output = output_0
+            raise ValueError('Not valid aw mode')
+
+    def forward(self, input):
+        assist_rate = self.assist_rate[input['output_idx']]
+        output = {}
+        if torch.isnan(input['output']).any():
+            nan_mask = torch.isnan(input['output'][:, 0])
+            output_target_s = input['history'][~nan_mask] + assist_rate[~nan_mask] * (input['output'][~nan_mask] *
+                                                                          self.assist_weight.softmax(-1)).sum(-1)
+            output_target_c = input['history'][nan_mask] + assist_rate[nan_mask] * (input['output'][nan_mask, 1:] *
+                                                                          self.assist_weight[1:].softmax(-1)).sum(-1)
+            output['target'] = torch.cat([output_target_s, output_target_c], dim=0)
+        else:
+            output['target'] = input['history'] + assist_rate * (input['output'] *
+                                                                 self.assist_weight.softmax(-1)).sum(-1)
+        if 'target' in input:
+            output['loss'] = loss_fn(output['target'], input['target'])
         return output
 
 
-def assist(model):
-    model_name = cfg['model_name']
-    match_ratio = cfg['match_ratio']
-    model = Assist(model, model_name, match_ratio)
+def assist(num_outputs):
+    ar = cfg['assist']['ar']
+    ar_mode = cfg['assist']['ar_mode']
+    num_organizations = cfg['num_organizations']
+    aw_mode = cfg['assist']['aw_mode']
+    model = Assist(ar, ar_mode, num_outputs, num_organizations, aw_mode)
     return model

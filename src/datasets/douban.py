@@ -184,15 +184,6 @@ class Douban(Dataset):
         item = item[dense_mask]
         rating = rating[dense_mask]
 
-        # Create a DataFrame with the user, item, and rating data
-        data_df = pd.DataFrame({'user': user, 'item': item, 'rating': rating})
-        # Group by user and item and compute the mean rating for each group
-        averaged_data = data_df.groupby(['user', 'item'], as_index=False).mean()
-        # Extract the averaged user, item, and rating arrays
-        user = averaged_data['user'].to_numpy()
-        item = averaged_data['item'].to_numpy()
-        rating = averaged_data['rating'].to_numpy()
-
         user_id, user_inv = np.unique(user, return_inverse=True)
         item_id, item_inv = np.unique(item, return_inverse=True)
         M, N = len(user_id), len(item_id)
@@ -254,15 +245,6 @@ class Douban(Dataset):
         user = user[dense_mask]
         item = item[dense_mask]
         rating = rating[dense_mask]
-
-        # Create a DataFrame with the user, item, and rating data
-        data_df = pd.DataFrame({'user': user, 'item': item, 'rating': rating})
-        # Group by user and item and compute the mean rating for each group
-        averaged_data = data_df.groupby(['user', 'item'], as_index=False).mean()
-        # Extract the averaged user, item, and rating arrays
-        user = averaged_data['user'].to_numpy()
-        item = averaged_data['item'].to_numpy()
-        rating = averaged_data['rating'].to_numpy()
 
         user_id, user_inv = np.unique(user, return_inverse=True)
         item_id, item_inv = np.unique(item, return_inverse=True)
