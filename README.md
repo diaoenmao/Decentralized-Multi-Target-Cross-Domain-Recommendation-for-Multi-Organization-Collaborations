@@ -4,6 +4,7 @@
 <p align="center">
 <img src="/asset/dmtcdr.png">
 </p>
+
 - The Learning and Prediction stages of Multi-Target Assisted Learning (MTAL).
 <p align="center">
 <img src="/asset/mtal.png">
